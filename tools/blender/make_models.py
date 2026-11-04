@@ -19,7 +19,8 @@ OUT = ROOT / "web" / "public" / "models"
 PRODUCTS = [
     {"handle": "vulcan-etna", "img": 1, "kind": "lathe", "rough": .55},
     {"handle": "fumigena-portocalie-cu-inel", "img": 1, "kind": "lathe", "rough": .35, "ring": True},
-    {"handle": "candele-romane-30-foc", "img": 2, "kind": "tubes", "n": 6, "rows": 2, "rough": .3, "fuse": True},
+    # back: a real photo of the other side (turned upright with rot90 k); without one the back repeats the front
+    {"handle": "candele-romane-30-foc", "img": 2, "kind": "tubes", "n": 6, "rows": 2, "rough": .3, "fuse": True, "back": {"img": 3, "k": -1}},
     {"handle": "bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc", "img": 1, "kind": "tubes", "n": 6, "rows": 1, "rough": .3},
     {"handle": "artificii-tort-30cm-set-4-bucati-ardere-120-secunde", "img": 1, "kind": "tubes", "n": 4, "rows": 1, "rough": .45},
 ]
@@ -34,6 +35,19 @@ def load(handle, n):
     ys, xs = np.where(a > .55)
     box = (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
     return img, px, a, box
+
+
+def load_back(handle, spec):
+    """the other side, from a photo shot lying down: rotated upright and cropped to the product"""
+    path = ROOT / "assets" / "processed" / handle / f"{spec['img']}.webp"
+    src = bpy.data.images.load(str(path)); W, H = src.size
+    px = np.array(src.pixels[:], dtype=np.float32).reshape(H, W, 4)          # bottom row first (Blender order)
+    px = np.rot90(px, k=-spec["k"])                                           # rot90 on bottom-first rows turns the other way
+    h, w = px.shape[:2]
+    img = bpy.data.images.new(f"{handle}-back", w, h, alpha=True)
+    img.pixels = px.ravel().tolist(); img.pack()
+    a = px[::-1, :, 3]; ys, xs = np.where(a > .55)
+    return img, (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
 
 
 def material(name, img, rough):
@@ -115,6 +129,10 @@ def tubes(p, img, a, box):
     W, H = img.size; x0, y0, x1, y1 = box; hb = y1 - y0
     n, rows = p["n"], p["rows"]; pw = (x1 - x0) / n; cx = (x0 + x1) / 2; r = pw / 2 / hb * .97
     skin = material(p["handle"] + "-skin", img, p["rough"])
+    back = None
+    if p.get("back"):
+        bimg, bbox = load_back(p["handle"], p["back"])
+        back = (material(p["handle"] + "-back", bimg, p["rough"]), bimg, bbox)
     parts = []
     # the sticks of one pack are the same length: measure each top in the photo, then use the tallest common one
     # (a wrapper or a shadow in the photo makes single tubes look shorter, which read as a staircase)
@@ -134,10 +152,21 @@ def tubes(p, img, a, box):
             bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=40, radius1=r, radius2=r, depth=h)
             bmesh.ops.translate(bm, verts=bm.verts, vec=(0, 0, h / 2))
             project_uv(bm, W, H, box, cx, hb, dx=xc)
+            if back:  # faces turned away from the camera show the real back, seen mirrored as from behind
+                _, bimg, (bx0, by0, bx1, by1) = back; BW, BH = bimg.size; bhb = (by1 - by0) / h; bcx = (bx0 + bx1) / 2
+                uvl = bm.loops.layers.uv.verify()
+                for f in bm.faces:
+                    if f.normal.y > .05 and abs(f.normal.z) < .5:
+                        f.material_index = 1
+                        for l in f.loops:
+                            co = l.vert.co
+                            l[uvl].uv = (min(1, max(0, (bcx - (co.x + xc) * bhb) / BW)), min(1, max(0, 1 - (by1 - co.z * bhb) / BH)))
             me = bpy.data.meshes.new(f"{p['handle']}-{row}-{k}"); bm.to_mesh(me); bm.free()
             for poly in me.polygons: poly.use_smooth = abs(poly.normal.z) < .5
             ob = bpy.data.objects.new(me.name, me); ob.location = (xc, yc, 0); bpy.context.collection.objects.link(ob)
-            ob.data.materials.append(skin); parts.append(ob)
+            ob.data.materials.append(skin)
+            if back: ob.data.materials.append(back[0])
+            parts.append(ob)
             if p.get("fuse") and row == 0:  # a short green fuse wick sticking out of the top
                 bpy.ops.mesh.primitive_cylinder_add(radius=r * .12, depth=.035, location=(xc, yc, h + .016), vertices=8)
                 f = bpy.context.active_object; f.rotation_euler = (0.25 * (k % 2 * 2 - 1), 0, 0)

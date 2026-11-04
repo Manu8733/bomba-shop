@@ -152,8 +152,9 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
   /** frame-rate independent emission: how many to spawn this frame for a rate per second */
   const count = (slot: number, rate: number, dt: number) => { acc[slot] = (acc[slot] ?? 0) + rate * dt; const n = acc[slot] | 0; acc[slot] -= n; return n; };
 
+  let held = false; // the product is being turned round: nothing new is fired until it faces front again
   const emit = (dt: number) => {
-    if (!shot || !nz.length) return;
+    if (!shot || !nz.length || held) return;
     const n0 = nz[0];
     if (live < 0) { // the fuse spits before the effect catches
       for (let i = count(9, 70, dt); i--;) spark(n0.x, n0.y, (rnd() - .5) * 220 * S, -(60 + rnd() * 160) * S, .18 + rnd() * .25, WHITE, { w: .8 });
@@ -417,6 +418,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
       if (reduce) { sparks.length = puffs.length = glows.length = stars.length = 0; still(); }
     },
     relayout: place,
+    hold(on: boolean) { held = on; },
     destroy() { running = false; cancelAnimationFrame(raf); io.disconnect(); ro.disconnect(); document.removeEventListener('visibilitychange', onVis); },
   };
 }

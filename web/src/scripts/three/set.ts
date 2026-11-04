@@ -14,6 +14,7 @@ export type Model = 'lathe' | number;
 /** glb: a model made in Blender (tools/blender/make_models.py); without one the model is built here from the photo */
 export type SetShot = { img: HTMLImageElement; obj: number[]; nozzle: number[]; color: string; model: Model; glb?: string };
 type Prod = { group: THREE.Group; fade: number; dir: 1 | -1; aspect: number; mats: THREE.Material[] };
+let turnTo = 0; // radians the current model is turned to (0 = facing the camera); eased in frame()
 
 const EYE = .9;                // camera height above the floor, in product heights
 const LIGHTS: Record<string, string> = { silver: '#e8e6ff', gold: '#ffc06a' };
@@ -202,8 +203,10 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
   let lastT = performance.now();
 
   const api = {
+    /** turn the model round (only products with a real photo of their back offer it) */
+    turn(rad: number) { turnTo = rad; },
     show(s: SetShot) {
-      shot = s;
+      shot = s; turnTo = 0;
       if (cur) { cur.dir = -1; leaving.push(cur); }
       cur = build(s);
       fxColor.set(LIGHTS[s.color] ?? s.color); fx.color.copy(fxColor);
@@ -219,6 +222,7 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
         if (p.dir < 0) p.fade = Math.max(0, p.fade - dt / .35);
         p.mats.forEach((m) => { m.opacity = p.fade; });
       }
+      if (cur) cur.group.rotation.y += (turnTo - cur.group.rotation.y) * Math.min(1, dt * 7);
       for (let i = leaving.length - 1; i >= 0; i--) if (leaving[i].fade <= 0) {
         const p = leaving[i]; scene.remove(p.group);
         p.group.traverse((m) => { const mesh = m as THREE.Mesh; if (mesh.geometry) mesh.geometry.dispose(); });
