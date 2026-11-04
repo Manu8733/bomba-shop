@@ -65,7 +65,7 @@ const n = slides.length;
     <div class="slides" id="hero-slides" data-slides aria-roledescription="carusel" aria-label="Produse aprinse pe scenă">
       {slides.map((s, i) => (
         <article class:list={['slide', { on: i === 0 }]} data-slide aria-roledescription="slide" aria-label={`${i + 1} din ${n}: ${s.name}`}
-          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} data-model={String(s.model)} inert={i > 0}>
+          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} data-model={String(s.model)} data-glb={`/models/${s.p.handle}.glb`} inert={i > 0}>
           <p class="kind">{s.kind} <span class:list={['who', { pro: s.pro }]}>{s.who}</span></p>
           <h2 class="name"><a href={s.url}>{s.name}</a></h2>
           <p class="line">{s.line}</p>
@@ -305,7 +305,7 @@ const n = slides.length;
     let set: ReturnType<typeof import('../../scripts/three/set').startSet> | null = null;
     const setShotOf = (k: number) => ({ img: shots[k].querySelector('img')!, obj: JSON.parse(shots[k].dataset.obj!),
       nozzle: JSON.parse(slides[k].dataset.nozzles!)[0], color: slides[k].dataset.color!,
-      model: slides[k].dataset.model === 'lathe' ? 'lathe' as const : Number(slides[k].dataset.model) });
+      model: slides[k].dataset.model === 'lathe' ? 'lathe' as const : Number(slides[k].dataset.model), glb: slides[k].dataset.glb });
     /** the set needs the image's real size, so it waits for a slide image that is still loading */
     const showSet = (k: number) => {
       if (!set) return;

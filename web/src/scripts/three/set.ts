@@ -7,10 +7,12 @@
 // model lands where the layout puts it, verticals kept vertical (shifted lens, no tilt). Rendered on the stage's frame.
 import * as THREE from 'three';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /** 'lathe' = a round product; a number = that many tubes side by side */
 export type Model = 'lathe' | number;
-export type SetShot = { img: HTMLImageElement; obj: number[]; nozzle: number[]; color: string; model: Model };
+/** glb: a model made in Blender (tools/blender/make_models.py); without one the model is built here from the photo */
+export type SetShot = { img: HTMLImageElement; obj: number[]; nozzle: number[]; color: string; model: Model; glb?: string };
 type Prod = { group: THREE.Group; fade: number; dir: 1 | -1; aspect: number; mats: THREE.Material[] };
 
 const EYE = .9;                // camera height above the floor, in product heights
@@ -99,8 +101,36 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
   const leaving: Prod[] = [];
   const fxColor = new THREE.Color('#ffffff');
   const loader = new THREE.TextureLoader();
+  const gltf = new GLTFLoader();
+
+  /** a Blender model: 1 unit tall, base at 0, facing the camera; it fades in once loaded */
+  const fromGlb = (s: SetShot): Prod => {
+    const group = new THREE.Group(), prod: Prod = { group, fade: 0, dir: 1, aspect: .5, mats: [] };
+    scene.add(group);
+    gltf.load(s.glb!, (g) => {
+      g.scene.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        for (const m of ([] as THREE.Material[]).concat(mesh.material)) {
+          m.transparent = true; m.opacity = 0; prod.mats.push(m);
+          const map = (m as THREE.MeshStandardMaterial).map; if (map) map.anisotropy = aniso;
+        }
+      });
+      const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());
+      prod.aspect = size.x;
+      const ao = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 1.5, Math.max(.25, size.z * 1.6)), new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false, opacity: 0 }));
+      ao.rotation.x = -Math.PI / 2; ao.position.y = .002; ao.renderOrder = 3;
+      group.add(g.scene, ao); prod.mats.push(ao.material as THREE.Material);
+      if (prod === cur) layout();
+    }, undefined, () => { // no model file: fall back to the one built from the photo
+      const p = build({ ...s, glb: undefined }); scene.remove(group);
+      Object.assign(prod, p, { fade: prod.fade, dir: prod.dir });
+    });
+    return prod;
+  };
 
   const build = (s: SetShot): Prod => {
+    if (s.glb) return fromGlb(s);
     const o = outline(s.img, s.obj);
     const Hb = o.Y1 - o.Y0, cx = (o.X0 + o.X1) / 2;
     const tex = loader.load(s.img.currentSrc || s.img.src, () => render());
