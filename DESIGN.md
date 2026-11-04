@@ -113,8 +113,9 @@ Stări obligatorii pentru orice componentă interactivă: default, hover, focus-
 | Pagină | Scenă | Ce face |
 |---|---|---|
 | Intrare pe site | **Intro** | O bombă urcă, explodează, scânteile formează logo-ul, apoi zboară exact în logo-ul din header (o dată pe sesiune). WebGL, un singur apel de desen pe cadru |
-| Home, hero | **Scena** | 5 produse reale, alese cu săgeți sau taburi; fiecare e „aprins” cu efectul lui: vulcan argintiu, candele romane, bengală, artificii de tort, fumigenă. Fitilul de sub tab e cronometrul. Countdown până la Revelion. Fără scroll forțat |
-| Home, efecte | **Laboratorul de culori** | Un singur ecran cu taburi; particulele își schimbă forma și culoarea după efectul ales. Fără secțiune fixată la scroll |
+| Home, hero | **Scena** | Un decor 3D real (WebGL): mochetă de pâslă pe asfalt umed, orizont cu cer înstelat. 5 produse reale, alese cu săgeți sau taburi, stau pe mochetă și sunt „aprinse” cu efectul lor (vulcan argintiu, candele romane, bengală, artificii de tort, fumigenă). Lumina efectului e o lumină reală în scenă: luminează mocheta și produsul. Fitilul de sub tab e cronometrul. Countdown până la Revelion. Fără scroll forțat |
+| Home, raft | **Ce aprinzi la…** | Titlul e comutatorul (Revelion, Nuntă, Aniversare, Petrecere, Gender reveal); cinci produse reale pe un raft, cu preț și coș |
+| Home, spectacole | **Spectacol live** | Bombe aeriene trase dintr-un șir de tuburi: bujori, inele, sălcii aurii. Același motor ca hero-ul. Tot el e bannerul paginii Spectacole |
 | Colecție | Cer de fundal | Stele și scântei rare, cu parallax la scroll. Foarte ușor |
 | Produs | Fără WebGL | Doar galeria. Scântei 2D la add-to-cart |
 | Footer | **Jarul** | Scântei care cad încet și se sting |
@@ -140,7 +141,8 @@ Reguli tehnice pentru 3D:
 
 ## 8. Imagini
 
-- Toate produsele: decupate, pe fundal transparent, cu o umbră și o lumină caldă comune aplicate în CSS, ca să pară o singură ședință foto.
+- Toate produsele: decupate, pe fundal transparent, **așezate pe podea**: fiecare decupaj are coaptă sub bază o umbră de contact calculată din forma bazei (`tools/ground_shadow.py`), iar în pagină stă pe mocheta de pâslă (`.mat`, aceeași textură ca în scena 3D). Nicio umbră „sub” produs care să-l ridice de pe sol.
+- Fără poze generate cu AI ca decor: ocaziile, efectele și spectacolele se arată cu produse reale și cu efecte randate live.
 - Watermark-urile se elimină prin inpainting; originalele se păstrează.
 - Formate WebP/AVIF, `srcset` cu 3–4 lățimi, `width`/`height` declarate.
 - Alt text în română, descriptiv: „Baterie de artificii Void Reaper, cutie neagră cu 12 jerbe”.

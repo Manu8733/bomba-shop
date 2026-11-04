@@ -29,7 +29,7 @@ const action = pro ? 'pro' : inStock && price(p) ? 'add' : 'notify';
   data-available={String(inStock)} data-category={category(p) ?? ''} data-audience={pro ? 'pro' : 'public'}
   data-effect={effectType(p) ?? ''} data-color={fx?.key ?? ''} data-price={price(p) ?? ''} data-discount={String(!!compareAt(p))}
   data-title={p.title.toLowerCase()}>
-  <a href={productUrl(p)} class:list={["media", { has2: !!alt2 }]} tabindex="-1" aria-hidden="true">
+  <a href={productUrl(p)} class:list={["media", "mat", { has2: !!alt2 }]} tabindex="-1" aria-hidden="true">
     <Img image={img} alt="" eager={eager} class="first" />
     {alt2 && <span class="second"><Img image={alt2} alt="" /></span>}
     <CatBadge category={category(p)} size="sm" class="badge" />
@@ -60,12 +60,13 @@ const action = pro ? 'pro' : inStock && price(p) ? 'add' : 'notify';
   .pcard { position: relative; display: flex; flex-direction: column; background: var(--night-900); border: var(--border);
     border-radius: var(--radius-card); overflow: hidden; transition: border-color var(--dur-ui), transform var(--dur-reveal) var(--ease-out-expo); min-width: 0; }
   .pcard:hover { border-color: var(--night-600); }
-  .media { position: relative; display: grid; place-items: center; aspect-ratio: 1 / 1; padding: 12%;
-    background: radial-gradient(70% 55% at 50% 100%, rgba(255, 182, 72, .2), transparent 70%), var(--night-800); overflow: hidden; }
-  .media :global(.pimg) { transition: transform var(--dur-reveal) var(--ease-out-expo); }
-  .pcard:hover .media :global(.pimg.cutout) { transform: translateY(-6px) scale(1.03); }
+  /* the product stands on the floor (var(--floor)); hovering turns the light up instead of lifting it off the ground */
+  .media { position: relative; display: flex; align-items: flex-end; justify-content: center; aspect-ratio: 1 / 1; padding: 9% 11% 7%;
+    background: var(--floor); overflow: hidden; }
+  .media :global(.pimg) { transition: filter var(--dur-reveal) var(--ease-out-expo), opacity var(--dur-reveal) var(--ease-out-expo); }
+  .pcard:hover .media :global(.pimg.cutout) { filter: brightness(1.1); }
   .pcard.out .media :global(.pimg) { opacity: .55; filter: grayscale(.4); }
-  .second { position: absolute; inset: 0; padding: 12%; display: grid; place-items: center; opacity: 0; transition: opacity var(--dur-reveal) var(--ease-out-expo); pointer-events: none; }
+  .second { position: absolute; inset: 0; padding: 9% 11% 7%; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity var(--dur-reveal) var(--ease-out-expo); pointer-events: none; }
   @media (hover: hover) and (pointer: fine) {
     .pcard:hover .has2 .second { opacity: 1; }
     .pcard:hover .has2 :global(.pimg.first) { opacity: 0; }

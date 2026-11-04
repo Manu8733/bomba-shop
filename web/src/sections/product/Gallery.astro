@@ -13,7 +13,7 @@ const many = n > 1;
 const sizes = '(min-width: 1440px) 784px, (min-width: 1024px) 55vw, 100vw';
 ---
 <section class="gallery" data-gallery aria-label={`Fotografii: ${p.title}`}>
-  <div class="stage">
+  <div class="stage mat">
     {n > 0 ? (
       <ul class="track" data-track role="list">
         {images.map((img, i) => {
@@ -91,11 +91,11 @@ const sizes = '(min-width: 1440px) 784px, (min-width: 1024px) 55vw, 100vw';
 
   /* The night stage: no frame, the sky melts into the page and warm light rises from below. */
   .stage { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: var(--radius-card);
-    background:
-      radial-gradient(62% 46% at 50% 100%, color-mix(in srgb, var(--magnesium-400) 24%, transparent), transparent 72%),
-      linear-gradient(to top, var(--night-800), var(--night-900) 55%, var(--night-950)); }
+    background: var(--floor); }
   @media (max-width: 767px) { .stage { aspect-ratio: 6 / 5; } }
   @media (min-width: 768px) { .stage { aspect-ratio: 5 / 4; } }
+  /* short laptop screens: the photo never runs under the bottom edge */
+  @media (min-width: 1024px) { .stage { max-height: calc(100svh - var(--header-h) - 140px); } }
   @media (max-height: 560px) and (orientation: landscape) { .stage { aspect-ratio: auto; height: calc(100svh - var(--header-h) - 72px); } }
 
   .track { position: relative; display: flex; height: 100%; margin: 0; padding: 0; list-style: none;
@@ -103,11 +103,8 @@ const sizes = '(min-width: 1440px) 784px, (min-width: 1024px) 55vw, 100vw';
   .track::-webkit-scrollbar { display: none; }
   .slide { position: relative; flex: 0 0 100%; height: 100%; scroll-snap-align: center; scroll-snap-stop: always; }
   .slide.empty { display: grid; place-items: center; }
-  /* floor glow under cut-outs, so every product looks lit from the same source */
-  .slide.cutout::after { content: ''; position: absolute; left: 22%; right: 22%; bottom: 7%; height: 12%; pointer-events: none;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--magnesium-400) 42%, transparent), transparent); filter: blur(8px); }
   /* the 1fr track keeps tall photos inside the stage instead of letting them grow past it */
-  .open { position: relative; z-index: 1; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; width: 100%; height: 100%; padding: 13% 13% 15%;
+  .open { position: relative; z-index: 1; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: end center; width: 100%; height: 100%; padding: 9% 13% 8%;
     border: 0; background: none; cursor: zoom-in; }
   .open:focus-visible { outline-offset: -6px; }
   .open :global(img.pimg) { width: 100%; height: 100%; object-fit: contain; }

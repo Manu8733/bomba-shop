@@ -1,7 +1,7 @@
 // Viewport shots of each hero slide after its effect has been burning a while. Usage: node dev/hero.mjs <outDir> <width> [ms]
 import puppeteer from 'puppeteer-core';
 const [out, width, ms = '2600'] = process.argv.slice(2);
-const browser = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new',
+const browser = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', protocolTimeout: 120000,
   args: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--hide-scrollbars'] });
 const page = await browser.newPage();
 const w = Number(width);

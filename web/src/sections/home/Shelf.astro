@@ -1,0 +1,114 @@
+---
+// Liquid: sections/home-shelf.liquid (blocks: occasion → title, collections). "Ce aprinzi la…": the heading is the switch,
+// and each occasion puts five real products from its collections on one lit shelf, ready to add to the cart.
+import Img from '../../snippets/Img.astro';
+import Icon from '../../snippets/Icon.astro';
+import { collectionByHandle, available, isPublic, imagesOf, productUrl, collectionUrl, price, money, specLine, type Product } from '../../lib/catalog';
+
+const OCC = [
+  { key: 'revelion', title: 'Revelion', handles: ['vulcani-artificii', 'produse-f1-pentru-public', 'bengale-candele', 'artificii-de-brad'] },
+  { key: 'nunta', title: 'Nuntă', handles: ['bengale-candele', 'artificii-de-tort', 'vulcani-artificii', 'confetti'] },
+  { key: 'aniversare', title: 'Aniversare', handles: ['artificii-de-tort', 'bengale-candele', 'confetti'] },
+  { key: 'petrecere', title: 'Petrecere', handles: ['confetti', 'produse-f1-pentru-public', 'vulcani-artificii'] },
+  { key: 'gender', title: 'Gender reveal', handles: ['gender-reveal', 'confetti', 'produse-f1-pentru-public'] },
+];
+const cutout = (p: Product) => imagesOf(p).find((x) => x.kind === 'cutout');
+const shelves = OCC.map((o) => {
+  const cols = o.handles.map(collectionByHandle).filter(Boolean) as NonNullable<ReturnType<typeof collectionByHandle>>[];
+  const pools = cols.map((c) => c.products.filter((p) => available(p) && isPublic(p) && price(p) && cutout(p)));
+  const pick: Product[] = [];
+  // take from each collection in turn, so a shelf mixes kinds (a fountain, a bengal, confetti…) instead of five of one
+  for (let round = 0; pick.length < 5 && pools.some((pl) => pl.length > round); round++)
+    for (const pl of pools) { const p = pl[round]; if (p && !pick.includes(p) && pick.length < 5) pick.push(p); }
+  const total = new Set(pools.flat().map((p) => p.handle)).size;
+  return { ...o, pick, total, href: collectionUrl(cols[0]?.handle ?? 'public') };
+});
+---
+<section class="shelf-sec" aria-labelledby="shelf-h" data-shelf>
+  <div class="container">
+    <div class="head">
+      <h2 id="shelf-h">Ce aprinzi la</h2>
+      <div class="occ" role="tablist" aria-labelledby="shelf-h">
+        {shelves.map((s, i) => (
+          <button type="button" role="tab" id={`occ-tab-${s.key}`} aria-controls={`occ-${s.key}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i ? -1 : 0} data-occ={i}>{s.title}</button>
+        ))}
+      </div>
+    </div>
+    {shelves.map((s, i) => (
+      <div class="panel" role="tabpanel" id={`occ-${s.key}`} aria-labelledby={`occ-tab-${s.key}`} hidden={i !== 0} data-panel={i}>
+        <ul class="row" role="list">
+          {s.pick.map((p) => (
+            <li class="item">
+              <a class="stand mat" href={productUrl(p)} tabindex="-1" aria-hidden="true"><Img image={cutout(p)} alt="" sizes="(min-width: 1024px) 16vw, 50vw" /></a>
+              <div class="tag">
+                <a class="nm" href={productUrl(p)}>{p.title}</a>
+                {specLine(p) && <p class="meta">{specLine(p)}</p>}
+                <div class="buy">
+                  <b class="pr">{money(price(p))}</b>
+                  <button class="btn btn-sm btn-primary" type="button" data-add-to-cart data-handle={p.handle} aria-label={`Adaugă ${p.title} în coș`}><Icon name="plus" size={16} />Coș</button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <a class="all" href={s.href}>Vezi toate cele {s.total} produse <Icon name="arrow" size={16} /></a>
+      </div>
+    ))}
+  </div>
+</section>
+<style>
+  .shelf-sec { --stand: clamp(190px, 22vw, 300px); padding-block: clamp(72px, 9vw, 128px) clamp(48px, 6vw, 80px); overflow: hidden; }
+  .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 28px; margin-bottom: clamp(28px, 4vw, 48px); }
+  h2 { font-size: clamp(2.4rem, 5vw, 4.4rem); line-height: .9; }
+  /* the heading's last word is the switch */
+  .occ { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+  .occ button { padding: 6px 0 4px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--smoke-400); cursor: pointer;
+    font: 800 clamp(1.5rem, 3vw, 2.6rem)/1 var(--font-display); text-transform: uppercase; transition: color var(--dur-ui), border-color var(--dur-ui); }
+  .occ button:hover { color: var(--white); }
+  .occ button[aria-selected='true'] { color: var(--white); border-color: var(--magnesium-400); }
+  .occ button:focus-visible { outline: 2px solid var(--magnesium-400); outline-offset: 4px; }
+
+  .panel { animation: show var(--dur-reveal) var(--ease-out-expo); }
+  @keyframes show { from { opacity: 0; transform: translateY(10px); } }
+  .row { position: relative; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(16px, 2.4vw, 36px); }
+  .item { display: grid; gap: var(--space-4); align-content: start; min-width: 0; }
+  .stand { height: var(--stand); display: flex; align-items: flex-end; justify-content: center; padding: 0 6% 6%; overflow: hidden; border-radius: var(--radius-card); }
+  .stand :global(img.pimg) { max-height: 100%; width: auto; max-width: 100%; height: auto; transition: filter var(--dur-reveal) var(--ease-out-expo); }
+  .item:hover .stand :global(img.pimg) { filter: brightness(1.12); }
+  .tag { display: grid; gap: 6px; padding-top: var(--space-3); border-top: 1px solid var(--night-700); }
+  .nm { font: 600 var(--text-base)/1.3 var(--font-body); color: var(--white); text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .nm:hover { color: var(--magnesium-400); }
+  .meta { font-size: var(--text-sm); color: var(--smoke-400); }
+  .buy { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+  .pr { font: 800 1.35rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+  .all { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: var(--space-8); color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .all:hover { color: var(--magnesium-400); }
+
+  /* below desktop the shelf scrolls sideways, one and a half products in view so the next one says "there is more" */
+  @media (max-width: 1023px) {
+    .shelf-sec { --stand: clamp(180px, 46vw, 260px); }
+    .row { display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); }
+    .row::-webkit-scrollbar { display: none; }
+    .item { flex: 0 0 min(62vw, 260px); scroll-snap-align: start; }
+  }
+  @media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
+</style>
+<script>
+  const root = document.querySelector<HTMLElement>('[data-shelf]');
+  if (root) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-occ]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[data-panel]')];
+    const set = (i: number) => {
+      tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
+      panels.forEach((p, k) => { p.hidden = k !== i; });
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => set(i));
+      t.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        e.preventDefault(); const k = (i + d + tabs.length) % tabs.length; tabs[k].focus(); set(k);
+      });
+    });
+  }
+</script>

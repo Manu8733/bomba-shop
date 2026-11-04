@@ -1,5 +1,6 @@
 ---
 // Liquid: templates/page.spectacole.json. Copy from the shop's services page; image is an AI illustration.
+import LiveShow from '../../snippets/LiveShow.astro';
 import Theme from '../../layouts/Theme.astro';
 import ContentHero from '../../sections/ContentHero.astro';
 import { shop } from '../../config';
@@ -11,7 +12,7 @@ const offer = ['Artificii de exterior, de seară și de noapte', 'Artificii de z
     <a class="btn btn-primary" href="#oferta">Cere o ofertă</a>
   </ContentHero>
   <section class="container band first">
-    <img class="hero-img" src="/images/fx/show-lake-1600.webp" srcset="/images/fx/show-lake-800.webp 800w, /images/fx/show-lake-1600.webp 1600w" sizes="(min-width: 1200px) 1200px, 100vw" width="1600" height="900" alt="Imagine ilustrativă: spectacol de artificii deasupra unui lac" loading="eager" />
+    <LiveShow class="hero-img" />
     <div class="two">
       <div class="prose">
         <h2>Ce facem</h2>
@@ -51,8 +52,8 @@ const offer = ['Artificii de exterior, de seară și de noapte', 'Artificii de z
 <style>
   .band { padding-block: var(--space-12); }
   .band.first { padding-top: 0; }
-  .hero-img { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; border-radius: var(--radius-card); }
-  @media (max-width: 767px) { .hero-img { aspect-ratio: 4 / 3; } }
+  .band :global(.hero-img) { width: 100%; aspect-ratio: 16 / 7; border-radius: var(--radius-card); }
+  @media (max-width: 767px) { .band :global(.hero-img) { aspect-ratio: 4 / 3; } }
   .two { display: grid; gap: var(--space-8); margin-top: var(--space-12); }
   @media (min-width: 1024px) { .two { grid-template-columns: 1.2fr 1fr; gap: var(--space-16); } }
   .prose { max-width: 60ch; }

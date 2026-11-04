@@ -9,18 +9,19 @@ import { byHandle, available, isPro, imagesOf, price, money, productUrl, variant
 import { law } from '../../config';
 import type { Effect } from '../../scripts/stage';
 
-type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number };
+// model: how the 3D set builds the product (three/set.ts): 'lathe' for a round one, a number for that many tubes in a row
+type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number; model: 'lathe' | number };
 const defs: Def[] = [
   { handle: 'vulcan-etna', name: 'Vulcan Etna', kind: 'Vulcan', unit: 'pentru o bucată',
-    line: 'Jerbă de scântei argintii. Distanța minimă de siguranță: 1 m.', effect: 'fountain', color: 'silver', nozzles: [[.55, .015]], k: .78 },
+    line: 'Jerbă de scântei argintii. Distanța minimă de siguranță: 1 m.', effect: 'fountain', color: 'silver', nozzles: [[.55, .015]], k: .78, model: 'lathe' },
   { handle: 'candele-romane-30-foc', name: 'Candele romane', kind: 'Candelă romană', unit: 'pentru pachetul de 12', img: 2,
-    line: 'Câte 30 de bile colorate, trase pe rând spre cer.', effect: 'candle', color: 'gold', nozzles: [[.14, .005], [.62, .005], [.38, .005], [.86, .005]], k: .74 },
+    line: 'Câte 30 de bile colorate, trase pe rând spre cer.', effect: 'candle', color: 'gold', nozzles: [[.14, .005], [.62, .005], [.38, .005], [.86, .005]], k: .74, model: 6 },
   { handle: 'bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc', name: 'Bengală verde', kind: 'Bengală crackling', unit: 'pentru setul de 6',
-    line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]] },
+    line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]], model: 6 },
   { handle: 'artificii-tort-30cm-set-4-bucati-ardere-120-secunde', name: 'Artificii de tort', kind: 'Artificii de tort', unit: 'pentru setul de 4',
-    line: 'Scântei aurii de 30 cm, care ard 120 de secunde.', effect: 'ice', color: 'gold', nozzles: [[.16, .01], [.39, .01], [.61, .01], [.84, .01]], k: .82 },
+    line: 'Scântei aurii de 30 cm, care ard 120 de secunde.', effect: 'ice', color: 'gold', nozzles: [[.16, .01], [.39, .01], [.61, .01], [.84, .01]], k: .82, model: 4 },
   { handle: 'fumigena-portocalie-cu-inel', name: 'Fumigenă portocalie', kind: 'Fumigenă cu inel', unit: 'pentru o bucată',
-    line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff7a26', nozzles: [[.42, .01]] },
+    line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff6a14', nozzles: [[.42, .01]], model: 'lathe' },
 ];
 const slides = defs.flatMap((d) => {
   const p = byHandle(d.handle);
@@ -35,6 +36,7 @@ const slides = defs.flatMap((d) => {
 const n = slides.length;
 ---
 <section class="hero" data-hero aria-labelledby="hero-h">
+  <canvas class="set" aria-hidden="true" data-set-canvas></canvas>
   <canvas class="fx" aria-hidden="true" data-stage-canvas></canvas>
   <div class="container in">
     <div class="top">
@@ -53,7 +55,8 @@ const n = slides.length;
     <div class="first">
     <div class="stage" data-stage aria-hidden="true">
       {slides.map((s, i) => (
-        <a class:list={['shot', { on: i === 0 }]} href={s.url} tabindex="-1" data-shot style={`--k:${s.k ?? 1}`}>
+        <a class:list={['shot', { on: i === 0 }]} href={s.url} tabindex="-1" data-shot data-obj={JSON.stringify(s.img.obj ?? [0, 0, 1, 1])}
+          style={`--k:${s.k ?? 1};--mask:url(${s.img.files[0].src})`}>
           <Img image={s.img} alt="" sizes="(min-width: 1024px) 18vw, 40vw" eager={i === 0} />
         </a>
       ))}
@@ -62,7 +65,7 @@ const n = slides.length;
     <div class="slides" id="hero-slides" data-slides aria-roledescription="carusel" aria-label="Produse aprinse pe scenă">
       {slides.map((s, i) => (
         <article class:list={['slide', { on: i === 0 }]} data-slide aria-roledescription="slide" aria-label={`${i + 1} din ${n}: ${s.name}`}
-          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} inert={i > 0}>
+          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} data-model={String(s.model)} inert={i > 0}>
           <p class="kind">{s.kind} <span class:list={['who', { pro: s.pro }]}>{s.who}</span></p>
           <h2 class="name"><a href={s.url}>{s.name}</a></h2>
           <p class="line">{s.line}</p>
@@ -111,6 +114,12 @@ const n = slides.length;
   .hero::after { content: ''; position: absolute; inset: var(--ground, 82%) 0 0; z-index: -2;
     background: linear-gradient(180deg, #16121e 0%, #0c0a12 38%, #07060b 100%); box-shadow: 0 -1px 0 rgba(246, 241, 234, .06); }
   .fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+  /* the 3D set (scripts/three/set.ts) under the sparks; once it runs, it draws the floor and the product, and the DOM
+     images stay only for layout, links and screen readers */
+  .set { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; opacity: 0; transition: opacity .6s ease-out; }
+  .hero.has-set .set { opacity: 1; }
+  .hero.has-set::after { display: none; }
+  .hero.has-set .shot.on { opacity: 0; }
   .in { flex: 1; display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "top" "stage" "info" "pick"; grid-template-rows: auto minmax(300px, 1fr) auto auto; }
   .first { display: contents; } /* stage, product copy and picker: one box on phones (the first screen), grid items otherwise */
@@ -134,7 +143,12 @@ const n = slides.length;
     --ph: clamp(200px, 46vh, 460px); opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
     transition: opacity .5s var(--ease-out-expo), transform .7s var(--ease-out-expo), visibility 0s .7s; }
   .shot.on { opacity: 1; transform: none; visibility: visible; transition-delay: .12s, .12s, 0s; }
-  .shot :global(img.pimg) { height: 100%; width: auto; filter: drop-shadow(0 -4px 18px rgb(var(--fx, 236 236 255) / .28)) drop-shadow(0 16px 18px rgba(0, 0, 0, .75)); }
+  /* the product is in the dark and lit only by its own effect: dimmed, then a light from above painted through its own
+     silhouette (the image is its own mask), flickering with the flame (--lit, set by the stage script) */
+  .shot :global(img.pimg) { height: 100%; width: auto; filter: brightness(.5) saturate(.9); }
+  .shot::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: var(--lit, .7); mix-blend-mode: screen;
+    background: radial-gradient(90% 46% at 50% 0%, rgb(var(--fx, 236 236 255) / .62), rgb(var(--fx, 236 236 255) / .16) 55%, transparent 80%);
+    -webkit-mask: var(--mask) center / 100% 100% no-repeat; mask: var(--mask) center / 100% 100% no-repeat; }
 
   .slides { grid-area: info; display: grid; align-self: end; }
   .slide { grid-area: 1 / 1; display: grid; gap: var(--space-3); align-content: end; opacity: 0; transform: translateY(12px); visibility: hidden;
@@ -288,9 +302,22 @@ const n = slides.length;
     const pauseBtn = root.querySelector<HTMLButtonElement>('[data-pause]')!;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let i = 0, stage: ReturnType<typeof import('../../scripts/stage').startStage> | null = null;
+    let set: ReturnType<typeof import('../../scripts/three/set').startSet> | null = null;
+    const setShotOf = (k: number) => ({ img: shots[k].querySelector('img')!, obj: JSON.parse(shots[k].dataset.obj!),
+      nozzle: JSON.parse(slides[k].dataset.nozzles!)[0], color: slides[k].dataset.color!,
+      model: slides[k].dataset.model === 'lathe' ? 'lathe' as const : Number(slides[k].dataset.model) });
+    /** the set needs the image's real size, so it waits for a slide image that is still loading */
+    const showSet = (k: number) => {
+      if (!set) return;
+      const img = shots[k].querySelector('img');
+      if (!img) return;
+      const go3d = () => { if (k === i) set!.show(setShotOf(k)); };
+      img.complete && img.naturalWidth ? go3d() : img.addEventListener('load', go3d, { once: true });
+    };
     const shotOf = (k: number) => {
       const s = slides[k];
-      return { effect: s.dataset.effect as Effect, color: s.dataset.color!, nozzles: JSON.parse(s.dataset.nozzles!), el: shots[k].querySelector('img') ?? shots[k] };
+      return { effect: s.dataset.effect as Effect, color: s.dataset.color!, nozzles: JSON.parse(s.dataset.nozzles!), obj: JSON.parse(shots[k].dataset.obj!),
+        el: shots[k].querySelector('img') ?? shots[k] };
     };
     const go = (k: number) => {
       k = (k + slides.length) % slides.length;
@@ -303,6 +330,7 @@ const n = slides.length;
       if (tb.offsetLeft < row.scrollLeft || tb.offsetLeft + tb.offsetWidth > row.scrollLeft + row.clientWidth)
         row.scrollTo({ left: tb.offsetLeft - 16, behavior: reduce ? 'auto' : 'smooth' });
       stage?.fire(shotOf(i));
+      showSet(i);
     };
     // autoplay: the active tab's fuse is the timer; any choice by hand stops it (the pause button too)
     const stop = () => { root.classList.add('stopped'); pauseBtn.setAttribute('aria-pressed', 'true'); pauseBtn.setAttribute('aria-label', 'Pornește schimbarea automată');
@@ -334,10 +362,13 @@ const n = slides.length;
 
     // ---- the live effect starts once the entry intro has landed, so both never fight for frames
     const canvas = root.querySelector<HTMLCanvasElement>('[data-stage-canvas]')!;
-    const start = () => import('../../scripts/stage').then(({ startStage }) => {
-      stage = startStage(canvas, root);
+    const setCanvas = root.querySelector<HTMLCanvasElement>('[data-set-canvas]')!;
+    const start = () => Promise.all([import('../../scripts/stage'), import('../../scripts/three/set').catch(() => null)]).then(([{ startStage }, mod]) => {
+      try { set = mod ? mod.startSet(setCanvas, root) : null; } catch { set = null; } // no WebGL: the flat stage stays
+      if (set) root.classList.add('has-set');
+      stage = startStage(canvas, root, set ? { floor3d: true, onFrame: (l) => set!.frame(l) } : {});
       const img = shots[i].querySelector('img');
-      const fire = () => stage!.fire(shotOf(i));
+      const fire = () => { stage!.fire(shotOf(i)); showSet(i); };
       img && !img.complete ? img.addEventListener('load', fire, { once: true }) : fire();
     }).catch(() => {});
     root.classList.add('paused'); // hold the first fuse until the stage is lit

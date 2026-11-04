@@ -27,7 +27,8 @@ export type Product = {
   flags: string[];
 };
 export type ImageFile = { w: number; h: number; src: string };
-export type ProductImage = { n: number; kind: 'cutout' | 'original'; alt: string; w: number; h: number; files: ImageFile[] };
+/** obj = the product's box inside a cut-out [x0, y0, x1, y1] as fractions; y1 is the floor line (the baked shadow lies below it). */
+export type ProductImage = { n: number; kind: 'cutout' | 'original'; alt: string; w: number; h: number; files: ImageFile[]; obj?: number[] };
 
 export const products: Product[] = (productsData as { products: Product[] }).products;
 const imageMap = imagesData as Record<string, ProductImage[]>;
