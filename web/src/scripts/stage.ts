@@ -8,7 +8,7 @@ export type Effect = 'fountain' | 'ice' | 'bengal' | 'smoke' | 'candle' | 'show'
 /** nozzles are fractions of the product itself; obj is the product's box inside the image (the baked floor shadow lies below it) */
 export type Shot = { effect: Effect; color: string; nozzles: number[][]; obj: number[]; el: HTMLElement };
 
-type Spark = { x: number; y: number; vx: number; vy: number; age: number; life: number; ramp: number; w: number; glitter: boolean; branch: boolean; drag: number; g: number; ex?: number; gy: number };
+type Spark = { x: number; y: number; vx: number; vy: number; age: number; life: number; ramp: number; w: number; glitter: boolean; branch: boolean; drag: number; g: number; ex?: number; gy: number; bh: boolean };
 type Puff = { x: number; y: number; vx: number; vy: number; r: number; r0: number; gr: number; age: number; life: number; rot: number; vr: number; a: number; sprite: HTMLCanvasElement; drag: number; buoy: number; wind: number };
 type Glow = { x: number; y: number; r: number; age: number; life: number; sprite: HTMLCanvasElement; a: number };
 type Star = { x: number; y: number; vx: number; vy: number; age: number; life: number; c: string; ramp: number; acc: number; shell?: string };
@@ -141,7 +141,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
   // terms a band around the base line, since nearer floor is lower on screen); on a flat floor, the base line itself
   const spark = (x: number, y: number, vx: number, vy: number, life: number, ramp: number, o: Partial<Spark> = {}) =>
     sparks.push({ x, y, vx, vy, age: 0, life, ramp, w: .8 + rnd(), glitter: false, branch: false, drag: .5, g: 1600 * S,
-      gy: opts.floor3d ? (rnd() * .24 - .06) * box.h : 3, ...o });
+      gy: opts.floor3d ? (rnd() * .24 - .06) * box.h : 3, bh: !!opts.floor3d && rnd() < .5, ...o });
   const glow = (x: number, y: number, r: number, life: number, c: string, a = 1) => glows.push({ x, y, r, age: 0, life, sprite: glowOf(c), a });
   const puff = (x: number, y: number, vx: number, vy: number, o: Partial<Puff> & { base: string }) => {
     const set = puffsOf(o.base);
@@ -349,6 +349,8 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
       if (s.glitter && f > .45) a = rnd() < .45 ? 1 : .15;
       const ci = s.ramp * 5 + Math.min(4, (f * 5) | 0), wi = s.w < 1.3 ? 0 : 1, ai = a < .5 ? 0 : a < .85 ? 1 : 2;
       const b = (ci * 2 + wi) * 3 + ai;
+      // on the 3D set half the sparks fly behind the product: there the product hides them
+      if (s.bh && s.x > box.x && s.x < box.x + box.w && s.y > box.y + box.h * .04 && s.y < ground) continue;
       const ex = s.ex ?? EXP;
       (buckets[b] ??= []).push(s.x - s.vx * ex, s.y - s.vy * ex, s.x + .3, s.y);
     }

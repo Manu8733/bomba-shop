@@ -212,7 +212,7 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
     /** called by the stage engine every frame with the effect's light level (0 = off, ~1 = full flame) */
     frame(heat: number) {
       const now = performance.now(), dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
-      fx.intensity = Math.max(0, heat) * 4.2;
+      fx.intensity = Math.max(0, heat) * 3.2;
       if (cur && cur.fade < 1) cur.fade = Math.min(1, cur.fade + dt / .5);
       for (const p of [cur, ...leaving]) {
         if (!p) continue;

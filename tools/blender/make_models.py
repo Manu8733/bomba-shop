@@ -116,13 +116,18 @@ def tubes(p, img, a, box):
     n, rows = p["n"], p["rows"]; pw = (x1 - x0) / n; cx = (x0 + x1) / 2; r = pw / 2 / hb * .97
     skin = material(p["handle"] + "-skin", img, p["rough"])
     parts = []
+    # the sticks of one pack are the same length: measure each top in the photo, then use the tallest common one
+    # (a wrapper or a shadow in the photo makes single tubes look shorter, which read as a staircase)
+    tops = []
+    for k in range(n):
+        tx0 = x0 + pw * k
+        band = a[:, int(tx0 + pw * .3):int(tx0 + pw * .7)]
+        filled = np.where((band > .55).mean(axis=1) > .6)[0]
+        tops.append(int(filled[0]) if len(filled) else y0)
+    h = (y1 - float(np.percentile(tops, 25))) / hb
     for row in range(rows):
         for k in range(n):
             tx0 = x0 + pw * k
-            band = a[:, int(tx0 + pw * .3):int(tx0 + pw * .7)]
-            filled = np.where((band > .55).mean(axis=1) > .6)[0]
-            top = int(filled[0]) if len(filled) else y0
-            h = (y1 - top) / hb
             xc = (tx0 + pw / 2 - cx) / hb + (r if row % 2 else 0)
             yc = row * r * 1.75
             bm = bmesh.new()
