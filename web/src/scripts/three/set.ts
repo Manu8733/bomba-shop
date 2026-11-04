@@ -114,7 +114,13 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
         if (!mesh.isMesh) return;
         for (const m of ([] as THREE.Material[]).concat(mesh.material)) {
           m.transparent = true; m.opacity = 0; prod.mats.push(m);
-          const map = (m as THREE.MeshStandardMaterial).map; if (map) map.anisotropy = aniso;
+          const sm = m as THREE.MeshStandardMaterial, map = sm.map;
+          if (map) {
+            // the photo already carries its studio light: show it in its own colours (self-lit), and let the scene's
+            // lights only add form (rims, the flame's warmth) instead of re-lighting and muddying it
+            map.anisotropy = aniso;
+            sm.emissive.set('#ffffff'); sm.emissiveMap = map; sm.emissiveIntensity = .72; sm.color.setScalar(.38); sm.roughness = .45;
+          }
         }
       });
       const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());

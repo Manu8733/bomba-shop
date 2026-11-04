@@ -293,7 +293,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
       if (e !== 'show' && !opts.floor3d) { ctx.globalAlpha = .5 * heat; ctx.drawImage(L, n0.x - 330 * S, ground - 46 * S, 660 * S, 92 * S); }
       if (e !== 'smoke' && e !== 'show') { const r = (e === 'ice' ? 260 : 520) * S; ctx.globalAlpha = (opts.floor3d ? .06 : .2) * heat; ctx.drawImage(L, n0.x - r, n0.y - r * .8, r * 2, r * 2); }
       if (live >= 0 && e === 'fountain') {
-        ctx.globalAlpha = 1; const r = (34 + rnd() * 10) * S; ctx.drawImage(glowOf('#ffffff'), n0.x - r, n0.y - r, r * 2, r * 2);
+        ctx.globalAlpha = opts.floor3d ? .75 : 1; const r = (opts.floor3d ? 20 + rnd() * 6 : 34 + rnd() * 10) * S; // a smaller hot core on the 3D set: the label stays visible ctx.drawImage(glowOf('#ffffff'), n0.x - r, n0.y - r, r * 2, r * 2);
         ctx.globalAlpha = .55; ctx.drawImage(L, n0.x - 110 * S, n0.y - 130 * S, 220 * S, 220 * S);
       }
       if (live >= 0 && e === 'ice') for (const p of nz) { ctx.globalAlpha = .9; const r = (12 + rnd() * 4) * S; ctx.drawImage(glowOf('#fff4d6'), p.x - r, p.y - r, r * 2, r * 2); }

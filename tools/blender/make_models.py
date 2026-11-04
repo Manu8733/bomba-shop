@@ -27,7 +27,9 @@ PRODUCTS = [
 
 
 def load(handle, n):
-    path = ROOT / "assets" / "processed" / handle / f"{n}.webp"
+    # a sharper AI-upscaled cut-out (tools/cut_upscaled.py) wins over the shop's own when there is one
+    up = ROOT / "assets" / "upscaled" / f"{handle}-cut.png"
+    path = up if up.exists() else ROOT / "assets" / "processed" / handle / f"{n}.webp"
     img = bpy.data.images.load(str(path))
     W, H = img.size
     px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)[::-1]  # top row first
