@@ -1,0 +1,18 @@
+---
+// Liquid: templates/page.termeni.json. Text adapted from the shop's current terms; needs legal review before launch.
+import Theme from '../../layouts/Theme.astro';
+import ContentHero from '../../sections/ContentHero.astro';
+import ContentPage from '../../sections/ContentPage.astro';
+import body from '../../content/termeni.html?raw';
+import { shop, law } from '../../config';
+---
+<Theme title="Termeni și condiții" description="Termenii și condițiile de utilizare a magazinului online Bomba Shop." skipGate>
+  <ContentHero title="Termeni și condiții" lede="Regulile de folosire a site-ului și de cumpărare de pe bomba-shop.ro." />
+  <ContentPage toc>
+    <h2>Cine vinde</h2>
+    <p>Magazinul bomba-shop.ro este operat de <b>{shop.company.legalName}</b>, CUI {shop.company.cui}, Nr. Reg. Com. {shop.company.regCom}. Contact: {shop.email.office}.</p>
+    <h2>Produse pirotehnice și vârstă</h2>
+    <p>Conform {law.reference}, persoanele fizice pot cumpăra doar articole din categoria F1, de la {law.publicMinAge} ani. Articolele din categoriile P1 și T1 se vând doar firmelor și persoanelor autorizate, după verificarea autorizației.</p>
+    <Fragment set:html={body} />
+  </ContentPage>
+</Theme>

@@ -1,0 +1,14 @@
+import puppeteer from 'puppeteer-core';
+const b = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new' });
+const p = await b.newPage();
+await p.setViewport({ width: 1440, height: 900 });
+await p.evaluateOnNewDocument(() => { localStorage.setItem('bomba-mode-v1', 'public'); sessionStorage.setItem('bomba-intro-v1', '1');
+  localStorage.setItem('bomba-cart-v1', JSON.stringify([{ handle: 'void-reaper', quantity: 2 }, { handle: 'vulcani-fidji', quantity: 1 }])); });
+p.on('pageerror', (e) => console.log('ERR', e.message));
+await p.goto('http://127.0.0.1:4410/pages/contact', { waitUntil: 'load' });
+await new Promise((r) => setTimeout(r, 800));
+await p.screenshot({ path: '../tools/shots/footer.png', fullPage: true });
+await p.evaluate(() => window.dispatchEvent(new CustomEvent('cart:open')));
+await new Promise((r) => setTimeout(r, 900));
+await p.screenshot({ path: '../tools/shots/drawer.png' });
+await b.close();

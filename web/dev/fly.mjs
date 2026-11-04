@@ -1,0 +1,17 @@
+import puppeteer from 'puppeteer-core';
+const b = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new' });
+const p = await b.newPage();
+await p.setViewport({ width: 1440, height: 900 });
+await p.evaluateOnNewDocument(() => { localStorage.setItem('bomba-mode-v1', 'public'); sessionStorage.setItem('bomba-intro-v1', '1'); localStorage.removeItem('bomba-cart-v1'); });
+p.on('pageerror', (e) => console.log('ERR', e.message));
+await p.goto('http://127.0.0.1:4410/collections/public', { waitUntil: 'load' });
+await new Promise((r) => setTimeout(r, 800));
+const card = await p.$('[data-product-card] .media');
+await card.hover(); await new Promise((r) => setTimeout(r, 700));
+await p.screenshot({ path: '../tools/shots/hover.png', clip: { x: 0, y: 0, width: 1440, height: 900 } });
+const btn = await p.$('[data-product-card] [data-add-to-cart]');
+await btn.click(); await new Promise((r) => setTimeout(r, 300));
+await p.screenshot({ path: '../tools/shots/fly.png' });
+await new Promise((r) => setTimeout(r, 900));
+console.log(await p.evaluate(() => document.querySelector('[data-cart-count]').textContent));
+await b.close();

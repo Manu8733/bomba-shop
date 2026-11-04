@@ -1,0 +1,470 @@
+---
+// Liquid: sections/cart-drawer.liquid. In the theme the lines are rendered server-side from `cart.items` and refreshed
+// through the Section Rendering API after /cart/change.js. Here the cart lives in localStorage, so the line markup sits
+// in <template>s (the body of the Liquid `for item in cart.items` loop) and is filled from getCart().
+import Fuse from '../snippets/Fuse.astro';
+import Icon from '../snippets/Icon.astro';
+import CatBadge from '../snippets/CatBadge.astro';
+import Img from '../snippets/Img.astro';
+import { commerce } from '../config';
+import { products, category, collectionMeta, collectionUrl } from '../lib/catalog';
+
+const threshold = commerce.freeShipping.threshold; // Liquid: a theme setting, until the owner confirms the value
+const categories = [...new Set(products.map(category).filter((c): c is string => !!c))];
+const collectionTitles = Object.fromEntries(Object.entries(collectionMeta).map(([h, m]) => [h, m.title]));
+const picks = ['produse-f1-pentru-public', 'vulcani-artificii'].map((h) => ({ url: collectionUrl(h), ...collectionMeta[h] }));
+---
+<dialog class="drawer" id="cart-drawer" aria-labelledby="cart-drawer-title" data-cart-drawer
+  data-threshold={threshold} data-collections={JSON.stringify(collectionTitles)}>
+  <div class="scrim" data-scrim aria-hidden="true"></div>
+  <div class="panel">
+    <div class="head">
+      <h2>
+        <span id="cart-drawer-title">Coșul tău</span>
+        <span class="count" data-count hidden aria-hidden="true" data-count-n></span>
+        <span class="visually-hidden" data-count-sr></span>
+      </h2>
+      <button type="button" class="close" data-close aria-label="Închide coșul"><Icon name="close" size={22} /></button>
+    </div>
+
+    <div class="ship" data-ship data-confirm="free-shipping" hidden>
+      <p class="ship-text" data-ship-text></p>
+      <Fuse label="Progres spre livrarea gratuită" />
+    </div>
+
+    <div class="body" data-scroller>
+      <p class="loading" data-loading>Se încarcă coșul…</p>
+      <ul class="lines" data-lines aria-label="Produse în coș"></ul>
+      <div class="empty" data-empty hidden>
+        <h3 tabindex="-1" data-empty-title>Coșul e gol.</h3>
+        <p class="muted">Începe cu produsele care se pot cumpăra de la 16 ani:</p>
+        <ul class="picks">
+          {picks.map((c) => (
+            <li>
+              <a href={c.url}>
+                <strong>{c.title}</strong>
+                <span>{c.blurb}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot" data-foot hidden>
+      <p class="sum"><span class="eyebrow">Subtotal</span><span class="amount" data-subtotal></span></p>
+      <p class="note">Prețurile includ TVA. Livrarea se calculează la plasarea comenzii.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="/checkout">Finalizează comanda</a>
+        <a class="btn btn-secondary" href="/cart">Vezi coșul</a>
+      </div>
+    </div>
+
+    <p class="visually-hidden" aria-live="polite" aria-atomic="true" data-live></p>
+  </div>
+
+  <template data-line-tpl>
+    <li class="line" data-line>
+      <div class="thumb-wrap" data-burst-host>
+        <a class="thumb" data-link tabindex="-1" aria-hidden="true"><span class="media" data-media></span></a>
+        <span class="badge" data-badge></span>
+      </div>
+      <div class="info">
+        <p class="meta" data-meta></p>
+        <a class="title" data-link data-title></a>
+        <p class="prices">
+          <span class="unit">
+            <s data-compare hidden><span class="visually-hidden">Preț obișnuit </span><span data-compare-v></span></s>
+            <span class="visually-hidden">Preț pe bucată </span><span data-unit></span><span aria-hidden="true"> / buc.</span>
+          </span>
+          <span class="total"><span class="visually-hidden">Total produs </span><span data-line-total></span></span>
+        </p>
+        <p class="warn" data-warn hidden><Icon name="alert" size={16} /><span data-warn-text></span></p>
+        <div class="controls">
+          <div class="qty" role="group" aria-label="Cantitate">
+            <button type="button" class="step" data-dec><Icon name="minus" size={18} /></button>
+            <input class="qty-input" type="number" inputmode="numeric" min="1" step="1" data-qty />
+            <button type="button" class="step" data-inc><Icon name="plus" size={18} /></button>
+          </div>
+          <button type="button" class="remove" data-remove>Elimină</button>
+        </div>
+      </div>
+    </li>
+  </template>
+  {categories.map((c) => <template data-cat={c}><CatBadge category={c} size="sm" /></template>)}
+  <template data-img-missing><Img /></template>
+  <template data-burst-tpl>
+    <span class="burst" aria-hidden="true">
+      {Array.from({ length: 12 }, (_, i) => <i class:list={{ long: i % 2 === 0 }} style={`--a:${i * 30}deg`}></i>)}
+    </span>
+  </template>
+</dialog>
+
+<style>
+  /* scroll lock while the drawer is open */
+  :global(html.cart-open) { overflow: hidden; }
+  :global(html.cart-open.cart-gutter) { scrollbar-gutter: stable; }
+
+  .drawer { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0;
+    border: 0; background: transparent; color: var(--white); overflow: hidden; }
+  .drawer::backdrop { background: transparent; }
+  .scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--night-950) 78%, transparent); backdrop-filter: blur(2px); }
+
+  .panel { --pad: var(--space-4); position: absolute; inset-block: 0; right: 0; width: min(460px, 100% - 24px);
+    display: flex; flex-direction: column; background: var(--night-900); border-left: var(--border); }
+  @media (min-width: 480px) { .panel { --pad: var(--space-6); } }
+
+  .drawer[open] .scrim { animation: fade-in var(--dur-ui) var(--ease-out-expo); }
+  .drawer[open] .panel { animation: slide-in var(--dur-reveal) var(--ease-out-expo); }
+  .drawer.is-closing .scrim { animation: fade-out var(--dur-ui) var(--ease-out-expo) forwards; }
+  .drawer.is-closing .panel { animation: slide-out var(--dur-ui) var(--ease-out-expo) forwards; }
+  @keyframes fade-in { from { opacity: 0; } }
+  @keyframes fade-out { to { opacity: 0; } }
+  @keyframes slide-in { from { transform: translateX(100%); } }
+  @keyframes slide-out { to { transform: translateX(100%); } }
+
+  .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+    padding: calc(var(--space-3) + env(safe-area-inset-top, 0px)) var(--space-2) var(--space-3) var(--pad); border-bottom: var(--border); }
+  .head h2 { display: flex; align-items: baseline; gap: var(--space-3); font-size: var(--text-xl); }
+  .count { font: 500 var(--text-sm)/1 var(--font-body); text-transform: none; letter-spacing: 0; color: var(--smoke-400); font-variant-numeric: tabular-nums; }
+  .close { width: 48px; height: 48px; display: grid; place-items: center; flex: none; background: transparent; border: 0;
+    border-radius: var(--radius-label); color: var(--white); transition: background-color var(--dur-micro), color var(--dur-micro); }
+  .close:hover { background: var(--night-800); color: var(--magnesium-400); }
+
+  .ship { display: grid; gap: 10px; padding: var(--space-3) var(--pad) var(--space-4); border-bottom: var(--border); }
+  .ship-text { font-size: var(--text-sm); color: var(--smoke-200); }
+  .ship-text :global(strong) { font-family: var(--font-body); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--white); }
+  .ship.is-free .ship-text { color: var(--ok); }
+
+  .body { position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .loading { padding: var(--space-8) var(--pad); color: var(--smoke-400); font-size: var(--text-sm); }
+  .lines { list-style: none; margin: 0; padding: 0; }
+
+  .line { position: relative; display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--space-4);
+    padding: var(--space-4) var(--pad); border-bottom: var(--border); }
+  .line.is-new { animation: line-lit var(--dur-scene) var(--ease-out-expo); }
+  @keyframes line-lit { from { background: color-mix(in srgb, var(--magnesium-400) 12%, transparent); } }
+
+  .thumb-wrap { position: relative; align-self: start; }
+  .thumb { display: grid; place-items: center; width: 72px; aspect-ratio: 1; padding: 6px; border-radius: var(--radius-label); overflow: hidden;
+    background: radial-gradient(80% 60% at 50% 100%, color-mix(in srgb, var(--magnesium-400) 22%, transparent), transparent 70%), var(--night-800); }
+  .media { display: grid; place-items: center; width: 100%; height: 100%; }
+  .media :global(img) { width: 100%; height: 100%; object-fit: contain; }
+  .media :global(.pimg-missing) { gap: 0; }
+  .media :global(.pimg-missing svg) { width: 32px; height: 32px; }
+  .media :global(.pimg-missing span) { display: none; }
+  .badge { position: absolute; left: -9px; top: -9px; line-height: 0; pointer-events: none; }
+  .badge :global(.cat-badge.sm) { --s: 32px; }
+
+  .info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .meta { font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--smoke-400); }
+  .title { font: 800 var(--text-md)/1.05 var(--font-display); text-transform: uppercase; text-decoration: none; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .prices { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px var(--space-3);
+    font-family: var(--font-body); font-variant-numeric: tabular-nums; }
+  .unit { font-size: var(--text-xs); color: var(--smoke-400); }
+  .unit s { margin-right: 6px; }
+  .total { font-weight: 600; color: var(--white); }
+  .warn { display: flex; gap: 6px; align-items: flex-start; font-size: var(--text-xs); color: var(--warn); }
+  .warn :global(svg) { flex: none; margin-top: 1px; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: 2px; }
+  .qty { display: inline-flex; border: 1px solid var(--night-600); border-radius: var(--radius-label); background: var(--night-950); }
+  .step { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; background: transparent; border: 0; color: var(--white);
+    transition: background-color var(--dur-micro), color var(--dur-micro); }
+  .step:hover { background: var(--night-800); color: var(--magnesium-400); }
+  .step[aria-disabled='true'] { color: var(--smoke-400); opacity: .45; background: transparent; cursor: not-allowed; }
+  .qty-input { width: 44px; height: 44px; padding: 0; border: 0; border-inline: 1px solid var(--night-700); background: transparent;
+    text-align: center; font: 600 var(--text-base)/1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--white);
+    appearance: textfield; -moz-appearance: textfield; }
+  .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-input:focus-visible, .step:focus-visible { outline-offset: -2px; }
+  .remove { min-height: 44px; padding: 0 var(--space-1); background: none; border: 0; color: var(--smoke-200);
+    font: 500 var(--text-sm)/1 var(--font-body); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .remove:hover { color: var(--magnesium-400); }
+
+  .empty { display: grid; gap: var(--space-2); padding: var(--space-8) var(--pad); }
+  .empty h3 { font: 600 var(--text-lg)/1.3 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .empty h3:focus { outline: none; }
+  /* two collections as plain rows: name, one line of what is in it */
+  .picks { list-style: none; margin: var(--space-4) 0 0; padding: 0; border-top: var(--border); }
+  .picks a { display: grid; gap: 6px; padding: var(--space-4) 0; border-bottom: var(--border); text-decoration: none; }
+  .picks strong { font: 800 var(--text-lg)/1 var(--font-display); text-transform: uppercase; transition: color var(--dur-micro); }
+  .picks a:hover strong { color: var(--magnesium-400); }
+  .picks span { font-size: var(--text-sm); color: var(--smoke-400); }
+
+  .foot { display: grid; gap: var(--space-3); padding: var(--space-4) var(--pad) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    border-top: var(--border); background: var(--night-900); }
+  .sum { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-4); }
+  .amount { font: 600 var(--text-lg)/1 var(--font-body); font-variant-numeric: tabular-nums; }
+  .note { font-size: var(--text-xs); color: var(--smoke-400); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+  .actions .btn { flex: 1 1 180px; }
+
+  /* spark burst on add (rays echo the logo: long and short, alternating) */
+  .burst { position: absolute; left: 36px; top: 36px; width: 0; height: 0; pointer-events: none; z-index: 1; }
+  .burst::before { content: ''; position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%;
+    background: radial-gradient(circle, var(--white), color-mix(in srgb, var(--magnesium-400) 70%, transparent) 40%, transparent 70%);
+    animation: core var(--dur-reveal) var(--ease-out-expo) forwards; }
+  .burst i { --d: 26px; position: absolute; left: -1px; top: 0; width: 2px; height: 10px; border-radius: 1px; background: var(--magnesium-400);
+    transform-origin: 50% 0; opacity: 0; animation: ray var(--dur-scene) var(--ease-out-expo) forwards; }
+  .burst i.long { --d: 34px; height: 16px; background: linear-gradient(var(--white), var(--magnesium-400)); }
+  @keyframes ray {
+    0% { opacity: 1; transform: rotate(var(--a)) translateY(8px) scaleY(.1); }
+    40% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(var(--a)) translateY(var(--d)) scaleY(1); }
+  }
+  @keyframes core { from { opacity: 1; transform: scale(.2); } to { opacity: 0; transform: scale(1.8); } }
+  @media (prefers-reduced-motion: reduce) { .burst { display: none; } }
+</style>
+
+<script>
+  import { getCart, setQuantity, removeLine, money, type Cart, type CatalogItem } from '../scripts/cart';
+
+  type Item = Cart['items'][number];
+  type Product = CatalogItem & { collection?: string };
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-cart-drawer]');
+  if (dialog) init(dialog);
+
+  function init(dialog: HTMLDialogElement) {
+    const $ = <T extends Element = HTMLElement>(sel: string, root: ParentNode = dialog) => root.querySelector<T>(sel)!;
+    const tpl = (sel: string) => $<HTMLTemplateElement>(sel).content;
+    const threshold = Number(dialog.dataset.threshold) || 0;
+    const titles: Record<string, string> = JSON.parse(dialog.dataset.collections || '{}');
+    const list = $('[data-lines]'), scroller = $('[data-scroller]'), empty = $('[data-empty]'), emptyTitle = $('[data-empty-title]');
+    const foot = $('[data-foot]'), ship = $('[data-ship]'), shipText = $('[data-ship-text]'), fuse = $('.fuse', ship);
+    const loading = $('[data-loading]'), live = $('[data-live]'), subtotal = $('[data-subtotal]');
+    const count = $('[data-count]'), countN = $('[data-count-n]'), countSr = $('[data-count-sr]');
+    const closeBtn = $<HTMLButtonElement>('[data-close]');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+    let cart: Cart | null = null;
+    let opener: HTMLElement | null = null;
+    let pendingBurst: string | null = null;
+    let closeTimer = 0;
+    let liveTimer = 0;
+
+    // Romanian plural: 1 bucată, 2–19 bucăți, 20 de bucăți
+    const nr = (n: number, one: string, many: string) =>
+      n === 1 ? `1 ${one}` : `${n} ${(n % 100 === 0 && n > 0) || n % 100 >= 20 ? 'de ' : ''}${many}`;
+    const maxOf = (p: CatalogItem) => Math.max(1, p.stock ?? 99); // same cap as addToCart()
+    const setOff = (el: Element, off: boolean) => el.setAttribute('aria-disabled', String(off));
+
+    function say(message: string, delay = 250) {
+      clearTimeout(liveTimer);
+      live.textContent = '';
+      liveTimer = window.setTimeout(() => (live.textContent = message), delay);
+    }
+
+    // ---------- rendering ----------
+    function createLine(item: Item) {
+      const li = tpl('[data-line-tpl]').firstElementChild!.cloneNode(true) as HTMLLIElement;
+      const p = item.product as Product;
+      li.dataset.handle = item.handle;
+      li.querySelectorAll<HTMLAnchorElement>('[data-link]').forEach((a) => (a.href = p.url));
+      $('[data-title]', li).textContent = p.title;
+      const media = $('[data-media]', li);
+      if (p.image) {
+        const img = new Image(360, 360);
+        img.src = p.image; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+        media.append(img);
+      } else media.append(tpl('[data-img-missing]').cloneNode(true));
+      const badge = p.category ? dialog.querySelector<HTMLTemplateElement>(`template[data-cat="${CSS.escape(p.category)}"]`) : null;
+      if (badge) $('[data-badge]', li).append(badge.content.cloneNode(true));
+      const meta = [p.category, p.collection ? titles[p.collection] : ''].filter(Boolean).join(' · ');
+      const metaEl = $('[data-meta]', li);
+      metaEl.textContent = meta;
+      metaEl.hidden = !meta;
+      $('[data-dec]', li).setAttribute('aria-label', `Scade cantitatea pentru ${p.title}`);
+      $('[data-inc]', li).setAttribute('aria-label', `Crește cantitatea pentru ${p.title}`);
+      $('[data-qty]', li).setAttribute('aria-label', `Cantitate pentru ${p.title}`);
+      $('[data-remove]', li).setAttribute('aria-label', `Elimină ${p.title} din coș`);
+      return li;
+    }
+
+    function updateLine(li: HTMLElement, item: Item) {
+      const p = item.product, max = maxOf(p);
+      const input = $<HTMLInputElement>('[data-qty]', li);
+      input.max = String(max);
+      if (document.activeElement !== input) input.value = String(item.quantity);
+      setOff($('[data-dec]', li), item.quantity <= 1);
+      setOff($('[data-inc]', li), item.quantity >= max);
+      const reduced = p.compare != null && p.price != null && p.compare > p.price;
+      $('[data-compare]', li).hidden = !reduced;
+      $('[data-compare-v]', li).textContent = reduced ? money(p.compare) : '';
+      $('[data-unit]', li).textContent = money(p.price);
+      $('[data-line-total]', li).textContent = money(item.line_price);
+      const warning = !p.available ? 'Produsul nu mai e în stoc.'
+        : p.pro && document.documentElement.dataset.mode !== 'pro' ? 'Doar pentru persoane autorizate (P1 / T1).' : '';
+      $('[data-warn]', li).hidden = !warning;
+      $('[data-warn-text]', li).textContent = warning;
+    }
+
+    // Keyed update instead of a full re-render, so focus stays on the stepper the shopper is using.
+    function renderLines(items: Item[]) {
+      const existing = new Map<string, HTMLElement>();
+      list.querySelectorAll<HTMLElement>(':scope > [data-line]').forEach((li) => existing.set(li.dataset.handle!, li));
+      items.forEach((item, i) => {
+        const li = existing.get(item.handle) ?? createLine(item);
+        existing.delete(item.handle);
+        updateLine(li, item);
+        if (list.children[i] !== li) list.insertBefore(li, list.children[i] ?? null);
+      });
+      existing.forEach((li) => li.remove());
+    }
+
+    function renderShip(total: number) {
+      if (!threshold) return void (ship.hidden = true);
+      const p = Math.min(1, total / threshold);
+      const rest = Math.round((threshold - total) * 100) / 100;
+      fuse.style.setProperty('--p', String(p));
+      fuse.setAttribute('aria-valuenow', String(Math.round(p * 100)));
+      fuse.setAttribute('aria-valuetext', `${money(Math.min(total, threshold))} din ${money(threshold)}`);
+      if (rest > 0) {
+        const amount = document.createElement('strong');
+        amount.textContent = money(rest);
+        shipText.replaceChildren('Mai adaugă ', amount, ' și livrarea e gratuită');
+      } else shipText.replaceChildren('Ai livrare gratuită');
+      ship.classList.toggle('is-free', rest <= 0);
+    }
+
+    function render(c: Cart) {
+      cart = c;
+      const isEmpty = c.items.length === 0;
+      loading.hidden = true;
+      list.hidden = isEmpty;
+      empty.hidden = !isEmpty;
+      foot.hidden = isEmpty;
+      ship.hidden = isEmpty;
+      count.hidden = isEmpty;
+      countN.textContent = nr(c.item_count, 'bucată', 'bucăți');
+      countSr.textContent = isEmpty ? '' : `, ${nr(c.item_count, 'bucată', 'bucăți')}`;
+      subtotal.textContent = money(c.total_price);
+      if (!isEmpty) renderShip(c.total_price);
+      renderLines(c.items);
+    }
+
+    // ---------- quantity and removal ----------
+    async function commit(li: HTMLElement, wanted: number) {
+      const handle = li.dataset.handle!;
+      const item = cart?.items.find((i) => i.handle === handle);
+      if (!item) return;
+      const input = $<HTMLInputElement>('[data-qty]', li);
+      if (!Number.isFinite(wanted)) return void (input.value = String(item.quantity));
+      const max = maxOf(item.product);
+      const q = Math.min(max, Math.max(1, wanted));
+      const hint = wanted > max ? ` Cantitatea maximă disponibilă este ${max}.`
+        : wanted < 1 ? ' Cantitatea minimă este 1. Ca să scoți produsul, folosește Elimină.' : '';
+      input.value = String(q);
+      if (q === item.quantity) return void (hint && say(hint.trim()));
+      const next = await setQuantity(handle, q);
+      say(`${item.product.title}: ${nr(q, 'bucată', 'bucăți')}. Subtotal ${money(next.total_price)}.${hint}`);
+    }
+
+    async function remove(li: HTMLElement) {
+      const handle = li.dataset.handle!;
+      const title = cart?.items.find((i) => i.handle === handle)?.product.title ?? 'Produsul';
+      const index = [...list.children].indexOf(li);
+      const hadFocus = li.contains(document.activeElement);
+      const next = await removeLine(handle);
+      say(next.items.length ? `${title} a fost eliminat din coș. Subtotal ${money(next.total_price)}.` : `${title} a fost eliminat. Coșul e gol.`);
+      if (!hadFocus) return;
+      const sibling = (list.children[index] ?? list.children[index - 1]) as HTMLElement | undefined;
+      (sibling ? $('[data-title]', sibling) : emptyTitle).focus();
+    }
+
+    list.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLButtonElement>('button');
+      const li = btn?.closest<HTMLElement>('[data-line]');
+      if (!btn || !li) return;
+      if (btn.matches('[data-remove]')) return void remove(li);
+      const delta = btn.matches('[data-inc]') ? 1 : btn.matches('[data-dec]') ? -1 : 0;
+      if (!delta || btn.getAttribute('aria-disabled') === 'true') return;
+      commit(li, (parseInt($<HTMLInputElement>('[data-qty]', li).value, 10) || 1) + delta);
+    });
+    list.addEventListener('change', (e) => {
+      const input = (e.target as Element).closest<HTMLInputElement>('[data-qty]');
+      const li = input?.closest<HTMLElement>('[data-line]');
+      if (input && li) commit(li, parseInt(input.value, 10));
+    });
+    list.addEventListener('keydown', (e) => {
+      const input = (e.target as Element).closest<HTMLInputElement>('[data-qty]');
+      const li = input?.closest<HTMLElement>('[data-line]');
+      if (e.key !== 'Enter' || !input || !li) return;
+      e.preventDefault();
+      commit(li, parseInt(input.value, 10));
+    });
+
+    // ---------- spark burst on add ----------
+    function burst(handle: string) {
+      if (reduce.matches) return;
+      const li = list.querySelector<HTMLElement>(`[data-line][data-handle="${CSS.escape(handle)}"]`);
+      const host = li?.querySelector('[data-burst-host]');
+      if (!li || !host) return;
+      const top = li.offsetTop, bottom = top + li.offsetHeight;
+      if (top < scroller.scrollTop) scroller.scrollTop = top;
+      else if (bottom > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = bottom - scroller.clientHeight;
+      const spark = tpl('[data-burst-tpl]').firstElementChild!.cloneNode(true) as HTMLElement;
+      host.append(spark);
+      li.classList.remove('is-new');
+      void li.offsetWidth; // restart the glow when the same product is added twice
+      li.classList.add('is-new');
+      window.setTimeout(() => { spark.remove(); li.classList.remove('is-new'); }, 1200);
+    }
+
+    // ---------- open / close (native modal dialog: inert page, focus contained, Esc) ----------
+    async function open() {
+      if (dialog.open) return;
+      clearTimeout(closeTimer);
+      const active = document.activeElement;
+      opener = active instanceof HTMLElement && active !== document.body ? active : null;
+      const html = document.documentElement;
+      html.classList.toggle('cart-gutter', window.innerWidth > html.clientWidth);
+      html.classList.add('cart-open');
+      dialog.classList.remove('is-closing');
+      dialog.showModal();
+      closeBtn.focus();
+      render(await getCart());
+      if (pendingBurst) { burst(pendingBurst); pendingBurst = null; }
+    }
+
+    function close() {
+      if (!dialog.open || dialog.classList.contains('is-closing')) return;
+      dialog.classList.add('is-closing');
+      const ms = parseFloat(getComputedStyle(dialog).getPropertyValue('--dur-ui')) || 0; // 0 with reduced motion
+      closeTimer = window.setTimeout(() => dialog.close(), ms);
+    }
+
+    dialog.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+    dialog.addEventListener('close', () => {
+      clearTimeout(closeTimer);
+      dialog.classList.remove('is-closing');
+      document.documentElement.classList.remove('cart-open', 'cart-gutter');
+      const back = opener;
+      opener = null;
+      if (back?.isConnected) back.focus({ preventScroll: true });
+    });
+    $('[data-scrim]').addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+
+    // ---------- events ----------
+    window.addEventListener('cart:open', () => void open());
+    window.addEventListener('cart:change', (e) => render((e as CustomEvent<Cart>).detail));
+    window.addEventListener('mode:change', () => cart && render(cart));
+    window.addEventListener('cart:added', (e) => {
+      const handle = (e as CustomEvent<{ handle?: string }>).detail?.handle;
+      if (!handle) return;
+      if (dialog.open) requestAnimationFrame(() => burst(handle)); else pendingBurst = handle;
+      const item = cart?.items.find((i) => i.handle === handle);
+      if (item && cart) say(`${item.product.title} a fost adăugat în coș. Subtotal ${money(cart.total_price)}.`, 600);
+    });
+    // Optional trigger for any element, e.g. the header link: <a href="/cart" data-cart-open>
+    document.addEventListener('click', (e) => {
+      const trigger = (e.target as Element).closest('[data-cart-open]');
+      if (!trigger || (e as MouseEvent).metaKey || (e as MouseEvent).ctrlKey) return;
+      e.preventDefault();
+      void open();
+    });
+  }
+</script>

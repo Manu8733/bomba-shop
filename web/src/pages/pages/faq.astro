@@ -1,0 +1,37 @@
+---
+// Liquid: templates/page.faq.json (FAQPage JSON-LD built from the same entries).
+import Theme from '../../layouts/Theme.astro';
+import ContentHero from '../../sections/ContentHero.astro';
+import ContentPage from '../../sections/ContentPage.astro';
+import { law, commerce } from '../../config';
+const QA = [
+  { q: 'Ce pot cumpăra ca persoană fizică?', a: `Doar articole din categoria F1, dacă ai cel puțin ${law.publicMinAge} ani: vulcani și fântâni mici, bengale, artificii de tort și de brad, titireze, pocnitori și confetti. Categoria apare pe fiecare produs, în rombul galben.` },
+  { q: 'Ce înseamnă F1, P1 și T1?', a: 'Sunt categoriile din legislația europeană a articolelor pirotehnice. F1 are risc foarte scăzut. P1 sunt alte articole pirotehnice, de exemplu emițătoarele de sunet, iar T1 sunt articole pirotehnice de scenă. P1 și T1 se vând doar persoanelor autorizate.' },
+  { q: 'Cum devin client autorizat?', a: 'Dacă ai firmă autorizată sau carnet de pirotehnician, alege „Sunt autorizat” la intrarea pe site și încarcă autorizația pe pagina Profesioniști. După verificare poți comanda și produse P1 și T1.' },
+  { q: 'De ce sunt multe produse epuizate?', a: 'Din 2025 legea a restrâns ce pot cumpăra persoanele fizice. Produsele P1 și T1 rămân în catalog pentru clienții autorizați, dar multe sunt momentan epuizate.' },
+  { q: 'Cum aleg efectul potrivit?', a: 'Pe fiecare produs vezi efectul, numărul de focuri, calibrul și durata, când producătorul le declară. Ghidul „Cum alegi artificiile” explică fiecare efect.' },
+  { q: 'Cât durează livrarea?', a: `Livrăm prin curier, în ${commerce.shipping.courierDays}.` },
+  { q: 'Pot returna un produs?', a: `Da, în ${commerce.returns.days} zile de la primire, dacă produsul e nefolosit și sigilat. Pentru unele articole pirotehnice pot exista excepții; întreabă-ne înainte de comandă.` },
+  { q: 'Cum pot plăti?', a: `${commerce.payments.methods.join(' sau ')}. Prețurile includ TVA.` },
+];
+const ld = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: QA.map((x) => ({ '@type': 'Question', name: x.q, acceptedAnswer: { '@type': 'Answer', text: x.a } })) };
+---
+<Theme title="Întrebări frecvente" description="Răspunsuri despre categoriile F1, P1, T1, vârstă, autorizare, livrare și retur la Bomba Shop." jsonLd={ld}>
+  <ContentHero title="Întrebări frecvente" lede="Ce poți cumpăra, cum devii client autorizat, livrare și retur." />
+  <ContentPage>
+    <div class="faq">
+      {QA.map((x, i) => <details open={i === 0}><summary>{x.q}</summary><p>{x.a}</p></details>)}
+    </div>
+    <p>Nu ai găsit răspunsul? <a href="/pages/contact">Scrie-ne</a>.</p>
+  </ContentPage>
+</Theme>
+<style>
+  .faq { display: grid; margin-bottom: var(--space-8); border-top: 2px solid var(--white); }
+  details { border-bottom: 1px solid var(--night-700); }
+  summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: var(--space-4); padding: 20px 0; font-weight: 600; font-size: var(--text-md); }
+  summary::after { content: '+'; flex: none; color: var(--smoke-400); font: 400 1.6rem/1 var(--font-body); }
+  summary:hover::after, details[open] summary::after { color: var(--white); }
+  details[open] summary::after { content: '−'; }
+  summary::-webkit-details-marker { display: none; }
+  details p { padding-bottom: 20px; color: var(--smoke-200); max-width: 62ch; }
+</style>

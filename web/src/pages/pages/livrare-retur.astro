@@ -1,0 +1,29 @@
+---
+// Liquid: templates/page.livrare-retur.json. Values from config.ts (some still to be confirmed by the owner).
+import Theme from '../../layouts/Theme.astro';
+import ContentHero from '../../sections/ContentHero.astro';
+import ContentPage from '../../sections/ContentPage.astro';
+import { commerce, shop } from '../../config';
+---
+<Theme title="Livrare și retur" description="Cum livrăm comenzile Bomba Shop și cum returnezi un produs.">
+  <ContentHero title="Livrare și retur" lede="Cum ajunge comanda la tine, cum plătești și cum returnezi un produs."
+    specs={[{ label: 'Livrare', value: commerce.shipping.courierDays }, { label: 'Retur', value: `${commerce.returns.days} zile` }]} />
+  <ContentPage toc>
+    <h2>Livrare</h2>
+    <p>Comenzile se livrează prin curier, în {commerce.shipping.courierDays}. Costul livrării se afișează înainte de plasarea comenzii{commerce.freeShipping.threshold ? `, iar peste ${commerce.freeShipping.threshold} lei livrarea este gratuită` : ''}.</p>
+    <p>Articolele pirotehnice se transportă după reguli speciale pentru mărfuri periculoase, de aceea unele produse pot avea condiții de livrare diferite. Le vezi înainte de plasarea comenzii.</p>
+    <h2>Plată</h2>
+    <p>Poți plăti: {commerce.payments.methods.join(', ').toLowerCase()}. Toate prețurile includ TVA.</p>
+    <h2>Dreptul de retragere</h2>
+    <p>Conform OUG 34/2014, ai dreptul să renunți la cumpărare în {commerce.returns.days} zile de la primirea coletului, fără să ne spui motivul. Produsele trebuie să fie nefolosite, în ambalajul original, cu sigiliile intacte.</p>
+    <p>Pentru unele articole pirotehnice se pot aplica excepții legate de siguranță. Dacă nu ești sigur, scrie-ne înainte de comandă și îți confirmăm în scris.</p>
+    <h2>Cum returnezi</h2>
+    <ol>
+      <li>Scrie-ne la {shop.email.orders} cu numărul comenzii și produsele pe care le returnezi.</li>
+      <li>Îți trimitem instrucțiunile de ambalare și predare la curier.</li>
+      <li>Îți returnăm banii în cel mult 14 zile de la primirea produselor.</li>
+    </ol>
+    <h2>Produs deteriorat</h2>
+    <p>Dacă un produs ajunge deteriorat, nu îl folosi. Fă o poză coletului și produsului și scrie-ne cât mai repede la adresa de mai sus.</p>
+  </ContentPage>
+</Theme>

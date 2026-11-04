@@ -1,0 +1,96 @@
+---
+// Product card (Liquid: snippets/product-card.liquid). The data-* attributes drive client-side filtering and the cart.
+import Img from './Img.astro';
+import CatBadge from './CatBadge.astro';
+import Price from './Price.astro';
+import Icon from './Icon.astro';
+import { imagesOf, productUrl, available, category, isPro, price, compareAt, discountPct, effectColor, effectType, variant, specLine, type Product } from '../lib/catalog';
+interface Props { product: Product; eager?: boolean; headingLevel?: 'h2' | 'h3' }
+const { product: p, eager = false, headingLevel = 'h3' } = Astro.props;
+const Heading = headingLevel;
+const img = imagesOf(p)[0];
+// second photo, revealed on hover (desktop): only when it is a clean cut-out like the first
+const alt2 = imagesOf(p).slice(1).find((x) => x.kind === 'cutout' && img?.kind === 'cutout');
+const inStock = available(p);
+const pro = isPro(p);
+const fx = effectColor(p);
+const pct = discountPct(p);
+const qty = variant(p).inventory_quantity;
+const stockText = !inStock ? '○ Revine în curând' : qty && qty <= 5 ? `● Ultimele ${qty}` : '● În stoc';
+const url = productUrl(p);
+const notifyUrl = `${url}#anunta`;
+const proLabel = `${p.title}: doar pentru persoane autorizate, vezi detalii`;
+const addLabel = `Adaugă ${p.title} în coș`;
+const notifyLabel = `Anunță-mă când revine ${p.title}`;
+const spec = specLine(p);
+const action = pro ? 'pro' : inStock && price(p) ? 'add' : 'notify';
+---
+<article class:list={['pcard', { out: !inStock, pro }]} data-product-card data-handle={p.handle}
+  data-available={String(inStock)} data-category={category(p) ?? ''} data-audience={pro ? 'pro' : 'public'}
+  data-effect={effectType(p) ?? ''} data-color={fx?.key ?? ''} data-price={price(p) ?? ''} data-discount={String(!!compareAt(p))}
+  data-title={p.title.toLowerCase()}>
+  <a href={productUrl(p)} class:list={["media", { has2: !!alt2 }]} tabindex="-1" aria-hidden="true">
+    <Img image={img} alt="" eager={eager} class="first" />
+    {alt2 && <span class="second"><Img image={alt2} alt="" /></span>}
+    <CatBadge category={category(p)} size="sm" class="badge" />
+    <span class="flags">
+      {pct > 0 && <span class="flag sale">−{pct}%</span>}
+      {!inStock && <span class="flag">Epuizat</span>}
+    </span>
+  </a>
+  <div class="info">
+    <Heading class="title"><a href={productUrl(p)}>{p.title}</a></Heading>
+    {(spec || fx) && <p class="meta">{fx && <i style={`--c:${fx.color}`} aria-hidden="true"></i>}{[spec, fx?.label].filter(Boolean).join(' · ')}</p>}
+    <div class="buy">
+      <div class="pricebox">
+        <Price product={p} size="sm" />
+        <span class:list={['stock', { no: !inStock }]}>{stockText}</span>
+      </div>
+      {action === 'pro' && <a class="btn btn-sm btn-secondary" href={url} aria-label={proLabel}>Autorizați</a>}
+      {action === 'add' && (
+        <button class="btn btn-sm btn-primary add" type="button" data-add-to-cart data-handle={p.handle} aria-label={addLabel}>
+          <Icon name="plus" size={18} /><span>Coș</span>
+        </button>
+      )}
+      {action === 'notify' && <a class="btn btn-sm btn-secondary" href={notifyUrl} aria-label={notifyLabel}>Anunță-mă</a>}
+    </div>
+  </div>
+</article>
+<style>
+  .pcard { position: relative; display: flex; flex-direction: column; background: var(--night-900); border: var(--border);
+    border-radius: var(--radius-card); overflow: hidden; transition: border-color var(--dur-ui), transform var(--dur-reveal) var(--ease-out-expo); min-width: 0; }
+  .pcard:hover { border-color: var(--night-600); }
+  .media { position: relative; display: grid; place-items: center; aspect-ratio: 1 / 1; padding: 12%;
+    background: radial-gradient(70% 55% at 50% 100%, rgba(255, 182, 72, .2), transparent 70%), var(--night-800); overflow: hidden; }
+  .media :global(.pimg) { transition: transform var(--dur-reveal) var(--ease-out-expo); }
+  .pcard:hover .media :global(.pimg.cutout) { transform: translateY(-6px) scale(1.03); }
+  .pcard.out .media :global(.pimg) { opacity: .55; filter: grayscale(.4); }
+  .second { position: absolute; inset: 0; padding: 12%; display: grid; place-items: center; opacity: 0; transition: opacity var(--dur-reveal) var(--ease-out-expo); pointer-events: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .pcard:hover .has2 .second { opacity: 1; }
+    .pcard:hover .has2 :global(.pimg.first) { opacity: 0; }
+    .media :global(.pimg.first) { transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo); }
+  }
+  .media :global(.badge) { position: absolute; top: 4px; left: 4px; }
+  .flags { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .flag { font: 700 .75rem/1 var(--font-body); padding: 6px 8px; border-radius: 2px;
+    background: var(--night-950); border: 1px solid var(--night-600); color: var(--smoke-200); }
+  .flag.sale { background: var(--strontium-500); border-color: transparent; color: #fff; }
+  .info { display: flex; flex-direction: column; gap: 12px; padding: 14px; flex: 1; min-width: 0; }
+  .title { font-size: clamp(1.15rem, 1.6vw, 1.45rem); line-height: 1.02; }
+  .title a { text-decoration: none; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .title a::after { content: ''; position: absolute; inset: 0; } /* whole card clickable; buttons sit above */
+  .title a:hover { color: var(--white); }
+  .meta { margin: 0; display: flex; align-items: baseline; gap: 8px; font-size: var(--text-sm); line-height: 1.35; color: var(--smoke-200); }
+  .meta i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); transform: translateY(-1px); }
+  .buy { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; position: relative; z-index: 1; }
+  .pricebox { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .stock { font-size: .8rem; font-weight: 500; color: var(--fx-barium); }
+  .stock.no { color: var(--smoke-400); }
+  .buy .btn { position: relative; z-index: 2; flex: none; }
+  @media (max-width: 480px) {
+    .info { padding: 12px; gap: 10px; }
+    .buy { flex-direction: column; align-items: stretch; }
+    .buy .btn { width: 100%; }
+  }
+</style>

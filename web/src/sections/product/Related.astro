@@ -1,0 +1,25 @@
+---
+// Liquid: sections/related-products.liquid (recommendations API at the port).
+import ProductCard from '../../snippets/ProductCard.astro';
+import { products, available, isPublic, collectionByHandle, collectionUrl, type Product } from '../../lib/catalog';
+interface Props { product: Product }
+const { product: p } = Astro.props;
+const handle = p.collections[0];
+const rank = (x: Product) => (available(x) ? 0 : 2) + (isPublic(x) ? 0 : 1);
+const list = products.filter((x) => x.handle !== p.handle && x.collections.includes(handle)).sort((a, b) => rank(a) - rank(b)).slice(0, 8);
+const col = handle ? collectionByHandle(handle) : undefined;
+---
+{list.length > 0 && (
+  <section class="section related" aria-labelledby="rel-h">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="rel-h">Din aceeași colecție</h2>
+        {col && <a class="btn btn-secondary" href={collectionUrl(col.handle)}>Toată colecția {col.title}</a>}
+      </div>
+      <div class="grid-products">{list.map((x) => <ProductCard product={x} />)}</div>
+    </div>
+  </section>
+)}
+<style>
+  .related { padding-top: var(--space-12); } /* follows the safety label, which brings its own bottom space */
+</style>

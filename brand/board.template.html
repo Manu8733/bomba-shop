@@ -1,0 +1,575 @@
+<title>Bomba Shop Brand</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: o scenă 3D lipită (sticky) de 400vh în deschidere, apoi board-ul de brand pe o coloană de 1200px. Un singur aspect, de noapte, ales deliberat. */
+:root{
+  --night-950:#07060b; --night-900:#0e0c14; --night-800:#17141f; --night-700:#241f2e; --night-600:#322b3f;
+  --smoke-400:#8f879c; --smoke-200:#cfc8d8; --white:#f6f1ea;
+  --magnesium-400:#ffb648; --magnesium-600:#e08a12; --on-magnesium:#1a1003; --strontium-500:#ff3d6e;
+  --fx-sodium:#ffd23f; --fx-barium:#6cf2a0; --fx-copper:#5aa9ff; --fx-potassium:#b07bff;
+  --font-display:"Big Shoulders Display","Archivo Narrow",Impact,sans-serif;
+  --font-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --ease-out-expo:cubic-bezier(.16,1,.3,1); --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--night-950)}
+body{background:var(--night-950);color:var(--white);font:16px/1.6 var(--font-body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--font-display);font-weight:800;line-height:1;text-transform:uppercase;text-wrap:balance;margin:0}
+h2{font-size:clamp(2.2rem,5vw,3.6rem)}
+h3{font-size:1.5rem}
+p{margin:0}
+.eyebrow{font:600 .72rem/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--smoke-400)}
+.muted{color:var(--smoke-400)}
+.stack{display:flex;flex-direction:column;gap:16px}
+.stack-lg{display:flex;flex-direction:column;gap:40px}
+section.band{padding-block:clamp(56px,9vw,112px);border-top:1px solid var(--night-700)}
+:focus-visible{outline:2px solid var(--magnesium-400);outline-offset:3px}
+
+/* ---------- Scena 01: Lansarea ---------- */
+.launch{position:relative;height:420vh}
+.launch-sticky{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+.launch-fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px}
+.launch-fallback svg{width:min(640px,86vw);height:auto}
+.cap{position:absolute;left:0;right:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none;transition:opacity .2s linear}
+.cap-top{top:calc(env(safe-area-inset-top,0px) + 28px)}
+.cap-mid{top:50%;transform:translateY(-50%);text-align:center}
+.cap-bot{bottom:calc(env(safe-area-inset-bottom,0px) + 92px);text-align:center}
+.cap .big{font:900 clamp(2.6rem,8vw,6rem)/.9 var(--font-display);text-transform:uppercase}
+.cap .big em{font-style:normal;color:var(--magnesium-400);text-shadow:0 0 28px rgba(255,182,72,.5)}
+.cap .sub{font-size:clamp(1rem,1.6vw,1.15rem);color:var(--smoke-200);max-width:44ch;margin-inline:auto;margin-top:14px}
+.cap-top .row{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;max-width:1200px;margin:0 auto}
+.hint{font:600 .72rem/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--smoke-200)}
+.hint b{color:var(--magnesium-400);font-weight:600}
+/* fitilul legat de scroll */
+.launch-fuse{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 40px);width:min(420px,calc(100% - 32px));display:flex;align-items:center;gap:12px}
+.launch-fuse .track{flex:1;height:4px;background:var(--night-700);border-radius:2px;position:relative}
+.launch-fuse .burn{position:absolute;inset:0 auto 0 0;width:0;border-radius:2px;background:linear-gradient(90deg,#ff6a13,var(--fx-sodium))}
+.launch-fuse .burn::after{content:"";position:absolute;right:-5px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:#fff3c4;box-shadow:0 0 12px 4px rgba(255,182,72,.8)}
+.launch-fuse span{font:600 .72rem/1 var(--font-mono);color:var(--smoke-400);font-variant-numeric:tabular-nums;min-width:4ch;text-align:right}
+
+/* ---------- Logo ---------- */
+.concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px}
+.concept{background:var(--night-900);border:1px solid var(--night-700);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.concept.pick{border-color:var(--magnesium-400);box-shadow:0 0 0 1px var(--magnesium-400),0 0 48px rgba(255,182,72,.12)}
+.concept .hero{background:var(--night-950);padding:28px 20px;display:grid;place-items:center;min-height:180px;border-bottom:1px solid var(--night-700)}
+.concept .hero svg{width:100%;max-width:380px;height:auto}
+.concept .minis{display:flex;gap:10px;padding:14px 20px;border-bottom:1px solid var(--night-700);align-items:center}
+.concept .minis > div{width:56px;height:56px;flex:none}
+.concept .minis > div.wide{width:auto;flex:1;height:56px;display:flex;align-items:center;min-width:0}
+.concept .minis svg{width:100%;height:100%}
+.concept .minis .wide svg{height:100%;width:auto;max-width:100%}
+.concept .body{padding:20px;display:flex;flex-direction:column;gap:10px}
+.concept .body h3{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.concept .body h3 small{font:600 .68rem/1 var(--font-mono);letter-spacing:.12em;color:var(--on-magnesium);background:var(--magnesium-400);padding:5px 7px;border-radius:2px}
+
+/* ---------- Paletă ---------- */
+.pal{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.chip{border:1px solid var(--night-700);border-radius:6px;overflow:hidden;background:var(--night-900)}
+.chip i{display:block;height:84px}
+.chip div{padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.chip b{font-weight:600;font-size:.92rem}
+.chip span{font:500 .72rem/1.4 var(--font-mono);color:var(--smoke-400)}
+.salts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.salt{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--night-700);border-radius:6px;background:var(--night-900)}
+.salt i{width:28px;height:28px;border-radius:50%;flex:none;box-shadow:0 0 18px currentColor}
+.salt b{display:block;font-weight:600;font-size:.9rem}
+.salt span{font:500 .7rem/1.3 var(--font-mono);color:var(--smoke-400)}
+
+/* ---------- Tipografie ---------- */
+.type{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px}
+.spec{background:var(--night-900);border:1px solid var(--night-700);border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.spec .d{font:900 clamp(3rem,7vw,4.6rem)/.9 var(--font-display);text-transform:uppercase}
+.spec .b{font:400 1.05rem/1.6 var(--font-body);color:var(--smoke-200)}
+.spec .m{font:600 .95rem/1.5 var(--font-mono);letter-spacing:.06em}
+
+/* ---------- Componente: etichete ---------- */
+.spec-label{display:inline-flex;flex-wrap:wrap;border:2px solid var(--white);border-radius:2px;color:var(--white);max-width:100%}
+.spec-label > span{font:600 .72rem/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;padding:9px 10px;border-right:2px solid var(--white);display:flex;gap:6px;white-space:nowrap}
+.spec-label > span small{font:inherit;color:var(--smoke-400)}
+.spec-label > span:last-child{border-right:0}
+.spec-label .cat{background:var(--magnesium-400);color:var(--on-magnesium)}
+.spec-label .cat.pro{background:var(--strontium-500);color:#fff}
+.spec-label .na{color:var(--smoke-400)}
+.cat-badge{width:74px;height:74px;position:relative;display:grid;place-items:center;flex:none}
+.cat-badge::before{content:"";position:absolute;inset:11px;transform:rotate(45deg);background:var(--magnesium-400);box-shadow:inset 0 0 0 3px var(--magnesium-400),inset 0 0 0 5px var(--night-950)}
+.cat-badge.pro::before{background:var(--strontium-500);box-shadow:inset 0 0 0 3px var(--strontium-500),inset 0 0 0 5px var(--night-950)}
+.cat-badge div{position:relative;text-align:center;color:var(--on-magnesium);font:800 1.25rem/1 var(--font-display)}
+.cat-badge.pro div{color:#fff}
+.cat-badge small{display:block;font:600 .5rem/1.2 var(--font-mono);letter-spacing:.08em;margin-top:2px}
+.comp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px}
+.panel{background:var(--night-900);border:1px solid var(--night-700);border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{font:600 1rem/1 var(--font-body);min-height:48px;padding:0 22px;border-radius:2px;border:2px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:transform .24s var(--ease-spring),background-color .24s,box-shadow .24s}
+.btn-primary{background:var(--magnesium-400);color:var(--on-magnesium)}
+.btn-primary:hover{background:#ffc56b;box-shadow:0 0 32px rgba(255,182,72,.35)}
+.btn-primary:active{transform:scale(.97)}
+.btn-secondary{background:transparent;color:var(--white);border-color:var(--white)}
+.btn-secondary:hover{background:var(--night-800)}
+.btn-pro{background:var(--strontium-500);color:#fff}
+.btn[disabled]{background:var(--night-800);color:var(--smoke-400);cursor:not-allowed;box-shadow:none}
+.fuse{display:flex;flex-direction:column;gap:8px}
+.fuse .track{height:6px;background:var(--night-700);border-radius:3px;position:relative}
+.fuse .burn{position:absolute;inset:0 auto 0 0;width:68%;border-radius:3px;background:linear-gradient(90deg,#ff6a13,var(--fx-sodium))}
+.fuse .burn::after{content:"";position:absolute;right:-6px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:#fff3c4;box-shadow:0 0 14px 5px rgba(255,182,72,.75);animation:flicker 1.2s steps(3) infinite}
+@keyframes flicker{50%{box-shadow:0 0 8px 3px rgba(255,182,72,.55)}}
+.fuse p{font-size:.92rem}
+.fuse p b{color:var(--magnesium-400)}
+
+/* ---------- Card produs ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:20px}
+.pcard{background:var(--night-900);border:1px solid var(--night-700);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .24s}
+.pcard:hover{border-color:var(--night-600)}
+.pcard .img{position:relative;aspect-ratio:1/1;background:radial-gradient(70% 55% at 50% 100%,rgba(255,182,72,.22),transparent 70%),var(--night-800);display:grid;place-items:center;padding:28px;overflow:hidden}
+.pcard .img img{max-width:78%;max-height:82%;width:auto;height:auto;filter:drop-shadow(0 18px 22px rgba(0,0,0,.6));transition:transform .48s var(--ease-out-expo)}
+.pcard:hover .img img{transform:translateY(-6px) scale(1.03)}
+.pcard .img .cat-badge{position:absolute;top:8px;left:8px;width:62px;height:62px}
+.pcard .img .flag{position:absolute;top:16px;right:16px;font:600 .66rem/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;padding:6px 8px;border-radius:2px;background:var(--night-950);border:1px solid var(--night-600);color:var(--smoke-200)}
+.pcard .img .wm{position:absolute;bottom:10px;left:0;right:0;text-align:center;font:500 .62rem/1 var(--font-mono);color:var(--smoke-400)}
+.pcard .info{padding:18px;display:flex;flex-direction:column;gap:14px;flex:1}
+.pcard .brand{font:600 .68rem/1 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--smoke-400)}
+.pcard h4{margin:0;font:800 1.7rem/1 var(--font-display);text-transform:uppercase}
+.pcard .fx{display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--smoke-200)}
+.pcard .fx i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 10px currentColor}
+.pcard .buy{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pcard .price{font:600 1.35rem/1 var(--font-mono);font-variant-numeric:tabular-nums}
+.pcard .price s{display:block;font-size:.75rem;color:var(--smoke-400);margin-bottom:4px}
+.pcard .stock{font:500 .78rem/1 var(--font-mono);color:var(--fx-barium)}
+.pcard .stock.out{color:var(--smoke-400)}
+.pcard .btn{min-height:44px;padding:0 16px;font-size:.92rem}
+
+/* ---------- Gate ---------- */
+.gate{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.gate button{all:unset;cursor:pointer;border:2px solid var(--night-600);border-radius:4px;padding:20px;display:flex;flex-direction:column;gap:10px;background:var(--night-950);transition:border-color .24s,box-shadow .24s}
+.gate button:hover,.gate button:focus-visible{border-color:var(--magnesium-400);box-shadow:0 0 32px rgba(255,182,72,.15)}
+.gate button.pro:hover,.gate button.pro:focus-visible{border-color:var(--strontium-500);box-shadow:0 0 32px rgba(255,61,110,.15)}
+.gate b{font:800 1.6rem/1 var(--font-display);text-transform:uppercase}
+.gate span{font-size:.9rem;color:var(--smoke-200)}
+
+/* ---------- tabel scene ---------- */
+.tbl{overflow-x:auto;border:1px solid var(--night-700);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:.93rem}
+th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--night-700);vertical-align:top}
+th{font:600 .68rem/1.2 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--smoke-400);background:var(--night-900)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;white-space:nowrap}
+.decide{border:1px solid var(--magnesium-400);border-radius:6px;padding:clamp(20px,4vw,36px);background:var(--night-900)}
+ol.steps{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:10px}
+footer{padding-block:40px;color:var(--smoke-400);font-size:.85rem;border-top:1px solid var(--night-700)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<main>
+<section class="launch" id="launch" aria-label="Scena 01: Lansarea, prototip interactiv">
+  <div class="launch-sticky">
+    <canvas id="gl" aria-hidden="true"></canvas>
+    <div class="launch-fallback" id="fallback" hidden>%%LOGO_A_DARK%%</div>
+    <div class="cap cap-top" data-from="0" data-to="1.2">
+      <div class="row"><span class="hint">Scena 01 · <b>Lansarea</b></span><span class="hint">Prototip Three.js</span></div>
+    </div>
+    <div class="cap cap-mid" data-from="0" data-to=".11" style="top:34%">
+      <p class="big">Derulează<br>ca să <em>aprinzi.</em></p>
+      <p class="sub">Scroll-ul controlează tot: urcarea, explozia și momentul în care scânteile se adună în logo.</p>
+    </div>
+    <div class="cap cap-bot" data-from=".34" data-to=".5">
+      <p class="big" style="font-size:clamp(2rem,6vw,4rem)">Vezi efectul <em>înainte.</em></p>
+      <p class="sub">Așa se va simți fiecare produs: lumină, culoare, ritm.</p>
+    </div>
+    <div class="cap cap-bot" data-from=".88" data-to="1.2">
+      <p class="big" style="font-size:clamp(2rem,6vw,4rem)">Noaptea e <em>a ta.</em></p>
+      <p class="sub">Mișcă mouse-ul peste logo: scânteile se feresc.</p>
+    </div>
+    <div class="launch-fuse" aria-hidden="true"><div class="track"><div class="burn" id="burn"></div></div><span id="pct">0%</span></div>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="logo-h">
+  <div class="wrap stack-lg">
+    <div class="stack" style="max-width:68ch">
+      <p class="eyebrow">Faza 3 · identitate</p>
+      <h2 id="logo-h">Trei concepte de logo</h2>
+      <p class="muted">Literele sunt desenate geometric, nu scrise cu un font, deci logo-ul rămâne identic peste tot. Fiecare concept are variantă închisă, deschisă, simbol și favicon.</p>
+    </div>
+    <div class="concepts">
+      <article class="concept pick">
+        <div class="hero">%%LOGO_A_DARK%%</div>
+        <div class="minis"><div>%%SYM_A%%</div><div>%%FAV%%</div><div class="wide">%%LOGO_A_LIGHT%%</div></div>
+        <div class="body">
+          <h3>A · Explozia <small>Recomandat</small></h3>
+          <p>„O”-ul devine o explozie văzută de sus: raze lungi de magneziu, raze scurte de stronțiu, un miez fierbinte. Simbolul se extrage singur din wordmark și funcționează ca favicon, iconiță de aplicație și particulă 3D.</p>
+          <p class="muted">Același „O” e ținta particulelor din scena de mai sus.</p>
+        </div>
+      </article>
+      <article class="concept">
+        <div class="hero">%%LOGO_B_DARK%%</div>
+        <div class="minis"><div>%%SYM_B%%</div></div>
+        <div class="body">
+          <h3>B · Traiectoria</h3>
+          <p>Monograma „B”: tija e urma unei rachete care urcă și se rupe în segmente spre bază, iar în vârf se deschide o scânteie. Wordmark-ul rămâne curat, cu „O” simplu.</p>
+          <p class="muted">Mai sobru și mai ușor de brodat sau ștampilat. Se pierde puțin la dimensiuni mici.</p>
+        </div>
+      </article>
+      <article class="concept">
+        <div class="hero">%%LOGO_C_DARK%%</div>
+        <div class="minis"><div>%%SYM_C%%</div></div>
+        <div class="body">
+          <h3>C · Eticheta</h3>
+          <p>Rombul de pe etichetele de transport devine semnul brandului, cu explozia în interior. Leagă logo-ul direct de sistemul de etichete al site-ului.</p>
+          <p class="muted">Foarte recognoscibil pe colete și autocolante. Riscul: poate fi confundat cu o etichetă de pericol reală.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="pal-h">
+  <div class="wrap stack-lg">
+    <div class="stack" style="max-width:68ch">
+      <p class="eyebrow">Culoare</p>
+      <h2 id="pal-h">Cerul, lumina și sărurile</h2>
+      <p class="muted">Un fundal de noapte, ușor violet, un accent principal și unul de semnal. Culorile efectelor poartă numele sărurilor care colorează artificiile și se folosesc doar ca informație despre efect.</p>
+    </div>
+    <div class="pal">
+      <div class="chip"><i style="background:#07060b;box-shadow:inset 0 0 0 1px #241f2e"></i><div><b>Cer</b><span>night-950 · #07060B</span></div></div>
+      <div class="chip"><i style="background:#17141f"></i><div><b>Suprafață</b><span>night-800 · #17141F</span></div></div>
+      <div class="chip"><i style="background:#8f879c"></i><div><b>Fum</b><span>smoke-400 · #8F879C</span></div></div>
+      <div class="chip"><i style="background:#f6f1ea"></i><div><b>Alb cald</b><span>white · #F6F1EA</span></div></div>
+      <div class="chip"><i style="background:#ffb648"></i><div><b>Magneziu</b><span>accent · #FFB648</span></div></div>
+      <div class="chip"><i style="background:#ff3d6e"></i><div><b>Stronțiu</b><span>semnal · #FF3D6E</span></div></div>
+    </div>
+    <div class="salts">
+      <div class="salt"><i style="background:#ff3d6e;color:#ff3d6e"></i><div><b>Roșu</b><span>stronțiu</span></div></div>
+      <div class="salt"><i style="background:#ffd23f;color:#ffd23f"></i><div><b>Auriu</b><span>sodiu</span></div></div>
+      <div class="salt"><i style="background:#6cf2a0;color:#6cf2a0"></i><div><b>Verde</b><span>bariu</span></div></div>
+      <div class="salt"><i style="background:#5aa9ff;color:#5aa9ff"></i><div><b>Albastru</b><span>cupru</span></div></div>
+      <div class="salt"><i style="background:#b07bff;color:#b07bff"></i><div><b>Violet</b><span>potasiu</span></div></div>
+      <div class="salt"><i style="background:#f6f1ea;color:#f6f1ea"></i><div><b>Alb</b><span>magneziu</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="type-h">
+  <div class="wrap stack-lg">
+    <div class="stack" style="max-width:68ch">
+      <p class="eyebrow">Tipografie</p>
+      <h2 id="type-h">Trei voci, trei roluri</h2>
+    </div>
+    <div class="type">
+      <div class="spec"><span class="eyebrow">Display · Big Shoulders Display 900</span><p class="d">Pocnitori<br>și jerbe</p><p class="muted">Titluri și nume de produs. Mereu majuscule, condensat, ca tipărit pe cutie.</p></div>
+      <div class="spec"><span class="eyebrow">Corp · Figtree 400–600</span><p class="b">Bateria se așază pe o suprafață plană și stabilă, la cel puțin 8 metri de spectatori. Aprinde fitilul cu brațul întins și îndepărtează-te imediat.</p><p class="muted">Descrieri, instrucțiuni, butoane. Diacritice complete: ă â î ș ț.</p></div>
+      <div class="spec"><span class="eyebrow">Date · JetBrains Mono 600</span><p class="m">FOCURI 42<br>CALIBRU 25 MM<br>TIMP 40 S<br>280,00 LEI</p><p class="muted">Specificații, prețuri, coduri, etichete. Cifre tabulare.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="comp-h">
+  <div class="wrap stack-lg">
+    <div class="stack" style="max-width:68ch">
+      <p class="eyebrow">Sistemul de etichete</p>
+      <h2 id="comp-h">Datele, la vedere</h2>
+      <p class="muted">Clientul de artificii alege după focuri, calibru și durată. Etichetele le pun pe primul plan, iar o valoare lipsă apare ca „—”, niciodată inventată.</p>
+    </div>
+    <div class="cards">
+      <article class="pcard">
+        <div class="img">
+          <img alt="Cutia neagră a produsului Void Reaper, set de 12 jerbe Fireshow" src="data:image/webp;base64,%%IMG_VOID%%" width="256" height="287">
+          <div class="cat-badge" aria-label="Categoria F1, public 16 ani"><div>F1<small>PUBLIC</small></div></div>
+          <span class="flag">Nou</span>
+          <span class="wm">poză actuală · watermark de eliminat</span>
+        </div>
+        <div class="info">
+          <span class="brand">Fireshow · FS432</span>
+          <h4>Void Reaper</h4>
+          <span class="spec-label"><span><small>BUC</small>12</span><span><small>EFECT</small>JERBĂ</span><span class="na"><small>TIMP</small>—</span><span class="cat">F1 · 16+</span></span>
+          <span class="fx"><i style="background:#ff3d6e;color:#ff3d6e"></i>Jerbă roșie</span>
+          <div class="buy"><div><span class="price">25,00 lei</span><br><span class="stock">● 50 în stoc</span></div><button class="btn btn-primary" type="button">Adaugă în coș</button></div>
+        </div>
+      </article>
+      <article class="pcard">
+        <div class="img">
+          <img alt="Baterie de artificii Gold Rain, 42 de focuri" src="data:image/webp;base64,%%IMG_GOLD%%" width="420" height="374">
+          <div class="cat-badge pro" aria-label="Categoria T1, doar pentru persoane autorizate"><div>T1<small>AUTORIZAT</small></div></div>
+          <span class="flag">Epuizat</span>
+        </div>
+        <div class="info">
+          <span class="brand">Fireshow · FS712</span>
+          <h4>Gold Rain</h4>
+          <span class="spec-label"><span><small>FOCURI</small>42</span><span><small>CALIBRU</small>25 MM</span><span><small>TIMP</small>40 S</span><span class="cat pro">T1 · PRO</span></span>
+          <span class="fx"><i style="background:#ffd23f;color:#ffd23f"></i>Ploaie aurie</span>
+          <div class="buy"><div><span class="price">280,00 lei</span><br><span class="stock out">○ Revine în curând</span></div><button class="btn btn-secondary" type="button">Anunță-mă</button></div>
+        </div>
+      </article>
+      <div class="panel">
+        <span class="eyebrow">Gate de intrare · cine cumpără?</span>
+        <div class="gate">
+          <button type="button"><b>Pentru mine</b><span>Am peste 16 ani. Văd doar produsele F1, pe care legea le permite persoanelor fizice.</span></button>
+          <button type="button" class="pro"><b>Sunt autorizat</b><span>Am carnet de pirotehnician sau firmă autorizată. Văd și produsele P1/T1.</span></button>
+        </div>
+        <p class="muted" style="font-size:.85rem">Înlocuiește popup-ul actual „18 ani”. Textul legal se verifică cu un jurist.</p>
+      </div>
+    </div>
+    <div class="comp-grid">
+      <div class="panel">
+        <span class="eyebrow">Butoane</span>
+        <div class="row"><button class="btn btn-primary" type="button">Adaugă în coș</button><button class="btn btn-secondary" type="button">Vezi efectul</button></div>
+        <div class="row"><button class="btn btn-pro" type="button">Încarcă autorizația</button><button class="btn" type="button" disabled>Indisponibil</button></div>
+      </div>
+      <div class="panel">
+        <span class="eyebrow">Fitilul · progres spre livrare gratuită</span>
+        <div class="fuse"><div class="track"><div class="burn"></div></div><p>Mai adaugă <b>96 lei</b> și livrarea e gratuită.</p></div>
+        <div class="row"><div class="cat-badge"><div>F1<small>PUBLIC</small></div></div><div class="cat-badge pro"><div>P1<small>AUTORIZAT</small></div></div><div class="cat-badge pro"><div>T1<small>AUTORIZAT</small></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="scene-h">
+  <div class="wrap stack-lg">
+    <div class="stack" style="max-width:68ch">
+      <p class="eyebrow">Mișcare</p>
+      <h2 id="scene-h">Unde apare 3D-ul</h2>
+      <p class="muted">Un singur moment mare pe pagină. Pe pagina de produs nu folosim WebGL, ca să rămână rapidă; acolo produsul e eroul.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Pagină</th><th>Scenă</th><th>Ce face la scroll</th></tr></thead>
+      <tbody>
+        <tr><td>Home · hero</td><td>Lansarea</td><td>Bomba urcă, explodează, scânteile formează logo-ul. Cursorul le împinge. (prototipul de sus)</td></tr>
+        <tr><td>Home · efecte</td><td>Laboratorul de culori</td><td>Fiecare secțiune de scroll schimbă forma particulelor: crackling, palmier, cascadă, stroboscop, fum colorat. Butonul duce la produsele cu acel efect.</td></tr>
+        <tr><td>Colecție</td><td>Cer de fundal</td><td>Stele și scântei rare cu parallax. Foarte ușor, sub 2.000 de particule.</td></tr>
+        <tr><td>Spectacole</td><td>Show-ul</td><td>O secvență de artificii sincronizată cu scroll-ul, ca o previzualizare de spectacol pentru nunți și evenimente.</td></tr>
+        <tr><td>Footer</td><td>Jarul</td><td>Scântei care cad încet și se sting când ajungi la final.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted" style="max-width:68ch">Reguli: un singur context WebGL, randare oprită în afara ecranului, maximum ~9.000 de particule pe mobil, stare statică pentru <span style="font-family:var(--font-mono)">reduced-motion</span> și imagine de rezervă fără WebGL.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="decide stack-lg">
+      <div class="stack"><p class="eyebrow">Ce am nevoie de la tine</p><h2>Înainte de Faza 4</h2></div>
+      <ol class="steps">
+        <li><b>Logo:</b> A, B sau C? Recomand A. După alegere îl rafinez: ajustări optice, versiuni pentru colete și social media.</li>
+        <li><b>Scena 3D:</b> direcția prototipului e bună? Pot schimba ritmul, culorile sau ce se formează la final.</li>
+        <li><b>Pozele:</b> ai pozele originale fără watermark pe telefon sau calculator? Sau de la furnizorul Fireshow? Sunt mult mai bune decât orice reconstrucție AI.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap"><p>Bomba Shop · sistem de design v0.1 · 3 noiembrie 2026 · tokens în <span style="font-family:var(--font-mono)">brand/tokens.css</span>, reguli în <span style="font-family:var(--font-mono)">DESIGN.md</span></p></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const section = document.getElementById('launch');
+  const canvas = document.getElementById('gl');
+  const caps = [...section.querySelectorAll('.cap')];
+  const burn = document.getElementById('burn'), pct = document.getElementById('pct');
+  const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+
+  function scrollProgress(){
+    const r = section.getBoundingClientRect();
+    return clamp(-r.top / Math.max(1, r.height - innerHeight), 0, 1);
+  }
+  function updateUI(p){
+    for(const c of caps){
+      const a=+c.dataset.from, b=+c.dataset.to, f=.04;
+      const o = clamp(Math.min((p-a)/f+1, (b-p)/f), 0, 1);
+      c.style.opacity = (a===0 && p<=0) ? 1 : o;
+    }
+    burn.style.width = (p*100).toFixed(1)+'%';
+    pct.textContent = Math.round(p*100)+'%';
+  }
+
+  let renderer = null;
+  try { if (window.THREE) renderer = new THREE.WebGLRenderer({canvas, antialias:false, powerPreference:'high-performance'}); } catch(e) { renderer = null; }
+  if (!renderer) {
+    document.getElementById('fallback').hidden = false;
+    canvas.hidden = true;
+    const ui = ()=>updateUI(reduce ? 1 : scrollProgress());
+    addEventListener('scroll', ui, {passive:true}); ui();
+    return;
+  }
+
+  const mobile = matchMedia('(max-width: 760px)').matches;
+  const N = mobile ? 9600 : 21600;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+  renderer.setClearColor(0x07060b, 1);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, 1, .1, 100);
+  camera.position.set(0, 0, 10);
+
+  // ---- ținta: wordmark-ul conceptului A, desenat în canvas și eșantionat ----
+  function sampleLogo(n){
+    const S=2, pad=20, cw=480*S+pad*2, ch=100*S+pad*2;
+    const c=document.createElement('canvas'); c.width=cw; c.height=ch;
+    const g=c.getContext('2d'); g.translate(pad,pad); g.scale(S,S);
+    const bowls=new Path2D('M11 11H40a19 19 0 0 1 0 38H11M11 51H46a19 19 0 0 1 0 38H11');
+    function B(x){ g.save(); g.translate(x,0); g.fillStyle='#fff'; g.fillRect(0,0,22,100); g.strokeStyle='#fff'; g.lineWidth=22; g.stroke(bowls); g.restore(); }
+    B(0); B(302);
+    g.fillStyle='#fff';
+    g.save(); g.translate(196,0); g.fill(new Path2D('M0 100V0H24L48 40L72 0H96V100H74V40L52 76H44L22 40V100Z')); g.restore();
+    g.save(); g.translate(388,0); g.fill(new Path2D('M0 100L30 0H62L92 100H69L63 78H29L23 100ZM34 58H58L46 18Z'),'evenodd'); g.restore();
+    g.strokeStyle='#f00'; g.fillStyle='#f00'; g.lineCap='round'; g.lineWidth=9;
+    for(let i=0;i<12;i++){ const a=Math.PI*2*i/12-Math.PI/2, r0=16, r1=i%2?33:45;
+      g.beginPath(); g.moveTo(136+Math.cos(a)*r0,50+Math.sin(a)*r0); g.lineTo(136+Math.cos(a)*r1,50+Math.sin(a)*r1); g.stroke(); }
+    g.beginPath(); g.arc(136,50,8,0,Math.PI*2); g.fill();
+    const d=g.getImageData(0,0,cw,ch).data, letters=[], burstPx=[];
+    for(let y=0;y<ch;y+=1) for(let x=0;x<cw;x+=1){ const k=(y*cw+x)*4; if(d[k+3]>128){ (d[k+1]<80 ? burstPx : letters).push(x,y); } }
+    const out=new Float32Array(n*3), kind=new Float32Array(n), ray=new Float32Array(n);
+    for(let i=0;i<n;i++){
+      const isBurst = Math.random()<.24, src = isBurst ? burstPx : letters, j=(Math.random()*(src.length/2)|0)*2;
+      const px=src[j]+Math.random()-.5, py=src[j+1]+Math.random()-.5;
+      out[i*3]=(px-cw/2)/cw; out[i*3+1]=-(py-ch/2)/cw; out[i*3+2]=(Math.random()-.5)*.012;
+      kind[i]=isBurst?1:0;
+      const ang=Math.atan2(py-(pad+50*S), px-(pad+136*S)); ray[i]=isBurst ? ((Math.round((ang+Math.PI/2)/(Math.PI/6))%2+2)%2) : 0;
+    }
+    return {pos:out, kind, ray};
+  }
+
+  const T = sampleLogo(N);
+  // explozia e făcută din raze: fiecare rază are K particule în șir, capul strălucitor și coada care se stinge (expunere lungă)
+  const K = 24, RAYS = Math.floor(N/K);
+  const gold=[1,.714,.282], red=[1,.24,.43], white=[1,.95,.86];
+  const aDir=new Float32Array(N*3), aBC=new Float32Array(N*3), aTC=new Float32Array(N*3), aRand=new Float32Array(N), aLag=new Float32Array(N), pos=new Float32Array(N*3);
+  const ga = Math.PI*(3-Math.sqrt(5));
+  for(let i=0;i<N;i++){
+    const ray = Math.min(RAYS-1, Math.floor(i/K)), lag = (i%K)/K;
+    // direcții distribuite uniform (sferă Fibonacci) cu puțin zgomot, ca o bombă peony
+    const y = 1 - 2*(ray+.5)/RAYS, rr = Math.sqrt(1-y*y), th = ga*ray;
+    const jit = .06, len = .82 + ((ray*9301+49297)%233280)/233280*.18;
+    aDir[i*3]=(Math.cos(th)*rr + (Math.random()-.5)*jit*lag)*len; aDir[i*3+1]=(y + (Math.random()-.5)*jit*lag)*len; aDir[i*3+2]=Math.sin(th)*rr*len*.5;
+    const pick = ((ray*7919)%100)/100, c = pick<.6 ? gold : pick<.86 ? red : white; aBC.set(c, i*3);
+    aLag[i]=lag;
+    const tc = T.kind[i] ? (T.ray[i] ? [1,.24,.43] : [1,.714,.282]) : [.965,.945,.918]; aTC.set(tc, i*3);
+    aRand[i]=Math.random();
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('aTarget', new THREE.BufferAttribute(T.pos,3));
+  geo.setAttribute('aDir', new THREE.BufferAttribute(aDir,3));
+  geo.setAttribute('aBC', new THREE.BufferAttribute(aBC,3));
+  geo.setAttribute('aTC', new THREE.BufferAttribute(aTC,3));
+  geo.setAttribute('aRand', new THREE.BufferAttribute(aRand,1));
+  geo.setAttribute('aLag', new THREE.BufferAttribute(aLag,1));
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 50);
+
+  const uniforms = { uP:{value:0}, uTime:{value:0}, uScale:{value:7}, uPix:{value:renderer.getPixelRatio()}, uMouse:{value:new THREE.Vector2(99,99)}, uSize:{value:mobile?7:6} };
+  const mat = new THREE.ShaderMaterial({
+    uniforms, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    vertexShader:`
+      attribute vec3 aTarget; attribute vec3 aDir; attribute vec3 aBC; attribute vec3 aTC; attribute float aRand; attribute float aLag;
+      uniform float uP, uTime, uScale, uPix, uSize; uniform vec2 uMouse;
+      varying vec3 vColor; varying float vAlpha;
+      float eo3(float t){ return 1.0 - pow(1.0 - t, 3.0); }
+      float eio(float t){ return t < .5 ? 4.0*t*t*t : 1.0 - pow(-2.0*t + 2.0, 3.0)/2.0; }
+      void main(){
+        // 1. urcarea: o cometă cu coadă de scântei care se lărgește
+        float rise = smoothstep(.02, .3, uP);
+        vec3 shell = mix(vec3(0.0, -6.2, 0.0), vec3(0.0, 1.1, 0.0), eo3(rise));
+        shell.x += sin(rise*5.0)*.06;
+        float spread = aLag*aLag*.45*(.3 + rise);
+        vec3 pre = shell + vec3((aRand - .5)*spread, -(aLag + fract(aRand*7.3)*.04)*(1.4 + rise*.8), (fract(aRand*13.7) - .5)*spread);
+        float preA = .075*pow(1.0 - aLag, 1.8) + .35*step(aLag, .001)*step(aRand, .03);
+        // 2. explozia: fiecare rază e un șir de particule, capul în față, coada în urmă
+        float b = smoothstep(.3, .54, uP);
+        float be = 1.0 - pow(1.0 - b, 3.5);
+        float rad = max(0.0, be - aLag*.42*(1.0 - b*.35));
+        vec3 burst = shell + aDir*rad*4.8 + vec3(0.0, -1.7, 0.0)*b*b*(1.0 - aLag*.4);
+        float burstA = pow(1.0 - aLag, 1.6)*(1.0 - smoothstep(.75, 1.0, b)*.75);
+        float on = step(.0001, b);
+        vec3 p0 = mix(pre, burst, on);
+        // 3. scânteile se adună în logo
+        float f = smoothstep(.5 + aRand*.12, .86 + aRand*.08, uP);
+        float fe = eio(f);
+        vec3 target = aTarget*uScale + vec3(0.0, .25, 0.0);
+        target.xy += vec2(sin(uTime*1.3 + aRand*40.0), cos(uTime*1.1 + aRand*31.0))*.012*fe;
+        vec3 p = mix(p0, target, fe);
+        vec2 d = p.xy - uMouse; float m = exp(-dot(d,d)*3.0)*fe;
+        p.xy += normalize(d + 1e-4)*m*.45; p.z += m*.6;
+        vec4 mv = modelViewMatrix*vec4(p, 1.0);
+        gl_Position = projectionMatrix*mv;
+        float head = 1.0 - smoothstep(0.0, .25, aLag);
+        float comet = step(aLag, .05)*(1.0 - on);
+        float size = uSize*(.5 + aRand*.5)*mix(.7 + comet*1.3, 1.0 + head*.9, on);
+        size *= mix(1.0, .5/(.6 + head*.9), fe);
+        gl_PointSize = size*uPix*(10.0/-mv.z);
+        float a = mix(preA, burstA, on);
+        a = mix(a, .72 + .28*aRand, fe);
+        a *= mix(.78, .9, fe) + mix(.22, .1, fe)*sin(uTime*(3.0 + aRand*4.0) + aRand*60.0);
+        vAlpha = a*(1.0 + m*1.5);
+        vec3 hot = vec3(1.0, .96, .86);
+        vec3 bc = mix(hot, aBC, smoothstep(.32, .42, uP) * (.4 + .6*smoothstep(0.0, .3, aLag) + head*.6));
+        vColor = mix(bc, aTC, fe);
+      }`,
+    fragmentShader:`
+      varying vec3 vColor; varying float vAlpha;
+      void main(){
+        vec2 c = gl_PointCoord - .5; float d = length(c);
+        float core = smoothstep(.5, .0, d); core *= core;
+        gl_FragColor = vec4(vColor*(1.0 + core*.6), core*vAlpha);
+      }`
+  });
+  scene.add(new THREE.Points(geo, mat));
+
+  // stele de fundal, cu parallax legat de scroll
+  const SN = mobile ? 900 : 1600, sp=new Float32Array(SN*3), sr=new Float32Array(SN);
+  for(let i=0;i<SN;i++){ sp[i*3]=(Math.random()-.5)*44; sp[i*3+1]=(Math.random()-.5)*30; sp[i*3+2]=-6-Math.random()*22; sr[i]=Math.random(); }
+  const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3)); sg.setAttribute('aRand',new THREE.BufferAttribute(sr,1));
+  const smat=new THREE.ShaderMaterial({ uniforms, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    vertexShader:`attribute float aRand; uniform float uP, uTime, uPix; varying float vA;
+      void main(){ vec3 p=position; p.y -= uP*3.0*(1.0 + aRand); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_Position=projectionMatrix*mv;
+        gl_PointSize=(1.0+aRand*2.2)*uPix*(18.0/-mv.z); vA=(.25+.75*aRand)*(.6+.4*sin(uTime*(.6+aRand*2.0)+aRand*90.0)); }`,
+    fragmentShader:`varying float vA; void main(){ float d=length(gl_PointCoord-.5); gl_FragColor=vec4(vec3(.86,.82,1.0), smoothstep(.5,.0,d)*vA*.8); }` });
+  scene.add(new THREE.Points(sg, smat));
+
+  let visH=1, visW=1;
+  function resize(){
+    const w=canvas.clientWidth, h=canvas.clientHeight;
+    renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+    visH = 2*camera.position.z*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)); visW = visH*camera.aspect;
+    uniforms.uScale.value = Math.min(7.4, visW*.84);
+  }
+  addEventListener('resize', resize); resize();
+
+  const mouse = new THREE.Vector2(99,99), look = new THREE.Vector2();
+  section.addEventListener('pointermove', e=>{
+    const r=canvas.getBoundingClientRect(), nx=(e.clientX-r.left)/r.width*2-1, ny=-((e.clientY-r.top)/r.height*2-1);
+    mouse.set(nx*visW/2, ny*visH/2); look.set(nx, ny);
+  });
+  section.addEventListener('pointerleave', ()=>{ mouse.set(99,99); look.set(0,0); });
+
+  let target = 0, cur = 0, visible = true, t0 = performance.now();
+  addEventListener('scroll', ()=>{ target = scrollProgress(); }, {passive:true});
+  new IntersectionObserver(es=>{ visible = es[0].isIntersecting; if(visible) requestAnimationFrame(frame); }).observe(section);
+
+  function render(){
+    uniforms.uP.value = cur; uniforms.uMouse.value.lerp(mouse, .12);
+    camera.position.x += (look.x*.35 - camera.position.x)*.05; camera.position.y += (look.y*.22 - camera.position.y)*.05; camera.lookAt(0,0,0);
+    renderer.render(scene, camera); updateUI(cur);
+  }
+  if (reduce) { cur = target = 1; uniforms.uTime.value = 0; render(); addEventListener('resize', render); return; }
+  function frame(now){
+    if(!visible || document.hidden) return;
+    uniforms.uTime.value = (now - t0)/1000;
+    cur += (target - cur)*.075; if (Math.abs(target-cur) < 1e-4) cur = target;
+    render(); requestAnimationFrame(frame);
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && visible) requestAnimationFrame(frame); });
+  target = cur = scrollProgress();
+  if (typeof window.__P === 'number') { // doar pentru capturi de test
+    target = cur = window.__P;
+    addEventListener('scroll', ()=>{ target = window.__P; }, {passive:true});
+  }
+  requestAnimationFrame(frame);
+})();
+</script>

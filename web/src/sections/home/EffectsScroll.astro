@@ -1,0 +1,113 @@
+---
+// Liquid: sections/home-effects.liquid. One screen, six effects behind tabs: the photo of the chosen effect slowly
+// pushes in while the live particle preset (scripts/three/effects-lab.ts) plays over it in additive light.
+// Photos: AI-generated illustrations (Higgsfield), labelled as such on the page.
+import { products, isPublic, effectType } from '../../lib/catalog';
+import { slug } from '../../scripts/filters';
+const FX = [
+  { key: 'jerba', label: 'Jerbă / vulcan', img: 'fx-fountain', title: 'Jerbă și vulcan', text: 'O fântână de scântei care stă pe loc și crește. Arde aproape de public, de aceea e preferată la curte, pe terasă și la evenimente mici.' },
+  { key: 'crackling', label: 'Crackling', img: 'fx-crackling', title: 'Crackling', text: 'Sute de steluțe care pocnesc ca un foc de paie. Efectul se aude la fel de bine cum se vede.' },
+  { key: 'strobe', label: 'Stroboscop', img: 'fx-strobe', title: 'Stroboscop', text: 'Puncte albe care clipesc rapid și ritmic. Arată spectaculos în poze și pe video.' },
+  { key: 'titirez', label: 'Titirez', img: 'fx-spinner', title: 'Titirez', text: 'Se rotește pe sol și desenează spirale de lumină colorată. Favorit la copii, sub supraveghere.' },
+  { key: 'fum', label: 'Fum colorat', img: 'fx-smoke', title: 'Fum colorat', text: 'Nori denși de culoare pentru ședințe foto, gender reveal și tribune. Merge și ziua.' },
+  { key: 'bengala', label: 'Bengală', img: 'fx-sparkler', title: 'Bengală', text: 'Scânteia din mână: intrări la nuntă, dans, poze. Cea mai simplă lumină de petrecere.' },
+] as const;
+const items = FX.map((f) => ({ ...f, count: products.filter((p) => isPublic(p) && effectType(p) === f.label).length, href: `/collections/public?effect=${slug(f.label)}` }));
+---
+<section class="fxs" data-fxs aria-labelledby="fxs-h">
+  <div class="stage">
+    <div class="photos" aria-hidden="true">
+      {items.map((f, i) => (
+        <img class="ph" data-ph={i} src={`/images/fx/${f.img}-1600.webp`} srcset={`/images/fx/${f.img}-800.webp 800w, /images/fx/${f.img}-1600.webp 1600w`}
+          sizes="100vw" width="1600" height="900" alt="" loading="lazy" decoding="async" />
+      ))}
+    </div>
+    <canvas class="lab" aria-hidden="true" data-lab></canvas>
+    <div class="shade" aria-hidden="true"></div>
+    <div class="container panel">
+      <h2 id="fxs-h">Alege după efect</h2>
+      <div class="tabs" role="tablist" aria-label="Efecte">
+        {items.map((f, i) => (
+          <button type="button" role="tab" id={`fx-tab-${f.key}`} aria-controls={`fx-panel-${f.key}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i ? -1 : 0} data-tab={i}>{f.title}</button>
+        ))}
+      </div>
+      {items.map((f, i) => (
+        <div class="card" role="tabpanel" id={`fx-panel-${f.key}`} aria-labelledby={`fx-tab-${f.key}`} hidden={i !== 0} data-card={i}>
+          <p>{f.text}</p>
+          {f.count > 0
+            ? <a class="btn btn-primary" href={f.href}>Vezi {f.count} {f.count === 1 ? 'produs' : 'produse'}</a>
+            : <a class="btn btn-secondary" href="/collections/public">Vezi toate produsele F1</a>}
+        </div>
+      ))}
+    </div>
+    <p class="caption container" aria-hidden="true">Imagini ilustrative. Efectul real depinde de produs.</p>
+  </div>
+</section>
+<style>
+  .stage { position: relative; min-height: 92vh; min-height: 92svh; overflow: hidden; background: var(--night-950); display: flex; }
+  .photos, .ph, .lab, .shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ph { object-fit: cover; opacity: 0; transform: scale(1.08); transition: opacity .8s var(--ease-out-expo); }
+  /* a slow push-in on the photo that is showing; no scroll hijacking */
+  .ph.on { opacity: .9; animation: push 14s linear forwards; }
+  @keyframes push { from { transform: scale(1.08); } to { transform: scale(1); } }
+  .lab { mix-blend-mode: screen; opacity: .85; }
+  .shade { background: linear-gradient(90deg, rgba(7, 6, 11, .92) 0%, rgba(7, 6, 11, .55) 38%, transparent 70%), linear-gradient(0deg, rgba(7, 6, 11, .8), transparent 30%); }
+  .panel { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: var(--space-6); padding-block: 96px; }
+  h2 { font-size: clamp(2.6rem, 6vw, 5rem); line-height: .9; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px 22px; max-width: 520px; }
+  .tabs button { padding: 10px 0 8px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--smoke-400);
+    font: 600 var(--text-md)/1 var(--font-body); cursor: pointer; transition: color var(--dur-ui), border-color var(--dur-ui); }
+  .tabs button:hover { color: var(--white); }
+  .tabs button[aria-selected='true'] { color: var(--white); border-color: var(--magnesium-400); }
+  .tabs button:focus-visible { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
+  .card { max-width: 420px; display: grid; gap: var(--space-4); animation: rise var(--dur-reveal) var(--ease-out-expo); }
+  .card p { margin: 0; font-size: var(--text-md); color: var(--smoke-200); }
+  .card .btn { justify-self: start; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  .caption { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); font-size: var(--text-xs); color: var(--smoke-400); text-align: right; }
+  @media (max-width: 767px) { .shade { background: linear-gradient(0deg, rgba(7, 6, 11, .95) 0%, rgba(7, 6, 11, .6) 55%, rgba(7, 6, 11, .2) 100%); } .panel { justify-content: flex-end; padding-bottom: 72px; } }
+  @media (prefers-reduced-motion: reduce) { .ph.on { animation: none; transform: none; } }
+</style>
+<script>
+  type Key = 'jerba' | 'crackling' | 'strobe' | 'titirez' | 'fum' | 'bengala';
+  const KEYS: Key[] = ['jerba', 'crackling', 'strobe', 'titirez', 'fum', 'bengala'];
+  const root = document.querySelector<HTMLElement>('[data-fxs]');
+  if (root) {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const n = KEYS.length;
+    const photos = [...root.querySelectorAll<HTMLImageElement>('[data-ph]')];
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    const cards = [...root.querySelectorAll<HTMLElement>('[data-card]')];
+    let active = -1;
+    let lab: { setEffect: (k: Key) => void; setPaused: (p: boolean) => void } | null = null;
+    const set = (i: number) => {
+      if (i === active) return;
+      active = i;
+      photos.forEach((p, k) => p.classList.toggle('on', k === i));
+      tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
+      cards.forEach((c, k) => { c.hidden = k !== i; });
+      lab?.setEffect(KEYS[i]);
+    };
+    set(0);
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => set(i));
+      t.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        const k = (i + d + n) % n; tabs[k].focus(); set(k);
+      });
+    });
+
+    // live particles only while the section is on screen
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-lab]')!;
+    new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !lab) {
+        import('../../scripts/three/effects-lab').then(({ start }) => {
+          lab = start(canvas, { effect: KEYS[Math.max(0, active)], reducedMotion: reduce });
+        }).catch(() => { canvas.hidden = true; });
+      }
+      lab?.setPaused(!e.isIntersecting);
+    }, { rootMargin: '200px 0px' }).observe(root);
+  }
+</script>

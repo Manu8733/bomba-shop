@@ -1,0 +1,28 @@
+---
+// Liquid: templates/index.json → home-hero, home-occasions, featured-collection, home-effects, home-shows, home-promise.
+import Theme from '../layouts/Theme.astro';
+import Hero from '../sections/home/Hero.astro';
+import Occasions from '../sections/home/Occasions.astro';
+import InStock from '../sections/home/InStock.astro';
+import EffectsScroll from '../sections/home/EffectsScroll.astro';
+import Shows from '../sections/home/Shows.astro';
+import Promise from '../sections/home/Promise.astro';
+const site = Astro.site!;
+const ld = {
+  '@context': 'https://schema.org', '@type': 'WebSite', name: 'Bomba Shop', url: site.href, inLanguage: 'ro',
+  potentialAction: { '@type': 'SearchAction', target: `${site.href}search?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
+};
+---
+<Theme title="Bomba Shop · Artificii, petarde și spectacole pirotehnice" current="home" jsonLd={ld}
+  description="Artificii F1 pentru public, artificii de tort, vulcani, bengale și fum colorat, cu categoria și datele tehnice la vedere. Spectacole pirotehnice pentru evenimente.">
+  <Hero />
+  <Occasions />
+  <InStock />
+  <EffectsScroll />
+  <Shows />
+  <Promise />
+</Theme>
+<script>
+  import { initParallax } from '../scripts/parallax';
+  initParallax();
+</script>

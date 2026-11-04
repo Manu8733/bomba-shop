@@ -1,0 +1,69 @@
+---
+// Content page hero. Liquid: sections/content-hero.liquid — settings: eyebrow, heading (defaults to page.title), lede;
+// blocks: spec cells (label + value). Breadcrumb + BreadcrumbList JSON-LD come from page.title.
+interface Spec { label: string; value: string }
+interface Props {
+  title: string;
+  /** small label above the title; only when it says something the title does not */
+  eyebrow?: string;
+  lede?: string;
+  /** short breadcrumb label; defaults to the title */
+  crumb?: string;
+  /** a spec label that sums up the page, e.g. LIVRARE 1–3 ZILE | RETUR 14 ZILE */
+  specs?: Spec[];
+  id?: string;
+}
+const { title, eyebrow, lede, crumb = title, specs = [], id = 'page-title' } = Astro.props;
+const site = Astro.site!;
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Acasă', item: new URL('/', site).href },
+    { '@type': 'ListItem', position: 2, name: crumb, item: new URL(Astro.url.pathname, site).href },
+  ],
+};
+---
+<header class="chero">
+  <div class="container chero-in">
+    <nav class="crumbs" aria-label="Fir de navigare">
+      <ol>
+        <li><a href="/">Acasă</a></li>
+        <li aria-current="page">{crumb}</li>
+      </ol>
+    </nav>
+    {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+    <h1 id={id}>{title}</h1>
+    {lede && <p class="lede">{lede}</p>}
+    {specs.length > 0 && (
+      <p class="spec-label lg chero-specs">
+        {specs.map((s) => <span><small>{s.label}<span class="visually-hidden">:</span></small>{s.value}</span>)}
+      </p>
+    )}
+    {Astro.slots.has('default') && <div class="chero-actions"><slot /></div>}
+  </div>
+</header>
+<script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
+
+<style>
+  .chero-in { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); padding-block: var(--space-4) var(--space-8); }
+  @media (min-width: 768px) { .chero-in { padding-block: var(--space-6) var(--space-12); gap: var(--space-6); } }
+
+  .crumbs { margin-bottom: var(--space-4); }
+  .crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2);
+    font: 500 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
+  .crumbs li { display: inline-flex; align-items: center; min-height: 44px; }
+  .crumbs li + li::before { content: ''; width: 6px; height: 6px; margin-right: var(--space-2); border-top: 1px solid var(--night-600);
+    border-right: 1px solid var(--night-600); transform: rotate(45deg); }
+  .crumbs a { display: inline-flex; align-items: center; min-height: 44px; color: var(--smoke-200); text-decoration: none; }
+  .crumbs a:hover { color: var(--magnesium-400); text-decoration: underline; text-underline-offset: 4px; }
+  @media (min-width: 768px) { .crumbs li, .crumbs a { min-height: 32px; } }
+
+  h1 { font-size: clamp(2.75rem, 1rem + 8vw, 7.5rem); font-weight: 900; line-height: .96; max-width: 14ch; /* room for Ș/Ț commas between lines */ overflow-wrap: break-word; }
+  .lede { max-width: 48ch; font-size: var(--text-md); line-height: var(--leading-body); color: var(--smoke-200); }
+  @media (min-width: 768px) { .lede { font-size: var(--text-lg); line-height: 1.5; } }
+
+  .chero-specs { margin-top: var(--space-2); }
+  .chero-specs > span { white-space: normal; }
+  .chero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); }
+</style>

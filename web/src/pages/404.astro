@@ -1,0 +1,31 @@
+---
+// Liquid: templates/404.json.
+import Theme from '../layouts/Theme.astro';
+---
+<Theme title="Pagina nu există" description="Pagina căutată nu există." noindex skipGate>
+  <section class="nf container">
+    <!-- the fuse burns once and goes out before the end: the headline, drawn -->
+    <div class="fuse" aria-hidden="true"><span class="burnt"></span><span class="spark"></span></div>
+    <h1>Fitilul<br />s-a stins.</h1>
+    <p class="lede">Eroare 404: pagina pe care o cauți nu mai există sau a fost mutată. Linkurile de pe vechiul site au fost redirecționate, dar unele pot lipsi.</p>
+    <div class="ctas">
+      <a class="btn btn-primary" href="/collections/public">Vezi produsele F1</a>
+      <button class="btn btn-secondary" type="button" data-search-open>Caută pe site</button>
+      <a class="btn btn-ghost" href="/">Pagina principală</a>
+    </div>
+  </section>
+</Theme>
+<style>
+  .nf { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; gap: var(--space-6); padding-block: var(--space-16); }
+  h1 { font-size: clamp(3.4rem, 12vw, 9rem); line-height: .86; font-weight: 900; }
+  .lede { max-width: 52ch; color: var(--smoke-200); }
+  .ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+  .fuse { position: relative; width: min(420px, 80%); height: 3px; margin-bottom: var(--space-4); border-radius: 2px; background: var(--smoke-400); }
+  .burnt { position: absolute; inset: 0 auto 0 0; width: 62%; border-radius: 2px; background: var(--night-700); transform-origin: 0 50%;
+    animation: burn 2.4s cubic-bezier(.25, .6, .4, 1) both; }
+  .spark { position: absolute; left: 62%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff3c4;
+    box-shadow: 0 0 10px 3px rgba(255, 182, 72, .6); animation: travel 2.4s cubic-bezier(.25, .6, .4, 1) both, out .7s 2.1s ease-in both; }
+  @keyframes burn { from { transform: scaleX(0); } }
+  @keyframes travel { from { left: 0; } }
+  @keyframes out { to { opacity: 0; transform: scale(.2); } }
+</style>

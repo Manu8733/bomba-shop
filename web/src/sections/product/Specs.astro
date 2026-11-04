@@ -1,0 +1,36 @@
+---
+// Liquid: sections/product-specs.liquid (reads product.metafields.pyro.*).
+import { specs, category, variant, type Product } from '../../lib/catalog';
+interface Props { product: Product }
+const { product: p } = Astro.props;
+// "Buc" is the short form the spec label needs; in a table there is room for the word
+const all = specs(p).map((r) => (r.key === 'pack' ? { ...r, label: 'Bucăți' } : r));
+const known = all.filter((r) => r.value);
+const missing = all.filter((r) => !r.value).map((r) => r.label.toLowerCase());
+const cat = category(p);
+const v = variant(p);
+---
+<section class="specs" aria-labelledby="specs-h">
+  <h2 id="specs-h">Specificații</h2>
+  <dl>
+    <div><dt>Categorie</dt><dd>{cat ?? '—'}{cat && <small>{cat === 'F1' ? 'public, de la 16 ani' : 'doar persoane autorizate'}</small>}</dd></div>
+    {known.map((r) => (
+      <div><dt>{r.label}</dt><dd>{r.value}{r.source === 'descriere' && <small>din descriere</small>}</dd></div>
+    ))}
+    {p.vendor && <div><dt>Producător</dt><dd>{p.vendor}</dd></div>}
+    {v.sku && <div><dt>Cod</dt><dd>{v.sku}</dd></div>}
+  </dl>
+  {missing.length > 0 && <p class="note muted">Nedeclarate de producător: {missing.join(', ')}. Le găsești pe eticheta de pe ambalaj.</p>}
+</section>
+<style>
+  .specs { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+  h2 { font-size: var(--text-3xl); }
+  dl { margin: var(--space-3) 0 0; border: var(--border-label); border-radius: var(--radius-label); }
+  dl > div { display: grid; grid-template-columns: 9rem 1fr; border-bottom: 2px solid var(--white); }
+  dl > div:last-child { border-bottom: 0; }
+  dt, dd { margin: 0; padding: 12px 14px; font: 600 var(--text-sm)/1.3 var(--font-body); }
+  dt { color: var(--smoke-400); border-right: 2px solid var(--white); }
+  dd { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+  dd small { font: 500 var(--text-xs)/1.3 var(--font-body); color: var(--smoke-400); }
+  .note { font-size: var(--text-sm); }
+</style>

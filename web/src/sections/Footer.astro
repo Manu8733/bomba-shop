@@ -1,0 +1,304 @@
+---
+// Liquid: sections/footer.liquid. The four link columns become link_list settings (menus), company facts come from
+// shop settings, the newsletter is {% form 'customer' %}. One script: newsletter UI + lazy "Jarul" embers canvas.
+import Icon from '../snippets/Icon.astro';
+import { shop, commerce, law, pnrr } from '../config';
+import { collectionByHandle, collectionUrl, products, virtualCollections } from '../lib/catalog';
+
+interface Props { current?: string }
+
+type Link = { label: string; href: string; note?: string; external?: boolean };
+
+const mainCollections = ['produse-f1-pentru-public', 'vulcani-artificii', 'artificii-de-tort', 'bengale-candele', 'fumigene-colorate'];
+const shopLinks: Link[] = [
+  { label: virtualCollections.all.title, href: collectionUrl('all') },
+  ...mainCollections.flatMap((h) => {
+    const c = collectionByHandle(h);
+    return c ? [{ label: c.title, href: collectionUrl(c.handle) }] : [];
+  }),
+  // only when the catalog really has discounted products
+  ...(products.some(virtualCollections.reduceri.filter) ? [{ label: virtualCollections.reduceri.title, href: collectionUrl('reduceri') }] : []),
+  { label: virtualCollections.profesionisti.title, href: collectionUrl('profesionisti') },
+];
+
+const columns: { id: string; title: string; links: Link[] }[] = [
+  { id: 'magazin', title: 'Magazin', links: shopLinks },
+  { id: 'ajutor', title: 'Ajutor', links: [
+    { label: 'Livrare și retur', href: '/pages/livrare-retur' },
+    { label: 'Întrebări frecvente', href: '/pages/faq' },
+    { label: 'Siguranță', href: '/pages/siguranta' },
+    { label: 'Ghid de alegere', href: '/pages/ghid' },
+    { label: 'Contact', href: '/pages/contact' },
+  ] },
+  { id: 'despre', title: 'Bomba Shop', links: [
+    { label: 'Despre noi', href: '/pages/despre-noi' },
+    { label: 'Spectacole pirotehnice', href: '/pages/spectacole' },
+    { label: 'Pentru profesioniști', href: '/pages/profesionisti' },
+  ] },
+  // The EU ODR platform closed in July 2025: no link to it. ANPC SAL stays.
+  { id: 'legal', title: 'Legal', links: [
+    { label: 'Termeni și condiții', href: '/pages/termeni' },
+    { label: 'Politica de confidențialitate', href: '/pages/confidentialitate' },
+    { label: 'Politica de cookie-uri', href: '/pages/cookies' },
+    { label: 'ANPC – SAL', href: 'https://anpc.ro/ce-este-sal/', note: 'soluționarea alternativă a litigiilor, site extern', external: true },
+  ] },
+];
+
+const here = Astro.url.pathname.replace(/\.html$/, '').replace(/\/$/, '') || '/';
+const isCurrent = (href: string) => href === here;
+
+const phone = shop.phone.value;
+const address = shop.address.value;
+const lawNo = law.reference.match(/nr\. (\d+\/\d{4})/)?.[1] ?? '92/2025';
+const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
+---
+<footer class="site-footer">
+  <div class="container">
+    <div class="upper">
+      <section class="newsletter">
+        <h2 class="nl-title" id="footer-nl-title">Află când apar produse noi</h2>
+        <p class="nl-lead">Primești pe e-mail produsele noi, revenirile în stoc și sfaturi de siguranță. Te poți dezabona oricând.</p>
+        {/* Liquid: form 'customer' (id footer-newsletter) with contact[email] + contact[tags]=newsletter;
+            form.posted_successfully? renders .nl-done, form.errors fills the .nl-error lines. */}
+        <form class="nl-form" id="footer-newsletter" aria-labelledby="footer-nl-title" method="post" action="/contact#footer-newsletter" accept-charset="UTF-8" data-newsletter>
+          <input type="hidden" name="contact[tags]" value="newsletter" />
+          <div class="nl-fields" data-nl-fields>
+            <div class="field">
+              <label for="footer-nl-email">Adresa de e-mail</label>
+              <div class="nl-row">
+                <input class="input" id="footer-nl-email" type="email" name="contact[email]" autocomplete="email" inputmode="email"
+                  autocapitalize="off" spellcheck="false" placeholder="nume@exemplu.ro" required aria-describedby="footer-nl-email-error" />
+                <button class="btn btn-primary" type="submit">Abonează-mă</button>
+              </div>
+              <p class="nl-error" id="footer-nl-email-error"></p>
+            </div>
+            <div class="nl-consent">
+              <input type="checkbox" id="footer-nl-consent" required aria-describedby="footer-nl-consent-error" />
+              <label for="footer-nl-consent">Am cel puțin 16 ani și vreau să primesc e-mailuri de la Bomba Shop. Detalii în <a href="/pages/confidentialitate">Politica de confidențialitate</a>.</label>
+            </div>
+            <p class="nl-error" id="footer-nl-consent-error"></p>
+          </div>
+          <p class="nl-done" tabindex="-1" data-nl-done hidden><Icon name="check" size={24} />Mulțumim! Te-ai abonat.</p>
+        </form>
+      </section>
+
+      <nav class="links" aria-label="Navigare subsol">
+        <div class="cols">
+          {columns.map((col, i) => (
+            <div class:list={['col', `col-${col.id}`]}>
+              <h2 class="col-title">{col.title}</h2>
+              <ul>
+                {col.links.map((l) => (
+                  <li>
+                    <a href={l.href} aria-current={isCurrent(l.href) ? 'page' : undefined} rel={l.external ? 'external' : undefined}>
+                      {l.label}{l.note && <span class="visually-hidden">: {l.note}</span>}
+                      {l.external && <Icon name="arrow" size={14} class="ext" />}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </nav>
+    </div>
+
+    <div class="mid">
+      <section class="company">
+        <h2 class="col-title">Date firmă</h2>
+        <dl class="facts">
+          <div class="span"><dt>Denumire</dt><dd>{shop.company.legalName}</dd></div>
+          <div><dt>CUI</dt><dd>{shop.company.cui}</dd></div>
+          <div><dt>Nr. Reg. Com.</dt><dd>{shop.company.regCom}</dd></div>
+          <div><dt>E-mail comenzi</dt><dd><a href={`mailto:${shop.email.orders}`}>{shop.email.orders}</a></dd></div>
+          <div><dt>E-mail general</dt><dd><a href={`mailto:${shop.email.office}`}>{shop.email.office}</a></dd></div>
+          {phone && <div><dt>Telefon</dt><dd><a href={`tel:${phone.replace(/[^\d+]/g, '')}`}>{phone}</a></dd></div>}
+          {address && <div class="span"><dt>Adresă</dt><dd>{address}</dd></div>}
+        </dl>
+      </section>
+
+      <div class="side">
+        <section>
+          <h2 class="col-title">Metode de plată</h2>
+          <ul class="pay">{commerce.payments.methods.map((m) => <li>{m}</li>)}</ul>
+        </section>
+        {shop.social.length > 0 && (
+          <section>
+            <h2 class="col-title">Urmărește-ne</h2>
+            <ul class="social">{shop.social.map((s) => <li><a href={s.url} rel="external me">{s.name}</a></li>)}</ul>
+          </section>
+        )}
+      </div>
+
+      {pnrr.show && (
+        <section class="pnrr">
+          <h2 class="col-title">Finanțare PNRR</h2>
+          {/* SLOT: official PNRR logo strip (from the programme's visual identity kit), added at integration.
+              Collapsed while empty; the image_tag carries width/height, so no layout shift. Liquid: image_picker setting + image_tag. */}
+          <div class="pnrr-logos" data-slot="pnrr-logos"></div>
+          <p>{pnrr.text}</p>
+          <a class="pnrr-link" href={pnrr.url} rel="external">Detalii pe mfe.gov.ro<span class="visually-hidden"> (site extern)</span><Icon name="arrow" size={14} class="ext" /></a>
+        </section>
+      )}
+    </div>
+
+    <div class="baseline">
+      <div class="law">
+        <p>
+          Potrivit Legii nr. {lawNo}, persoanele fizice pot cumpăra doar produse din categoria {law.publicCategory}, de la {law.publicMinAge} ani.
+          Produsele P1 și T1 se vând doar persoanelor autorizate. <a href="/pages/profesionisti">Cum funcționează accesul pentru autorizați</a>
+        </p>
+      </div>
+      <p class="copy">© {year} {shop.name}</p>
+    </div>
+  </div>
+
+  <div class="finale" aria-hidden="true">
+    <canvas class="embers" data-embers></canvas>
+  </div>
+</footer>
+
+<style>
+  .site-footer { position: relative; border-top: var(--border); background: var(--night-950); color: var(--smoke-200); }
+
+  .col-title { margin-bottom: var(--space-4); color: var(--white); font: 600 var(--text-sm)/1.2 var(--font-body); text-transform: none; letter-spacing: 0; }
+
+  .upper { display: grid; gap: var(--space-12); padding-block: clamp(56px, 8vw, 112px) var(--space-12); }
+  @media (min-width: 1024px) { .upper { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-16); } }
+
+  /* newsletter */
+  .newsletter { display: flex; flex-direction: column; gap: var(--space-4); max-width: 560px; }
+  .nl-title { font-size: clamp(var(--text-2xl), 4.4vw, var(--text-3xl)); color: var(--white); }
+  .nl-lead { max-width: 46ch; }
+  .nl-form { margin-top: var(--space-2); }
+  .nl-fields { display: flex; flex-direction: column; gap: var(--space-4); }
+  .nl-row { display: grid; gap: var(--space-2); }
+  @media (min-width: 480px) { .nl-row { grid-template-columns: minmax(0, 1fr) auto; } }
+  .nl-row .input { width: 100%; min-width: 0; }
+  .nl-row .input::placeholder { color: var(--smoke-400); }
+  .input[aria-invalid='true'] { border-color: var(--danger); }
+  .nl-error { font-size: var(--text-sm); color: var(--danger); }
+  .nl-error:empty { display: none; }
+  .nl-consent { display: flex; align-items: flex-start; gap: var(--space-3); min-height: 44px; }
+  .nl-consent input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--magnesium-400); cursor: pointer; }
+  .nl-consent input[aria-invalid='true'] { outline: 2px solid var(--danger); outline-offset: 2px; }
+  .nl-consent label { font-size: var(--text-sm); line-height: 1.5; cursor: pointer; }
+  .nl-consent a, .law a { color: var(--white); }
+  .nl-consent a:hover, .law a:hover { color: var(--magnesium-400); }
+  .nl-done { display: flex; align-items: center; gap: var(--space-3); min-height: 48px; color: var(--white);
+    font: 800 var(--text-xl)/1.1 var(--font-display); text-transform: uppercase; }
+  .nl-done :global(svg) { color: var(--magnesium-400); flex: none; }
+  .nl-done:focus { outline: none; }
+
+  /* link columns: the nav is a size container, so the grid adapts to its own width at every breakpoint */
+  .links { container-type: inline-size; }
+  .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8) var(--space-6); }
+  .col-magazin { grid-column: 1 / -1; }
+  .col-magazin ul { columns: 2; column-gap: var(--space-6); }
+  @container (min-width: 600px) {
+    .cols { grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr)); }
+    .col-magazin { grid-column: auto; }
+    .col-magazin ul { columns: 1; }
+  }
+  .col ul, .pay, .social { list-style: none; margin: 0; padding: 0; }
+  .col li { break-inside: avoid; }
+  .col a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding-block: var(--space-1);
+    color: var(--smoke-200); font-size: var(--text-base); line-height: 1.3; text-decoration: none; }
+  .col a:hover { color: var(--magnesium-400); text-decoration: underline; }
+  .col a[aria-current='page'] { color: var(--white); }
+  .col a[aria-current='page']::before { content: ''; flex: none; width: 6px; height: 6px; background: var(--magnesium-400); transform: rotate(45deg); }
+  @media (pointer: fine) and (min-width: 1024px) { .col a { min-height: 32px; font-size: var(--text-sm); } }
+  .site-footer :global(.ext) { flex: none; transform: rotate(-45deg); color: var(--smoke-400); }
+
+  /* company plate, payments, PNRR */
+  .mid { display: grid; gap: var(--space-12); padding-block: var(--space-12); border-top: var(--border); }
+  @media (min-width: 768px) {
+    .mid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12) var(--space-8); }
+    .company { grid-column: 1 / -1; }
+  }
+  @media (min-width: 1024px) {
+    .mid { grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) minmax(0, 4fr); }
+    .company { grid-column: auto; }
+  }
+  /* company facts: a plain two-column list, aligned on a grid, no boxes */
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); max-width: 520px; margin: 0; }
+  .facts .span { grid-column: 1 / -1; }
+  @media (max-width: 479px) { .facts > div:has(a) { grid-column: 1 / -1; } }
+  .facts dt { font: 500 var(--text-xs)/1.2 var(--font-body); color: var(--smoke-400); }
+  .facts dd { margin: 4px 0 0; font: 600 var(--text-sm)/1.35 var(--font-body); font-variant-numeric: tabular-nums; color: var(--white); overflow-wrap: anywhere; }
+  .facts a { display: inline-block; padding-block: 12px; margin-block: -12px; text-underline-offset: 4px; } /* 44px tap height, no extra space */
+  .facts a:hover { color: var(--magnesium-400); }
+
+  .side { display: flex; flex-direction: column; gap: var(--space-8); }
+  .pay { display: grid; gap: var(--space-2); font-size: var(--text-sm); color: var(--white); }
+  .social { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); }
+  .social a { display: inline-flex; align-items: center; min-height: 44px; color: var(--smoke-200); }
+
+  .pnrr { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+  .pnrr-logos { width: 100%; max-width: 440px; }
+  .pnrr-logos:empty { display: none; }
+  .pnrr p { max-width: 52ch; font-size: var(--text-sm); }
+  .pnrr-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--white); font-size: var(--text-sm); }
+
+  /* law line + copyright */
+  .baseline { display: flex; flex-direction: column; gap: var(--space-6); padding-block: var(--space-8); border-top: var(--border); }
+  @media (min-width: 1024px) { .baseline { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: var(--space-12); } }
+  .law { max-width: 76ch; }
+  .law p { font-size: var(--text-sm); }
+  .copy { flex: none; font-size: var(--text-xs); color: var(--smoke-400); }
+
+  /* finale: a strip of embers that fall and die out under the last line of the page */
+  .finale { position: relative; isolation: isolate; overflow: hidden; height: clamp(96px, 12vw, 160px); }
+  .embers { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0;
+    transition: opacity var(--dur-scene) var(--ease-out-expo);
+    -webkit-mask-image: linear-gradient(transparent, var(--night-950) 45%); mask-image: linear-gradient(transparent, var(--night-950) 45%); }
+  .embers[data-ready] { opacity: 1; }
+</style>
+
+<script>
+  // Newsletter, UI only. In the Shopify theme the customer form posts to /contact and re-renders with
+  // form.posted_successfully?, so this handler is dropped there.
+  const form = document.querySelector<HTMLFormElement>('[data-newsletter]');
+  if (form) {
+    const email = form.querySelector<HTMLInputElement>('#footer-nl-email')!;
+    const consent = form.querySelector<HTMLInputElement>('#footer-nl-consent')!;
+    const fields = form.querySelector<HTMLElement>('[data-nl-fields]')!;
+    const done = form.querySelector<HTMLElement>('[data-nl-done]')!;
+    form.noValidate = true; // inline messages instead of browser bubbles; without JS the native validation still applies
+
+    const report = (input: HTMLInputElement, message: string) => {
+      const ok = input.checkValidity();
+      if (ok) input.removeAttribute('aria-invalid'); else input.setAttribute('aria-invalid', 'true');
+      const out = document.getElementById(input.getAttribute('aria-describedby') ?? '');
+      if (out) out.textContent = ok ? '' : message;
+      return ok;
+    };
+    const emailMessage = () => (email.validity.valueMissing ? 'Scrie adresa de e-mail.' : 'Adresa nu pare corectă. Exemplu: nume@exemplu.ro');
+    const consentMessage = 'Bifează acordul ca să te putem abona.';
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      email.value = email.value.trim();
+      const okEmail = report(email, emailMessage());
+      const okConsent = report(consent, consentMessage);
+      if (!okEmail || !okConsent) { (okEmail ? consent : email).focus(); return; }
+      fields.hidden = true;
+      done.hidden = false;
+      done.focus();
+    });
+    // once a field was flagged, clear the message as soon as it is fixed
+    email.addEventListener('input', () => { if (email.hasAttribute('aria-invalid')) report(email, emailMessage()); });
+    consent.addEventListener('change', () => { if (consent.hasAttribute('aria-invalid')) report(consent, consentMessage); });
+  }
+
+  // "Jarul": load the 2D ember field only when the footer comes near the viewport.
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-embers]');
+  if (canvas && 'IntersectionObserver' in window) {
+    const near = new IntersectionObserver((entries) => {
+      if (!entries.some((en) => en.isIntersecting)) return;
+      near.disconnect();
+      import('../scripts/three/embers').then(({ mountEmbers }) => mountEmbers(canvas)).catch(() => { /* decorative only */ });
+    }, { rootMargin: '400px 0px' });
+    near.observe(canvas);
+  }
+</script>

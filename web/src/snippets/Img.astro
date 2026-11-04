@@ -1,0 +1,31 @@
+---
+// Responsive product image from the build manifest (tools/sync_web_assets.py). Cut-outs get the warm "lit from below"
+// stage from CSS; photos still waiting for processing are shown as they are. Missing image -> branded placeholder.
+import type { ProductImage } from '../lib/catalog';
+interface Props { image?: ProductImage; alt?: string; sizes?: string; eager?: boolean; class?: string }
+const { image, alt, sizes = '(min-width: 1200px) 22vw, (min-width: 768px) 30vw, 46vw', eager = false, class: cls } = Astro.props;
+const largest = image?.files.at(-1);
+---
+{image && largest ? (
+  <img class:list={['pimg', image.kind, cls]}
+    src={image.files[Math.min(1, image.files.length - 1)].src}
+    srcset={image.files.map((f) => `${f.src} ${f.w}w`).join(', ')}
+    sizes={sizes} width={largest.w} height={largest.h} alt={alt ?? image.alt}
+    loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : 'auto'} />
+) : (
+  <span class:list={['pimg-missing', cls]} role="img" aria-label="Fotografia produsului urmează">
+    <svg viewBox="0 0 120 120" width="56" height="56" aria-hidden="true"><g stroke="currentColor" stroke-width="7" stroke-linecap="round">
+      {Array.from({ length: 12 }, (_, i) => { const a = (Math.PI * 2 * i) / 12 - Math.PI / 2, r1 = i % 2 ? 35 : 47;
+        return <line x1={60 + Math.cos(a) * 16} y1={60 + Math.sin(a) * 16} x2={60 + Math.cos(a) * r1} y2={60 + Math.sin(a) * r1} />; })}
+    </g></svg>
+    <span>Fotografie în lucru</span>
+  </span>
+)}
+<style>
+  .pimg { width: 100%; height: 100%; object-fit: contain; }
+  .pimg.cutout { filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .55)); }
+  .pimg.original { border-radius: 2px; } /* never crop a product */
+  .pimg-missing { width: 100%; height: 100%; display: grid; place-content: center; justify-items: center; gap: 10px; color: var(--night-600);
+    font: 600 var(--text-sm)/1 var(--font-body); }
+  .pimg-missing span { color: var(--smoke-400); }
+</style>

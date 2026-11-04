@@ -1,0 +1,26 @@
+---
+// Liquid: {{ product.description }} inside sections/main-product.liquid.
+// The old descriptions are tidied (lib/tidy.ts); when nothing but the age notice remains, a short factual line
+// built from known data takes its place.
+import { plainText, category, effectType, type Product } from '../../lib/catalog';
+import { tidyDescription } from '../../lib/tidy';
+interface Props { product: Product }
+const { product: p } = Astro.props;
+const html = tidyDescription(p.body_html);
+const trivial = plainText(html).length < 20;
+const cat = category(p), fx = effectType(p);
+const fallback = [
+  `${p.title}${p.vendor ? `, de la ${p.vendor}` : ''}${fx ? `, cu efect de tip ${fx.toLowerCase()}` : ''}.`,
+  cat === 'F1' ? 'Categoria F1: se poate cumpăra de la 16 ani.' : cat ? `Categoria ${cat}: doar pentru persoane autorizate.` : '',
+  'Instrucțiunile de folosire și distanța de siguranță sunt pe ambalaj.',
+].filter(Boolean).join(' ');
+---
+<section class="desc" aria-labelledby="desc-h">
+  <h2 id="desc-h">Descriere</h2>
+  {trivial ? <div class="prose"><p>{fallback}</p></div> : <div class="prose" set:html={html} />}
+</section>
+<style>
+  .desc { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+  h2 { font-size: var(--text-3xl); }
+  .prose { color: var(--smoke-200); margin-top: var(--space-3); font-size: var(--text-md); }
+</style>

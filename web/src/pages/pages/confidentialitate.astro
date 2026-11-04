@@ -1,0 +1,19 @@
+---
+// Liquid: templates/page.confidentialitate.json. Adapted from the shop's current policy; needs legal review.
+import Theme from '../../layouts/Theme.astro';
+import ContentHero from '../../sections/ContentHero.astro';
+import ContentPage from '../../sections/ContentPage.astro';
+import body from '../../content/confidentialitate.html?raw';
+import { shop } from '../../config';
+---
+<Theme title="Politica de confidențialitate" description="Ce date personale colectează Bomba Shop și cum le folosim." skipGate>
+  <ContentHero title="Confidențialitate" lede="Ce date colectăm, de ce și ce drepturi ai." />
+  <ContentPage toc>
+    <h2>Operatorul de date</h2>
+    <p>{shop.company.legalName}, CUI {shop.company.cui}, Nr. Reg. Com. {shop.company.regCom}. Pentru orice întrebare despre datele tale scrie la {shop.email.office}.</p>
+    <Fragment set:html={body} />
+    <h2>Drepturile tale</h2>
+    <p>Conform Regulamentului (UE) 2016/679 (GDPR) ai dreptul de acces, rectificare, ștergere, restricționare, portabilitate și opoziție, precum și dreptul de a depune o plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP).</p>
+    <p>Despre cookie-uri găsești detalii în <a href="/pages/cookies">Politica de cookie-uri</a>.</p>
+  </ContentPage>
+</Theme>

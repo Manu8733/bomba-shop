@@ -1,0 +1,178 @@
+---
+// Collection product grid with toolbar, filters, empty state and "load more".
+// Liquid: sections/main-collection-product-grid.liquid ({% paginate collection.products by 24 %} + collection.filters).
+// Filtering and sorting run client-side in scripts/filters.ts over the cards' data-* attributes.
+import ProductCard from '../../snippets/ProductCard.astro';
+import Icon from '../../snippets/Icon.astro';
+import Fuse from '../../snippets/Fuse.astro';
+import Filters from './Filters.astro';
+import { isPro, type Product } from '../../lib/catalog';
+import { productsPhrase } from '../../scripts/filters';
+
+interface Props {
+  /** already in display order (in stock first) */
+  products: Product[];
+  id: string;
+  /** whether P1/T1 cards start visible for shoppers who are not in pro mode */
+  proDefault: 'hide' | 'show';
+  pageSize?: number;
+}
+const { products: list, id, proDefault, pageSize = 24 } = Astro.props;
+const proCount = list.filter(isPro).length;
+// the P1/T1 switch only makes sense when it splits the list (not on a pro-only collection)
+const showProSwitch = proCount > 0 && proCount < list.length;
+const initialCount = proDefault === 'hide' ? list.length - proCount : list.length;
+---
+<section class="catalog container" data-collection data-page-size={pageSize} data-pro-default={proDefault} data-pro={proDefault}
+  aria-labelledby={`${id}-products`}>
+  {/* Hides the grid for a moment when the URL carries filters, so the unfiltered list does not flash first. */}
+  <script is:inline>(function(){if(/[?&](stock|cat|effect|color|min|max|sale|pro|sort)=/.test(location.search)){var r=document.currentScript&&document.currentScript.parentElement;if(r)r.setAttribute('data-pending','')}})()</script>
+  <div class="layout">
+    <Filters products={list} id={id} />
+
+    <div class="results">
+      <h2 id={`${id}-products`} class="visually-hidden">Produse</h2>
+
+      <div class="toolbar" data-toolbar>
+        <p class="count" data-count tabindex="-1">{productsPhrase(initialCount)}</p>
+        <button type="button" class="btn btn-secondary open-filters" data-sheet-open aria-controls={`${id}-sheet`} aria-expanded="false" aria-haspopup="dialog">
+          <Icon name="filter" size={20} />
+          <span>Filtre</span>
+          <span class="badge" data-filter-badge hidden><span data-n>0</span><span class="visually-hidden"> active</span></span>
+        </button>
+        <div class="sort">
+          <label class="sort-label" for={`${id}-sort`}>Sortează</label>
+          <span class="select">
+            <select id={`${id}-sort`} class="input" data-sort>
+              <option value="recomandat">Recomandat</option>
+              <option value="pret-asc">Preț crescător</option>
+              <option value="pret-desc">Preț descrescător</option>
+              <option value="nume">Nume A–Z</option>
+            </select>
+          </span>
+        </div>
+      </div>
+
+      {showProSwitch && (
+        <div class="pro-row" data-pro-wrap>
+          <label class="switch">
+            <input type="checkbox" role="switch" data-pro-toggle checked={proDefault === 'show'} />
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-text">Arată și produsele P1 și T1, pentru autorizați <span class="n">(<span data-pro-count>{proCount}</span>)</span></span>
+          </label>
+        </div>
+      )}
+
+      <div class="active" data-active role="group" aria-label="Filtre active" hidden></div>
+      <template data-chip-tpl><button type="button" class="achip"><span data-t></span><Icon name="close" size={14} /></button></template>
+
+      <p class="visually-hidden" data-live aria-live="polite" aria-atomic="true"></p>
+
+      <ul class="grid-products grid" data-grid role="list">
+        {list.map((p, i) => (
+          <li data-audience={isPro(p) ? 'pro' : 'public'}><ProductCard product={p} eager={i < 4} headingLevel="h3" /></li>
+        ))}
+      </ul>
+
+      <div class="empty" data-empty hidden>
+        <p class="empty-title" data-empty-title>Niciun produs nu se potrivește filtrelor alese.</p>
+        <p class="empty-body" data-empty-body>Scoate un filtru sau resetează-le pe toate.</p>
+        <div class="empty-actions">
+          <button type="button" class="btn btn-primary" data-reset-empty>Resetează filtrele</button>
+          <button type="button" class="btn btn-secondary" data-empty-pro hidden>Arată produsele P1/T1 (<span data-n>0</span>)</button>
+        </div>
+      </div>
+
+      <div class="more" data-more-wrap hidden>
+        <p class="more-status" data-more-status></p>
+        <Fuse value={0} label="Produse afișate din total" class="more-fuse" />
+        <button type="button" class="btn btn-secondary" data-more>Arată mai multe</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .catalog { padding-block: var(--space-6) var(--space-24); }
+  .layout { display: grid; gap: var(--space-6); }
+  .results { min-width: 0; container: results / inline-size; }
+
+  /* P1/T1 stay hidden before the script runs, so public shoppers never see them flash (html[data-mode] is set pre-paint) */
+  :global(html:not([data-mode='pro'])) .catalog[data-pro='hide'] .grid > li[data-audience='pro'] { display: none; }
+  .catalog[data-pending] .grid { opacity: 0; animation: unpend 0s 2.5s forwards; }
+  @keyframes unpend { to { opacity: 1; } }
+
+  /* toolbar */
+  .toolbar { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .count { grid-column: 1 / -1; font: 600 var(--text-sm)/1.2 var(--font-body);
+    font-variant-numeric: tabular-nums; color: var(--smoke-200); }
+  .count:focus { outline: none; }
+  .count:focus-visible { outline: 2px solid var(--magnesium-400); }
+  .open-filters { width: 100%; padding-inline: var(--space-4); border-color: var(--night-600); }
+  .badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: var(--radius-pill);
+    background: var(--magnesium-400); color: var(--on-magnesium); font: 700 var(--text-xs)/1 var(--font-body); }
+  .sort { min-width: 0; }
+  .sort-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .select { position: relative; display: block; }
+  .select::after { content: ''; position: absolute; right: 18px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+    border-right: 2px solid var(--smoke-200); border-bottom: 2px solid var(--smoke-200); transform: rotate(45deg); pointer-events: none; }
+  .select select { -webkit-appearance: none; appearance: none; width: 100%; padding-right: 44px; cursor: pointer; font-size: var(--text-sm); }
+  .select select:hover { border-color: var(--smoke-400); }
+
+  /* pro toggle */
+  .pro-row { margin-bottom: var(--space-4); }
+  .switch { position: relative; display: inline-flex; align-items: center; gap: var(--space-3); min-height: 48px; color: var(--smoke-200); font-size: var(--text-sm); cursor: pointer; }
+  .switch:hover { color: var(--white); }
+  .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .track { position: relative; flex: none; width: 42px; height: 24px; border-radius: var(--radius-pill); background: var(--night-700);
+    border: 1px solid var(--night-600); transition: background-color var(--dur-ui), border-color var(--dur-ui); }
+  .track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--smoke-200);
+    transition: transform var(--dur-ui) var(--ease-spring); }
+  .switch input:checked + .track { background: var(--cat-pro); border-color: var(--cat-pro); }
+  .switch input:checked + .track::after { transform: translateX(18px); background: var(--white); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
+  .n { font-variant-numeric: tabular-nums; color: var(--smoke-400); }
+  :global(html[data-mode='pro']) .pro-row { display: none; }
+
+  /* active filters */
+  .active { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .active :global(.achip) { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px 0 14px; border-radius: var(--radius-pill);
+    border: 1px solid var(--night-600); background: var(--night-800); color: var(--white); font: 500 var(--text-sm)/1 var(--font-body); }
+  .active :global(.achip:hover) { border-color: var(--smoke-400); }
+  .active :global(.achip svg) { color: var(--smoke-200); }
+  .active :global(.achip-clear) { min-height: 36px; padding: 0 var(--space-2); background: none; border: 0; color: var(--smoke-200);
+    font: 500 var(--text-sm)/1 var(--font-body); text-decoration: underline; text-underline-offset: 3px; }
+  .active :global(.achip-clear:hover) { color: var(--magnesium-400); }
+  @media (pointer: coarse) { .active :global(.achip), .active :global(.achip-clear) { min-height: 44px; } }
+
+  /* grid: column count follows the space left by the sidebar */
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+  .grid > li { display: flex; min-width: 0; content-visibility: auto; contain-intrinsic-size: auto 480px; }
+  .grid > li > :global(*) { flex: 1; }
+  @container results (min-width: 620px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @container results (min-width: 1020px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+  /* empty state */
+  .empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); padding-block: var(--space-12) var(--space-16); }
+  .empty-title { font: 600 var(--text-lg)/1.3 var(--font-body); color: var(--white); text-wrap: balance; }
+  .empty-body { max-width: 46ch; color: var(--smoke-200); }
+  .empty-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+
+  /* load more */
+  .more { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); max-width: 360px; margin: var(--space-12) auto 0; text-align: center; }
+  .more-status { font: 600 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
+  .more :global(.more-fuse) { width: 100%; }
+  .more .btn { min-width: 220px; }
+
+  @media (min-width: 1024px) {
+    .catalog { padding-top: var(--space-12); }
+    .layout { grid-template-columns: 264px minmax(0, 1fr); gap: var(--space-12); }
+    .toolbar { display: flex; justify-content: space-between; gap: var(--space-6); padding-bottom: var(--space-4); border-bottom: var(--border); }
+    .count { grid-column: auto; }
+    .open-filters { display: none; }
+    .sort { display: flex; align-items: center; gap: var(--space-3); }
+    .sort-label { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap;
+      font: 600 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
+    .select select { min-width: 220px; }
+  }
+</style>

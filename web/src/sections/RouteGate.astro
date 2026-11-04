@@ -1,0 +1,269 @@
+---
+// Entry gate „Cine cumpără?” (DESIGN.md §6). Replaces the old „18 ani – Intră pe site” popup.
+// Opens only while <html data-mode="unset">; the choice is stored by scripts/mode.ts. Theme.astro does not render
+// it on pages with skipGate. Liquid: sections/route-gate.liquid, rendered from layout/theme.liquid unless the
+// template opts out; at the port "pro" becomes the customer tag „autorizat”, set by staff after verification.
+import symbolRaw from '../../public/brand/bomba-symbol.svg?raw';
+import CatBadge from '../snippets/CatBadge.astro';
+import Icon from '../snippets/Icon.astro';
+import { products, category, isPro, available } from '../lib/catalog';
+import { law } from '../config';
+
+const lawNo = law.reference.match(/nr\.\s*[\d/]+/)?.[0] ?? '';
+// Only the authorized-only categories this catalogue actually has (P1, T1)
+const proCats = law.proCategories.filter((c) => products.some((p) => category(p) === c));
+const proCatsText = proCats.join(' și ');
+const proInStock = products.some((p) => isPro(p) && available(p));
+const confirmNote = law.reviewedByLawyer ? undefined : 'Text juridic neverificat de avocat (config.law.reviewedByLawyer = false). De confirmat înainte de lansare.';
+
+const symbol = symbolRaw
+  .replace(/<title>.*?<\/title>/, '')
+  .replace(/ width="\d+" height="\d+"/, ' aria-hidden="true" focusable="false"');
+---
+<dialog class="route-gate" data-route-gate closedby="none" aria-labelledby="gate-title" aria-describedby="gate-law">
+  <div class="sky" aria-hidden="true"></div>
+
+  <div class="panel">
+    <span class="mark" set:html={symbol} />
+
+    <div class="step" data-step="choose">
+      <h2 id="gate-title" class="title" tabindex="-1">Cine cumpără?</h2>
+      <p id="gate-law" class="law" data-confirm={confirmNote}>
+        Conform <span title={law.reference}>Legii {lawNo}</span>, persoanele fizice pot cumpăra doar articole {law.publicCategory},
+        de la {law.publicMinAge} ani, iar {proCatsText} se vând doar persoanelor autorizate.
+      </p>
+
+      <div class="choices">
+        <form class="choice" data-choice="public" novalidate aria-labelledby="gate-public-title">
+          <div class="badges"><CatBadge category={law.publicCategory} size="md" /></div>
+          <h3 id="gate-public-title">Persoană fizică</h3>
+          <p class="choice-text">Cumperi pentru tine. Ai acces la articolele {law.publicCategory}: vulcani, bengale, artificii de tort și de brad.</p>
+          <div class="age-field">
+            <label class="age">
+              <input type="checkbox" name="age" id="gate-age" aria-describedby="gate-age-error" />
+              <span>Am cel puțin {law.publicMinAge} ani</span>
+            </label>
+            <p class="error" id="gate-age-error" aria-live="polite" data-msg={`Bifează „Am cel puțin ${law.publicMinAge} ani” ca să intri în magazin.`}></p>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Intră în magazin</button>
+        </form>
+
+        <div class="choice pro" role="group" aria-labelledby="gate-pro-title">
+          <div class="badges">{proCats.map((c) => <CatBadge category={c} size="md" />)}</div>
+          <h3 id="gate-pro-title">Client autorizat</h3>
+          <p class="choice-text">Firmă autorizată sau persoană cu carnet de pirotehnician. Poți comanda și {proCatsText} (baterii, petarde, fumigene), după ce verificăm autorizația.</p>
+          <button class="btn btn-secondary btn-block" type="button" data-choose-pro>Continuă ca autorizat</button>
+        </div>
+      </div>
+
+      <div class="foot">
+        <button class="quiet" type="button" data-choose-minor>Am sub {law.publicMinAge} ani</button>
+        <p class="remember">Îți ținem minte alegerea în acest browser.</p>
+      </div>
+    </div>
+
+    <div class="step" data-step="pro" hidden>
+      <h2 id="gate-pro-step-title" class="title sm" tabindex="-1">Mai e un pas</h2>
+      <p class="text" data-pro-variant="upload">
+        Poți răsfoi tot catalogul. Ca să comanzi {proCatsText}, încarcă autorizația firmei sau carnetul de pirotehnician.
+        După ce o verificăm, comanda se deblochează.
+      </p>
+      <p class="text" data-pro-variant="sent" hidden>
+        Autorizația ta e deja trimisă și o verificăm. Până atunci poți răsfoi tot catalogul; {proCatsText} se pot comanda după verificare.
+      </p>
+      {!proInStock && <p class="note"><Icon name="info" size={18} /> Momentan, toate produsele {proCatsText} sunt fără stoc.</p>}
+      <div class="actions">
+        <a class="btn btn-primary" href="/pages/profesionisti#autorizatie" data-pro-link>
+          <Icon name="upload" size={18} />
+          <span data-pro-variant="upload">Încarcă autorizația</span>
+          <span data-pro-variant="sent" hidden>Vezi starea autorizației</span>
+        </a>
+        <button class="btn btn-ghost" type="button" data-close>Răsfoiesc mai întâi</button>
+      </div>
+    </div>
+
+    <div class="step" data-step="minor" hidden>
+      <h2 id="gate-minor-title" class="title sm" tabindex="-1">Nu-ți putem vinde artificii</h2>
+      <p class="text">
+        Legea nu ne permite să vindem articole pirotehnice persoanelor sub {law.publicMinAge} ani, nici măcar pe cele din categoria {law.publicCategory}.
+        Dacă vrei să afli cum se folosesc artificiile în siguranță, alături de un adult, citește ghidul nostru.
+      </p>
+      <div class="actions">
+        <a class="btn btn-secondary" href="/pages/siguranta">Citește despre siguranță</a>
+        <button class="btn btn-ghost" type="button" data-back><Icon name="arrow-left" size={18} /> Înapoi</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<style>
+  /* The dialog covers the viewport; the panel scrolls inside it on short screens. Closed = UA display:none. */
+  .route-gate { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + var(--space-4)) var(--gutter) calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
+    background: transparent; color: var(--white); overflow: hidden auto; overscroll-behavior: contain; }
+  .route-gate[open] { display: flex; }
+  .route-gate::backdrop { background: transparent; }
+  :global(html:has(.route-gate[open])) { overflow: hidden; }
+
+  /* the page stays visible behind, dimmed: the burst in the panel is the only moving thing */
+  .sky { position: fixed; inset: 0; pointer-events: none; background: color-mix(in srgb, var(--night-950) 86%, transparent); }
+
+  /* Dark glass panel */
+  .panel { position: relative; margin: auto; width: min(100%, 800px); padding: clamp(20px, 5vw, 44px);
+    background: color-mix(in srgb, var(--night-900) 80%, transparent);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border: 1px solid var(--night-700); border-radius: var(--radius-card);
+    animation: rise var(--dur-reveal) var(--ease-out-expo) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+
+  .mark { display: block; width: 52px; height: 52px; margin-bottom: var(--space-6); }
+  .mark :global(svg) { width: 100%; height: 100%; }
+  /* the burst ignites on open: rays draw from the core outwards */
+  .mark :global(line) { stroke-dasharray: 40; stroke-dashoffset: 40; animation: ray var(--dur-scene) var(--ease-out-expo) 120ms forwards; }
+  .mark :global(line:nth-of-type(even)) { animation-delay: 220ms; }
+  .mark :global(circle) { transform-box: fill-box; transform-origin: center; animation: core var(--dur-reveal) var(--ease-spring) both; }
+  @keyframes ray { to { stroke-dashoffset: 0; } }
+  @keyframes core { from { transform: scale(0); } }
+
+  .step { display: flex; flex-direction: column; gap: var(--space-4); }
+  .title { font-size: clamp(2.75rem, 11vw, 4.5rem); }
+  .title.sm { font-size: clamp(2.25rem, 8vw, 3.5rem); }
+  .title:focus { outline: none; }
+  .law { max-width: 60ch; color: var(--smoke-200); font-size: var(--text-sm); }
+  .law span[title] { text-decoration: underline dotted var(--smoke-400); text-underline-offset: 3px; }
+
+  /* two answers side by side, split by one rule: no cards, the rhombus badges carry the colour */
+  .choices { display: grid; margin-top: var(--space-4); border-top: 1px solid var(--night-700); }
+  @media (min-width: 640px) { .choices { grid-template-columns: 1fr 1fr; } }
+  .choice { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; padding-block: var(--space-6); }
+  .choice + .choice { border-top: 1px solid var(--night-700); }
+  @media (min-width: 640px) {
+    .choice { padding-inline: 0 var(--space-8); }
+    .choice + .choice { border-top: 0; border-left: 1px solid var(--night-700); padding-inline: var(--space-8) 0; }
+  }
+  .badges { display: flex; }
+  .badges > :global(.cat-badge + .cat-badge) { margin-left: -10px; }
+  .choice h3 { font-size: clamp(1.75rem, 5vw, 2.25rem); }
+  .choice-text { color: var(--smoke-200); font-size: var(--text-sm); }
+  .choice .btn { margin-top: auto; }
+
+  .age-field { display: flex; flex-direction: column; gap: 6px; }
+  .age { display: flex; align-items: center; gap: var(--space-3); min-height: 48px; font-weight: 600; cursor: pointer; }
+  .age input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--magnesium-400); cursor: pointer; }
+  .age input[aria-invalid='true'] { outline: 2px solid var(--danger); outline-offset: 2px; }
+  .error { color: var(--danger); font-size: var(--text-sm); }
+
+  .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+  .quiet { min-height: 44px; padding: 0 var(--space-2); margin-left: calc(-1 * var(--space-2)); background: none; border: 0;
+    color: var(--smoke-400); font-size: var(--text-sm); text-decoration: underline; text-underline-offset: 3px; }
+  .quiet:hover { color: var(--white); }
+  .remember { color: var(--smoke-400); font-size: var(--text-xs); }
+
+  .text { max-width: 56ch; color: var(--smoke-200); }
+  .note { display: flex; align-items: flex-start; gap: var(--space-2); max-width: 56ch; color: var(--smoke-200); font-size: var(--text-sm); }
+  .note :global(.icon) { flex: none; margin-top: 2px; color: var(--smoke-400); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); }
+  .actions .btn { flex: 1 1 auto; white-space: normal; text-align: center; }
+  @media (min-width: 640px) { .actions .btn { flex: 0 0 auto; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel { animation: none; }
+    .mark :global(line), .mark :global(circle) { animation: none; stroke-dashoffset: 0; }
+  }
+</style>
+
+<script>
+  import { getMode, setMode, getProAuth, setProAuth } from '../scripts/mode';
+
+  const gate = document.querySelector<HTMLDialogElement>('[data-route-gate]');
+  if (gate) initGate(gate);
+
+  function initGate(dialog: HTMLDialogElement) {
+    const root = document.documentElement;
+    const steps = [...dialog.querySelectorAll<HTMLElement>('[data-step]')];
+    const form = dialog.querySelector<HTMLFormElement>('[data-choice="public"]')!;
+    const age = form.querySelector<HTMLInputElement>('input[name="age"]')!;
+    const ageError = dialog.querySelector<HTMLElement>('#gate-age-error')!;
+    const proLink = dialog.querySelector<HTMLAnchorElement>('[data-pro-link]')!;
+    let step = 'choose';
+
+    const chosen = () => root.dataset.mode === 'public' || root.dataset.mode === 'pro';
+
+    function show(next: string) {
+      step = next;
+      for (const s of steps) s.hidden = s.dataset.step !== next;
+      const heading = steps.find((s) => s.dataset.step === next)!.querySelector<HTMLElement>('h2')!;
+      dialog.setAttribute('aria-labelledby', heading.id);
+      if (next === 'choose') dialog.setAttribute('aria-describedby', 'gate-law');
+      else dialog.removeAttribute('aria-describedby');
+      dialog.scrollTop = 0;
+      heading.focus({ preventScroll: true });
+    }
+
+    function open() {
+      if (dialog.open) return;
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      show('choose');
+    }
+
+    function finish() {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!age.checked) {
+        age.setAttribute('aria-invalid', 'true');
+        ageError.textContent = ageError.dataset.msg ?? '';
+        age.focus();
+        return;
+      }
+      setMode('public');
+      finish();
+    });
+    age.addEventListener('change', () => {
+      if (!age.checked) return;
+      age.removeAttribute('aria-invalid');
+      ageError.textContent = '';
+    });
+
+    dialog.querySelector('[data-choose-pro]')!.addEventListener('click', () => {
+      const auth = getProAuth();
+      setMode('pro');
+      if (auth?.status === 'verified') return finish();
+      if (!auth || auth.status === 'none') setProAuth({ status: 'pending' });
+      const variant = auth?.fileName ? 'sent' : 'upload';
+      dialog.querySelectorAll<HTMLElement>('[data-pro-variant]').forEach((el) => { el.hidden = el.dataset.proVariant !== variant; });
+      dialog.setAttribute('closedby', 'closerequest'); // a choice is made: Esc may close from here on
+      show('pro');
+    });
+    dialog.querySelector('[data-choose-minor]')!.addEventListener('click', () => show('minor'));
+    dialog.querySelector('[data-back]')!.addEventListener('click', () => show('choose'));
+    dialog.querySelector('[data-close]')!.addEventListener('click', finish);
+    // Already on the professionals page (if a template renders the gate there): just reveal the form.
+    proLink.addEventListener('click', () => { if (proLink.pathname === location.pathname) finish(); });
+
+    // Not dismissible before a choice. closedby="none" covers new browsers; cancel/close guards cover the rest.
+    dialog.addEventListener('cancel', (e) => { if (!chosen()) e.preventDefault(); });
+    dialog.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && step === 'minor') { e.preventDefault(); show('choose'); }
+    });
+    dialog.addEventListener('close', () => { if (!chosen()) requestAnimationFrame(open); });
+
+    // Back/forward cache: the choice may have been made on another page since this one was frozen.
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      const mode = getMode();
+      if (mode && dialog.open) { setMode(mode); finish(); }
+    });
+
+    // the entry intro plays first; the gate opens when the sparks have landed
+    if (root.dataset.mode === 'unset') {
+      if (root.classList.contains('intro')) window.addEventListener('intro:done', () => open(), { once: true });
+      else open();
+    }
+    window.addEventListener('gate:open', () => open()); // header "Schimbă profilul"
+  }
+</script>

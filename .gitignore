@@ -1,0 +1,23 @@
+# dependencies and builds
+node_modules/
+web/dist/
+web/.astro/
+.vercel/
+
+# local Python env, models and caches
+tools/.venv/
+tools/models/
+tools/shots/
+__pycache__/
+
+# image working files stay local: originals, cut-outs, review sheets (the site ships web/public/images)
+assets/
+research/raw/
+
+# local tool settings
+.claude/settings.local.json
+
+# editor / OS
+.DS_Store
+Thumbs.db
+*.log

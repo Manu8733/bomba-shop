@@ -1,0 +1,143 @@
+---
+// Liquid: templates/search.json → collection-header + main-search (results loop renders snippets/product-card.liquid).
+// Here results render client-side from /catalog.json (Predictive/Search API at the port), in the same shape as ProductCard.
+import Theme from '../layouts/Theme.astro';
+import CollectionHeader from '../sections/collection/CollectionHeader.astro';
+import CatBadge from '../snippets/CatBadge.astro';
+import Icon from '../snippets/Icon.astro';
+import { products, category } from '../lib/catalog';
+const cats = [...new Set(products.map(category).filter(Boolean))] as string[];
+const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Căutare' }];
+---
+<Theme title="Căutare" description="Caută în catalogul Bomba Shop." noindex>
+  <CollectionHeader title="Căutare" crumbs={crumbs} seed="cautare" blurb="Caută după nume, efect sau producător.">
+    <form class="bar" action="/search" role="search">
+      <label class="visually-hidden" for="sq">Caută produse</label>
+      <input class="input" id="sq" name="q" type="search" placeholder="vulcan, tort, fum roz…" autocomplete="off" />
+      <button class="btn btn-primary" type="submit">Caută</button>
+    </form>
+  </CollectionHeader>
+  <section class="container results" data-search-page aria-labelledby="results-h">
+    <h2 id="results-h" class="visually-hidden">Rezultate</h2>
+    <p class="status" aria-live="polite" data-status>Se încarcă…</p>
+    <ul class="grid-products list" data-results role="list"></ul>
+    <div class="empty" data-empty hidden>
+      <p>Încearcă un cuvânt mai scurt sau deschide una dintre colecții:</p>
+      <p class="links"><a href="/collections/public">Produse F1</a><a href="/collections/vulcani-artificii">Vulcani</a><a href="/collections/artificii-de-tort">Artificii de tort</a><a href="/collections/fumigene-colorate">Fumigene</a></p>
+    </div>
+    {cats.map((c) => <template data-badge={c}><CatBadge category={c} size="sm" class="badge" /></template>)}
+    <template data-plus><Icon name="plus" size={18} /></template>
+  </section>
+</Theme>
+<style>
+  .bar { display: flex; gap: var(--space-3); width: 100%; max-width: 640px; margin-top: var(--space-2); }
+  .bar .input { flex: 1; min-width: 0; }
+  .results { padding-block: var(--space-8) var(--space-24); }
+  .status { margin-bottom: var(--space-6); font: 600 var(--text-sm)/1.2 var(--font-body); font-variant-numeric: tabular-nums; color: var(--smoke-200); }
+  .list { margin: 0; padding: 0; list-style: none; }
+  .list > :global(li) { display: flex; min-width: 0; }
+  .empty p { color: var(--smoke-200); }
+  .links { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); margin-top: var(--space-2); }
+  .links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .links a:hover { color: var(--magnesium-400); }
+
+  /* result card: same look as snippets/ProductCard.astro */
+  .list :global(.sc) { position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+    background: var(--night-900); border: var(--border); border-radius: var(--radius-card); transition: border-color var(--dur-ui); }
+  .list :global(.sc:hover) { border-color: var(--night-600); }
+  .list :global(.sc .m) { position: relative; display: block; aspect-ratio: 1;
+    background: radial-gradient(70% 55% at 50% 100%, rgba(255, 182, 72, .2), transparent 70%), var(--night-800); }
+  /* absolute, so a tall photo cannot stretch the square */
+  .list :global(.sc .m img) { position: absolute; inset: 12%; width: 76%; height: 76%; object-fit: contain; transition: transform var(--dur-reveal) var(--ease-out-expo); }
+  .list :global(.sc:hover .m img) { transform: translateY(-6px) scale(1.03); }
+  .list :global(.sc.out .m img) { opacity: .55; filter: grayscale(.4); }
+  .list :global(.sc .badge) { position: absolute; top: 4px; left: 4px; }
+  .list :global(.sc .flags) { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .list :global(.sc .flag) { font: 700 .75rem/1 var(--font-body); padding: 6px 8px; border-radius: 2px; background: var(--night-950); border: 1px solid var(--night-600); color: var(--smoke-200); }
+  .list :global(.sc .flag.sale) { background: var(--strontium-500); border-color: transparent; color: #fff; }
+  .list :global(.sc .i) { display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 0; padding: 14px; }
+  .list :global(.sc .t) { font-size: clamp(1.15rem, 1.6vw, 1.45rem); line-height: 1.02; }
+  .list :global(.sc .t a) { text-decoration: none; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .list :global(.sc .t a::after) { content: ''; position: absolute; inset: 0; }
+  .list :global(.sc .t a:hover) { color: var(--white); }
+  .list :global(.sc .fx) { font-size: var(--text-sm); line-height: 1.35; color: var(--smoke-200); }
+  .list :global(.sc .buy) { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; position: relative; z-index: 1; }
+  .list :global(.sc .pb) { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-variant-numeric: tabular-nums; }
+  .list :global(.sc .pr) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-weight: 600; color: var(--white); }
+  .list :global(.sc .pr s) { color: var(--smoke-400); font-size: .8rem; font-weight: 700; }
+  .list :global(.sc .st) { font-size: .8rem; font-weight: 500; color: var(--fx-barium); }
+  .list :global(.sc .st.no) { color: var(--smoke-400); }
+  .list :global(.sc .buy .btn) { position: relative; z-index: 2; flex: none; }
+  @media (max-width: 480px) {
+    .bar .btn { padding-inline: 18px; }
+    .list :global(.sc .i) { padding: 12px; gap: 10px; }
+    .list :global(.sc .buy) { flex-direction: column; align-items: stretch; }
+    .list :global(.sc .buy .btn) { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .list :global(.sc .m img) { transition: none; }
+    .list :global(.sc:hover .m img) { transform: none; }
+  }
+</style>
+<script>
+  import { loadCatalog, money, type CatalogItem } from '../scripts/cart';
+  import { fold } from '../scripts/search';
+  import { plural } from '../scripts/filters';
+  type Hit = CatalogItem & { vendor?: string | null; effect?: string | null };
+  const root = document.querySelector<HTMLElement>('[data-search-page]')!;
+  const q = new URLSearchParams(location.search).get('q')?.trim() ?? '';
+  const input = document.querySelector<HTMLInputElement>('#sq')!;
+  input.value = q;
+  const status = root.querySelector<HTMLElement>('[data-status]')!, out = root.querySelector<HTMLElement>('[data-results]')!;
+  const badge = (c: string) => root.querySelector<HTMLTemplateElement>(`template[data-badge="${c}"]`)?.content.firstElementChild?.cloneNode(true) ?? null;
+  const plus = root.querySelector<HTMLTemplateElement>('template[data-plus]')!.content.firstElementChild!;
+  const el = (tag: string, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  loadCatalog().then((cat) => {
+    const words = fold(q).split(/\s+/).filter(Boolean);
+    const pub = document.documentElement.dataset.mode !== 'pro';
+    const hits = ([...cat.values()] as Hit[]).filter((p) => {
+      const hay = fold(`${p.title} ${p.vendor ?? ''} ${p.effect ?? ''}`);
+      return words.length && words.every((w) => hay.includes(w));
+    }).sort((a, b) => (Number(b.available) - Number(a.available)) || (pub ? Number(a.pro) - Number(b.pro) : 0));
+    status.textContent = !q ? 'Scrie ce cauți.' : hits.length ? `${plural(hits.length, 'rezultat', 'rezultate')} pentru „${q}”` : `Niciun rezultat pentru „${q}”`;
+    root.querySelector<HTMLElement>('[data-empty]')!.hidden = !(q && !hits.length);
+    // same rules as snippets/ProductCard.astro: stock line, sale flag, and the action button
+    for (const p of hits.slice(0, 96)) {
+      const pct = p.compare && p.price ? Math.round((1 - p.price / p.compare) * 100) : 0;
+      const card = el('article', `sc${p.available ? '' : ' out'}`);
+      const media = el('a', 'm') as HTMLAnchorElement;
+      media.href = p.url; media.tabIndex = -1; media.setAttribute('aria-hidden', 'true');
+      if (p.image) media.innerHTML = `<img src="${p.image}" alt="" width="360" height="360" loading="lazy" decoding="async">`;
+      const b = p.category ? badge(p.category) : null;
+      if (b) media.append(b);
+      const flags = el('span', 'flags');
+      if (pct > 0) flags.append(el('span', 'flag sale', `−${pct}%`));
+      if (!p.available) flags.append(el('span', 'flag', 'Epuizat'));
+      media.append(flags);
+      const info = el('div', 'i');
+      const h = el('h3', 't'), link = el('a', '', p.title) as HTMLAnchorElement;
+      link.href = p.url; h.append(link); info.append(h);
+      if (p.effect) info.append(el('p', 'fx', p.effect));
+      const buy = el('div', 'buy'), pb = el('div', 'pb'), pr = el('span', 'pr');
+      if (p.price == null) pr.textContent = 'Preț la cerere';
+      else { if (p.compare && p.compare > p.price) pr.append(el('s', '', money(p.compare))); pr.append(el('span', '', money(p.price))); }
+      const qty = p.stock;
+      pb.append(pr, el('span', `st${p.available ? '' : ' no'}`, !p.available ? '○ Revine în curând' : qty && qty <= 5 ? `● Ultimele ${qty}` : '● În stoc'));
+      buy.append(pb);
+      if (p.pro) {
+        const a = el('a', 'btn btn-sm btn-secondary', 'Autorizați') as HTMLAnchorElement;
+        a.href = p.url; a.setAttribute('aria-label', `${p.title}: doar pentru persoane autorizate, vezi detalii`); buy.append(a);
+      } else if (p.available && p.price != null) {
+        const btn = el('button', 'btn btn-sm btn-primary add') as HTMLButtonElement;
+        btn.type = 'button'; btn.dataset.addToCart = ''; btn.dataset.handle = p.handle; btn.setAttribute('aria-label', `Adaugă ${p.title} în coș`);
+        btn.append(plus.cloneNode(true), el('span', '', 'Coș')); buy.append(btn);
+      } else {
+        const a = el('a', 'btn btn-sm btn-secondary', 'Anunță-mă') as HTMLAnchorElement;
+        a.href = `${p.url}#anunta`; a.setAttribute('aria-label', `Anunță-mă când revine ${p.title}`); buy.append(a);
+      }
+      info.append(buy);
+      card.append(media, info);
+      const li = el('li'); li.append(card); out.append(li);
+    }
+  }).catch(() => { status.textContent = 'Căutarea nu a putut fi încărcată. Reîncarcă pagina.'; });
+</script>

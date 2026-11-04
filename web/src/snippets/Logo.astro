@@ -1,0 +1,16 @@
+---
+// The Bomba wordmark, inlined so it is crisp and costs no request. Geometry from brand/logo (DESIGN.md §1b).
+interface Props { variant?: 'dark' | 'light' | 'white'; height?: number; class?: string }
+import dark from '../../public/brand/bomba-wordmark-dark.svg?raw';
+import light from '../../public/brand/bomba-wordmark-light.svg?raw';
+import white from '../../public/brand/bomba-wordmark-white.svg?raw';
+const { variant = 'dark', height = 32, class: cls } = Astro.props;
+const svg = { dark, light, white }[variant]
+  .replace(/<title>.*?<\/title>/, '')
+  .replace(/ width="\d+" height="\d+"/, ` height="${height}" style="width:auto;height:${height}px" aria-hidden="true" focusable="false"`);
+---
+<span class:list={['logo', cls]} set:html={svg} />
+<style>
+  .logo { display: inline-flex; line-height: 0; }
+  .logo :global(svg) { display: block; }
+</style>

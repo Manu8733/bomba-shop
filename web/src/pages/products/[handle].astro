@@ -1,0 +1,131 @@
+---
+// Liquid: templates/product.json → sections main-product (Gallery + Buy + Description),
+// product-specs (Specs + Safety) and related-products (Related).
+import Theme from '../../layouts/Theme.astro';
+import Gallery from '../../sections/product/Gallery.astro';
+import Buy from '../../sections/product/Buy.astro';
+import Specs from '../../sections/product/Specs.astro';
+import Description from '../../sections/product/Description.astro';
+import Safety from '../../sections/product/Safety.astro';
+import Related from '../../sections/product/Related.astro';
+import {
+  products, imagesOf, price, available, category, isPro, productUrl, collectionByHandle, collectionUrl,
+  variant, specs, plainText, type Product,
+} from '../../lib/catalog';
+import { shop, commerce } from '../../config';
+
+export function getStaticPaths() {
+  return products.map((product) => ({ params: { handle: product.handle }, props: { product } }));
+}
+
+interface Props { product: Product }
+const { product: p } = Astro.props;
+const site = Astro.site!;
+const abs = (path: string) => new URL(path, site).href;
+
+const v = variant(p);
+const cat = category(p);
+const col = p.collections[0] ? collectionByHandle(p.collections[0]) : undefined;
+const images = imagesOf(p);
+const url = productUrl(p);
+
+// Meta description: the shop's own text first; otherwise a factual line built only from known data.
+function clip(text: string, max = 155) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 60)).replace(/[\s,;:.–-]+$/, '')}…`;
+}
+function metaDescription() {
+  const text = plainText(p.body_html).replace(/\p{Extended_Pictographic}️?/gu, '').replace(/\s+/g, ' ').trim();
+  if (text.length >= 60) return clip(text);
+  const catPart = !cat ? (col ? `din colecția ${col.title}` : '')
+    : isPro(p) ? `categoria ${cat}, doar pentru persoane autorizate`
+    : `categoria ${cat}, pentru public de la 16 ani`;
+  const known = specs(p).filter((c) => c.value).map((c) => `${c.label.toLowerCase()} ${c.value}`);
+  const parts = [`${p.title}${catPart ? ` – ${catPart}` : ''}.`];
+  if (known.length) parts.push(`${known.join(', ').replace(/^./, (m) => m.toUpperCase())}.`);
+  if (p.vendor) parts.push(`Producător: ${p.vendor}.`);
+  parts.push(`${shop.name}.`);
+  return clip(parts.join(' '));
+}
+const description = metaDescription();
+
+// Structured data (Liquid: the same object built from product.* inside main-product.liquid).
+const offerPrice = price(p);
+const productLd: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: p.title,
+  url: abs(url),
+  description,
+  ...(images.length > 0 && { image: images.map((img) => abs(img.files.at(-1)!.src)) }),
+  ...(!!v.sku && { sku: v.sku }),
+  ...(!!p.vendor && { brand: { '@type': 'Brand', name: p.vendor } }),
+  ...(offerPrice != null && {
+    offers: {
+      '@type': 'Offer',
+      url: abs(url),
+      price: offerPrice.toFixed(2),
+      priceCurrency: commerce.currency,
+      availability: available(p) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      seller: { '@type': 'Organization', name: shop.name },
+    },
+  }),
+};
+const crumbs = [
+  { name: 'Acasă', href: '/' },
+  ...(col ? [{ name: col.title, href: collectionUrl(col.handle) }] : []),
+  { name: p.title, href: url },
+];
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: abs(c.href) })),
+};
+const ogImage = images[0]?.files.at(-1)?.src;
+---
+<Theme title={p.title} description={description} image={ogImage} canonical={url} jsonLd={[productLd, breadcrumbLd]}>
+  <div class="container top">
+    <nav class="crumbs" aria-label="Fir de navigare">
+      <ol>
+        {crumbs.map((c, i) => (
+          <li>{i < crumbs.length - 1 ? <a href={c.href}>{c.name}</a> : <span aria-current="page">{c.name}</span>}</li>
+        ))}
+      </ol>
+    </nav>
+    <div class="pdp">
+      <Gallery product={p} />
+      <Buy product={p} />
+    </div>
+  </div>
+
+  <div class="container details">
+    <Specs product={p} />
+    <Description product={p} />
+  </div>
+
+  <Safety product={p} />
+  <Related product={p} />
+</Theme>
+
+<style>
+  .top { padding-bottom: var(--space-12); }
+  .crumbs { padding-block: var(--space-1) var(--space-2); }
+  .crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2); margin: 0; padding: 0; list-style: none;
+    font: 500 var(--text-sm)/1.4 var(--font-body); color: var(--smoke-400); }
+  .crumbs li { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; max-width: 100%; }
+  .crumbs li + li::before { content: '/'; content: '/' / ''; color: var(--night-600); }
+  .crumbs a { display: inline-flex; align-items: center; min-height: 44px; color: var(--smoke-200); text-decoration: none; }
+  .crumbs a:hover { color: var(--magnesium-400); text-decoration: underline; }
+  .crumbs [aria-current] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .pdp { display: grid; gap: var(--space-8); }
+  @media (min-width: 1024px) {
+    .pdp { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--space-12); align-items: start; }
+  }
+
+  .details { display: grid; gap: var(--space-12); padding-block: var(--space-12); border-top: var(--border); }
+  @media (min-width: 1024px) {
+    .details { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-16); padding-block: var(--space-16); }
+  }
+</style>

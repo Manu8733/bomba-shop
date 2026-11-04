@@ -1,0 +1,18 @@
+---
+// Spec label: mono cells separated by 2px rules; the last cell is always the category (DESIGN.md §5).
+import { cardSpecs, specs, category, type Product } from '../lib/catalog';
+// card: up to 2 known values · known: every known value (buy box) · full: every cell, unknown as "—"
+interface Props { product: Product; mode?: 'card' | 'known' | 'full'; class?: string }
+const { product, mode = 'card', class: cls } = Astro.props;
+const cells = mode === 'card' ? cardSpecs(product, 2) : mode === 'known' ? cardSpecs(product, 5) : specs(product);
+const cat = category(product);
+const pro = !!cat && cat !== 'F1';
+---
+<span class:list={['spec-label', { lg: mode !== 'card' }, cls]} aria-label="Specificații">
+  {cells.map((c) => (
+    <span class:list={{ na: !c.value }} title={c.source === 'descriere' ? 'Din descrierea produsului' : undefined}>
+      <small>{c.label}</small>{c.value ?? '—'}
+    </span>
+  ))}
+  {cat && <span class:list={['cat', { pro }]}>{cat}{pro ? ' · PRO' : ' · 16+'}</span>}
+</span>

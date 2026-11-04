@@ -1,0 +1,36 @@
+---
+// Liquid: templates/page.siguranta.json. General, well-established consumer fireworks safety guidance.
+import Theme from '../../layouts/Theme.astro';
+import ContentHero from '../../sections/ContentHero.astro';
+import ContentPage from '../../sections/ContentPage.astro';
+import { law } from '../../config';
+---
+<Theme title="Siguranță" description="Cum folosești artificiile în siguranță și ce spune legea în România.">
+  <ContentHero title="Siguranță" lede="Ce spune legea și ce faci înainte, în timpul și după ce aprinzi un articol pirotehnic." />
+  <ContentPage toc>
+    <h2>Ce spune legea</h2>
+    <p>Conform {law.reference}, persoanele fizice pot cumpăra și folosi doar articole din categoria F1, de la {law.publicMinAge} ani. Articolele P1, T1 și celelalte categorii sunt doar pentru persoane autorizate. Autoritățile locale pot avea reguli suplimentare.</p>
+    <h2>Înainte</h2>
+    <ul>
+      <li>Citește instrucțiunile și avertismentele de pe ambalaj. Distanța de siguranță este trecută de producător.</li>
+      <li>Alege un loc deschis, plan și stabil, departe de clădiri, mașini, copaci uscați și materiale inflamabile.</li>
+      <li>Ține la îndemână o găleată cu apă sau un furtun.</li>
+      <li>Nu consuma alcool înainte de a aprinde artificii.</li>
+    </ul>
+    <h2>În timpul folosirii</h2>
+    <ul>
+      <li>Aprinde fitilul cu brațul întins, din lateral, și îndepărtează-te imediat.</li>
+      <li>Nu te apleca niciodată deasupra articolului.</li>
+      <li>Ține publicul, copiii și animalele la distanța indicată.</li>
+      <li>Ține în mână doar articolele făcute pentru asta, cum sunt bengalele.</li>
+    </ul>
+    <h2>După</h2>
+    <ul>
+      <li>Nu reaprinde un articol care nu a funcționat. Așteaptă cel puțin 15 minute, apoi pune-l în apă.</li>
+      <li>Udă resturile înainte să le arunci.</li>
+      <li>Păstrează articolele nefolosite într-un loc uscat și răcoros, departe de copii.</li>
+    </ul>
+    <h2>Animale de companie</h2>
+    <p>Zgomotul și lumina sperie animalele. Ține-le în casă, într-o cameră liniștită, cu ferestrele închise.</p>
+  </ContentPage>
+</Theme>

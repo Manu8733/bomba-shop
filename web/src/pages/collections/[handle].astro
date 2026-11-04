@@ -1,0 +1,38 @@
+---
+// Liquid: templates/collection.json → collection-header + product-grid (with filters).
+import Theme from '../../layouts/Theme.astro';
+import CollectionHeader from '../../sections/collection/CollectionHeader.astro';
+import ProductGrid from '../../sections/collection/ProductGrid.astro';
+import { collections, products, virtualCollections, available, category, isPro, isPublic, imagesOf, collectionUrl, type Product } from '../../lib/catalog';
+import { productsPhrase } from '../../scripts/filters';
+
+export function getStaticPaths() {
+  const real = collections.map((c) => ({ params: { handle: c.handle }, props: { handle: c.handle, title: c.title, blurb: c.blurb, group: c.group, list: c.products } }));
+  const virt = Object.entries(virtualCollections).map(([handle, v]) => ({ params: { handle }, props: { handle, title: v.title, blurb: v.blurb, group: handle === 'profesionisti' ? 'pro' : 'virtual', list: products.filter(v.filter) } }));
+  return [...real, ...virt];
+}
+interface Props { handle: string; title: string; blurb: string; group: string; list: Product[] }
+const { handle, title, blurb, group, list } = Astro.props;
+
+// in stock first, then products with a real photo, public before pro
+const rank = (p: Product) => (available(p) ? 0 : 4) + (imagesOf(p)[0] ? 0 : 2) + (isPublic(p) ? 0 : 1);
+const sorted = [...list].sort((a, b) => rank(a) - rank(b));
+const cats = [...new Set(list.map(category).filter(Boolean))] as string[];
+const hasPro = list.some(isPro), hasPublic = list.some(isPublic);
+const audience = hasPro && hasPublic ? 'mixed' : hasPro ? 'pro' : hasPublic ? 'public' : null;
+const stock = list.filter(available).length;
+// "Pentru public · F1" -> "Pentru public": the category diamonds next to the title already say F1 / P1 / T1
+const heading = audience ? title.split(' · ')[0] : title;
+const facts = `${productsPhrase(list.length)}, ${stock ? `${stock} în stoc` : 'niciunul în stoc acum'}`;
+const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Colecții', href: '/collections' }, { label: title }];
+const description = `${title}: ${blurb} ${stock} produse în stoc la Bomba Shop.`.slice(0, 158);
+const ld = {
+  '@context': 'https://schema.org', '@type': 'CollectionPage', name: title, description: blurb,
+  url: new URL(collectionUrl(handle), Astro.site).href,
+  breadcrumb: { '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.label, ...(c.href ? { item: new URL(c.href, Astro.site).href } : {}) })) },
+};
+---
+<Theme title={title} description={description} jsonLd={ld}>
+  <CollectionHeader title={heading} blurb={blurb} crumbs={crumbs} facts={facts} categories={cats} audience={audience} seed={title} />
+  <ProductGrid products={sorted} id={`c-${handle}`} proDefault={group === 'pro' || handle === 'profesionisti' ? 'show' : 'hide'} />
+</Theme>

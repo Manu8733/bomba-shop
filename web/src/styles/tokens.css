@@ -1,0 +1,77 @@
+/* Bomba Shop — design tokens. Direcția „Expunere lungă” + etichete de specificații.
+   Sursa de adevăr pentru culori, tipografie, spațiere și mișcare. Vezi DESIGN.md. */
+:root {
+  color-scheme: dark;
+
+  /* Neutre: cerul de noapte, ușor înclinat spre violet */
+  --night-950: #07060b;   /* fundal pagină */
+  --night-900: #0e0c14;   /* suprafață */
+  --night-800: #17141f;   /* suprafață ridicată, carduri */
+  --night-700: #241f2e;   /* linii puternice */
+  --night-600: #322b3f;   /* linii hover */
+  --smoke-400: #8f879c;   /* text secundar (AA pe night-950: 5.8:1) */
+  --smoke-200: #cfc8d8;   /* text de corp atenuat */
+  --white:     #f6f1ea;   /* text principal, alb cald */
+
+  /* Accente de brand */
+  --magnesium-400: #ffb648; /* accent principal, CTA (10.9:1 pe night-950) */
+  --magnesium-600: #e08a12; /* hover / apăsat */
+  --on-magnesium:  #1a1003; /* text pe accent */
+  --strontium-500: #ff3d6e; /* accent secundar, P1/T1 */
+
+  /* Culorile efectelor, după sărurile care le produc */
+  --fx-strontium: #ff3d6e; /* roșu */
+  --fx-sodium:    #ffd23f; /* galben / auriu */
+  --fx-barium:    #6cf2a0; /* verde */
+  --fx-copper:    #5aa9ff; /* albastru */
+  --fx-potassium: #b07bff; /* violet */
+  --fx-magnesium: #f6f1ea; /* alb strălucitor */
+
+  /* Semantic */
+  --ok:     #6cf2a0;
+  --warn:   #ffd23f;
+  --danger: #ff5a5f;
+  --info:   #5aa9ff;
+
+  /* Categorii pirotehnice */
+  --cat-f1: var(--magnesium-400);  /* public, 16+ */
+  --cat-pro: var(--strontium-500); /* P1 / T1, doar autorizați */
+
+  /* Tipografie */
+  --font-display: "Big Shoulders Display", "Archivo Narrow", Impact, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --text-xs: .75rem;   --text-sm: .875rem; --text-base: 1rem;  --text-md: 1.125rem;
+  --text-lg: 1.375rem; --text-xl: 1.75rem; --text-2xl: 2.25rem; --text-3xl: 3rem;
+  --text-4xl: 4rem;    --text-hero: clamp(4rem, 11vw, 8rem);
+  --leading-tight: 1;  --leading-snug: 1.2; --leading-body: 1.6;
+  --tracking-label: .14em;
+
+  /* Spațiere (bază 4px) */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px; --space-6: 24px;
+  --space-8: 32px; --space-12: 48px; --space-16: 64px; --space-24: 96px; --space-32: 128px;
+
+  /* Forme: etichetele sunt drepte, cardurile abia rotunjite */
+  --radius-label: 2px;
+  --radius-card: 6px;
+  --radius-pill: 999px; /* doar pentru chip-uri de filtru */
+  --border: 1px solid var(--night-700);
+  --border-label: 2px solid currentColor;
+
+  /* Lumină în loc de umbre */
+  --glow-magnesium: 0 0 32px rgba(255, 182, 72, .35);
+  --glow-strontium: 0 0 32px rgba(255, 61, 110, .35);
+
+  /* Mișcare */
+  --dur-micro: 120ms; --dur-ui: 240ms; --dur-reveal: 480ms; --dur-scene: 900ms;
+  --ease-out-expo: cubic-bezier(.16, 1, .3, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --ease-fuse: linear;
+
+  /* Straturi */
+  --z-header: 50; --z-drawer: 80; --z-modal: 90; --z-toast: 100;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-micro: 0ms; --dur-ui: 0ms; --dur-reveal: 0ms; --dur-scene: 0ms; }
+}

@@ -1,0 +1,130 @@
+---
+// Liquid: templates/cart.json → main-cart. Lines render client-side from scripts/cart.ts (cart.js at the port).
+import Theme from '../layouts/Theme.astro';
+import Fuse from '../snippets/Fuse.astro';
+import { commerce } from '../config';
+---
+<Theme title="Coșul tău" description="Coșul de cumpărături Bomba Shop." noindex>
+  <div class="container section" data-cart-page>
+    <h1>Coșul tău</h1>
+    <div class="layout">
+      <div>
+        <ul class="lines" data-lines aria-label="Produse în coș"></ul>
+        <div class="empty" data-empty hidden>
+          <p>Coșul e gol. Începe cu produsele care se pot cumpăra de la 16 ani.</p>
+          <p class="links"><a class="btn btn-primary" href="/collections/public">Produse F1</a><a class="btn btn-secondary" href="/collections/vulcani-artificii">Vulcani și fântâni</a></p>
+        </div>
+        <p class="visually-hidden" aria-live="polite" data-live></p>
+      </div>
+      <aside class="sum" aria-labelledby="sum-h" data-summary hidden>
+        <h2 id="sum-h">Sumarul comenzii</h2>
+        <div class="ship" data-confirm="free-shipping" data-threshold={commerce.freeShipping.threshold}>
+          <p data-ship-text></p>
+          <Fuse value={0} label="Progres spre livrare gratuită" id="cart-fuse" />
+        </div>
+        <dl>
+          <div><dt>Subtotal</dt><dd class="mono" data-subtotal>—</dd></div>
+          <div><dt>Livrare</dt><dd data-ship>calculată la finalizare</dd></div>
+        </dl>
+        <p class="muted small">Prețurile includ TVA.</p>
+        <p class="pro-note" data-pro-note hidden>Coșul conține produse P1/T1: comanda se confirmă după verificarea autorizației.</p>
+        <a class="btn btn-primary btn-block" href="/checkout">Finalizează comanda</a>
+        <a class="back" href="/collections/public">Continuă cumpărăturile</a>
+      </aside>
+    </div>
+  </div>
+</Theme>
+<style>
+  h1 { margin-bottom: var(--space-8); font-size: clamp(2.6rem, 6vw, 4.4rem); }
+  .layout { display: grid; gap: var(--space-8); }
+  @media (min-width: 1024px) { .layout { grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-12); align-items: start; } }
+  /* lines: rows on hairlines, money right-aligned on one edge */
+  .lines { list-style: none; margin: 0; padding: 0; border-top: var(--border); }
+  .lines :global(li) { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: var(--space-4) var(--space-6); align-items: start; padding-block: var(--space-4); border-bottom: var(--border); }
+  .lines :global(.th) { width: 88px; height: 88px; border-radius: var(--radius-label); background: var(--night-800); display: grid; place-items: center; overflow: hidden; }
+  .lines :global(.th img) { width: 100%; height: 100%; object-fit: contain; }
+  .lines :global(.nm) { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+  .lines :global(.nm a) { font: 800 var(--text-lg)/1.05 var(--font-display); text-transform: uppercase; text-decoration: none; overflow-wrap: anywhere; }
+  .lines :global(.nm a:hover) { color: var(--magnesium-400); }
+  .lines :global(.nm small) { font: 500 var(--text-sm)/1.3 var(--font-body); color: var(--smoke-400); font-variant-numeric: tabular-nums; }
+  .lines :global(.qty) { display: inline-flex; align-items: center; margin-top: 4px; border: 1px solid var(--night-600); border-radius: var(--radius-label); }
+  .lines :global(.qty button) { width: 44px; height: 44px; border: 0; background: none; color: var(--white); font-size: var(--text-lg); }
+  .lines :global(.qty button:hover) { background: var(--night-800); color: var(--magnesium-400); }
+  .lines :global(.qty button:focus-visible) { outline-offset: -2px; }
+  .lines :global(.qty span) { min-width: 36px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .lines :global(.rt) { display: grid; gap: 4px; justify-items: end; font-variant-numeric: tabular-nums; }
+  .lines :global(.rt b) { font-weight: 600; font-size: var(--text-md); }
+  .lines :global(.rm) { min-height: 44px; padding: 0; border: 0; background: none; color: var(--smoke-200); font-size: var(--text-sm); text-decoration: underline; text-underline-offset: 4px; }
+  .lines :global(.rm:hover) { color: var(--magnesium-400); }
+  @media (max-width: 520px) {
+    .lines :global(li) { grid-template-columns: 64px minmax(0, 1fr); }
+    .lines :global(.th) { width: 64px; height: 64px; }
+    .lines :global(.rt) { grid-column: 2; grid-auto-flow: column; justify-content: space-between; align-items: center; }
+  }
+  /* summary: a flat surface, no outline */
+  .sum { position: sticky; top: calc(var(--header-h) + 16px); display: grid; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-card); background: var(--night-900); }
+  .sum h2 { font: 600 var(--text-lg)/1.3 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .ship { display: grid; gap: 10px; }
+  .ship p { font-size: var(--text-sm); color: var(--smoke-200); }
+  dl { margin: 0; display: grid; gap: 8px; padding-top: var(--space-4); border-top: var(--border); }
+  dl div { display: flex; justify-content: space-between; gap: var(--space-3); }
+  dt { color: var(--smoke-200); } dd { margin: 0; font-weight: 600; text-align: right; }
+  .small { font-size: var(--text-xs); }
+  .pro-note { font-size: var(--text-sm); color: var(--strontium-500); }
+  .back { justify-self: center; display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-size: var(--text-sm); font-weight: 600; text-underline-offset: 4px; }
+  .back:hover { color: var(--magnesium-400); }
+  .links { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+</style>
+<script>
+  import { getCart, setQuantity, removeLine, money, type Cart } from '../scripts/cart';
+  const THRESHOLD = Number(document.querySelector<HTMLElement>('[data-threshold]')?.dataset.threshold) || 0;
+  const root = document.querySelector<HTMLElement>('[data-cart-page]')!;
+  const lines = root.querySelector<HTMLElement>('[data-lines]')!;
+  const live = root.querySelector<HTMLElement>('[data-live]')!;
+  const fuse = document.getElementById('cart-fuse')!;
+  let first = true;
+  const render = (cart: Cart) => {
+    // the list is rebuilt, so remember which control had focus and put it back on the same line
+    const active = document.activeElement as HTMLElement | null;
+    const focusLine = active?.closest<HTMLElement>('li[data-handle]')?.dataset.handle;
+    const focusKey = active?.dataset.d ?? (active?.classList.contains('rm') ? 'rm' : '');
+    root.querySelector<HTMLElement>('[data-empty]')!.hidden = cart.item_count > 0;
+    root.querySelector<HTMLElement>('[data-summary]')!.hidden = cart.item_count === 0;
+    lines.replaceChildren(...cart.items.map((it) => {
+      const li = document.createElement('li');
+      li.dataset.handle = it.handle;
+      li.innerHTML = `<span class="th">${it.product.image ? `<img src="${it.product.image}" alt="" width="88" height="88">` : ''}</span>
+        <span class="nm"><a href="${it.product.url}"></a><small></small>
+        <span class="qty"><button type="button" data-d="-1">−</button><span></span><button type="button" data-d="1">+</button></span></span>
+        <span class="rt"><b>${money(it.line_price)}</b><button type="button" class="rm">Elimină</button></span>`;
+      const title = it.product.title;
+      li.querySelector('a')!.textContent = title;
+      li.querySelector('small')!.textContent = [it.product.category, `${money(it.product.price)} / buc.`].filter(Boolean).join(' · ');
+      li.querySelector('.qty span')!.textContent = String(it.quantity);
+      li.querySelector('[data-d="-1"]')!.setAttribute('aria-label', `Scade cantitatea pentru ${title}`);
+      li.querySelector('[data-d="1"]')!.setAttribute('aria-label', `Crește cantitatea pentru ${title}`);
+      li.querySelector('.rm')!.setAttribute('aria-label', `Elimină ${title} din coș`);
+      li.querySelectorAll<HTMLButtonElement>('[data-d]').forEach((b) => b.addEventListener('click', () => {
+        const max = it.product.stock ?? 99;
+        void setQuantity(it.handle, Math.max(1, Math.min(max, it.quantity + Number(b.dataset.d))));
+      }));
+      li.querySelector('.rm')!.addEventListener('click', () => void removeLine(it.handle));
+      return li;
+    }));
+    if (focusLine) {
+      const li = lines.querySelector<HTMLElement>(`li[data-handle="${CSS.escape(focusLine)}"]`);
+      const target = li?.querySelector<HTMLElement>(focusKey === 'rm' ? '.rm' : `[data-d="${focusKey}"]`) ?? li?.querySelector('a') ?? lines.querySelector('a') ?? root.querySelector<HTMLElement>('[data-empty] a');
+      target?.focus();
+    }
+    root.querySelector('[data-subtotal]')!.textContent = money(cart.total_price);
+    const left = THRESHOLD - cart.total_price, p = THRESHOLD ? Math.min(1, cart.total_price / THRESHOLD) : 1;
+    fuse.style.setProperty('--p', String(p));
+    fuse.setAttribute('aria-valuenow', String(Math.round(p * 100)));
+    root.querySelector('[data-ship-text]')!.textContent = left > 0 ? `Mai adaugă ${money(left)} și livrarea e gratuită.` : 'Ai livrare gratuită.';
+    root.querySelector<HTMLElement>('[data-pro-note]')!.hidden = !cart.items.some((i) => i.product.pro);
+    if (!first) live.textContent = cart.item_count ? `Subtotal ${money(cart.total_price)}.` : 'Coșul e gol.';
+    first = false;
+  };
+  window.addEventListener('cart:change', (e) => render((e as CustomEvent<Cart>).detail));
+  void getCart().then(render);
+</script>

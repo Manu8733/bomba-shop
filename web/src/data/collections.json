@@ -1,0 +1,106 @@
+{
+ "collections": [
+  {
+   "handle": "petarde",
+   "title": "Petarde",
+   "products_count": 63,
+   "available_count": 0
+  },
+  {
+   "handle": "produse-f1-pentru-public",
+   "title": "Produse F1 Pentru Public",
+   "products_count": 54,
+   "available_count": 45
+  },
+  {
+   "handle": "fumigene-colorate",
+   "title": "Fumigene Colorate",
+   "products_count": 34,
+   "available_count": 0
+  },
+  {
+   "handle": "artificii-de-exterior",
+   "title": "Artificii De Exterior",
+   "products_count": 24,
+   "available_count": 0
+  },
+  {
+   "handle": "baterii-de-artificii",
+   "title": "Baterii De Artificii",
+   "products_count": 24,
+   "available_count": 0
+  },
+  {
+   "handle": "produse-import",
+   "title": "Produse Import",
+   "products_count": 22,
+   "available_count": 4
+  },
+  {
+   "handle": "vulcani-artificii",
+   "title": "Vulcani Artificii",
+   "products_count": 17,
+   "available_count": 15
+  },
+  {
+   "handle": "artificii-de-tort",
+   "title": "Artificii De Tort",
+   "products_count": 11,
+   "available_count": 8
+  },
+  {
+   "handle": "airsoft-paintball",
+   "title": "Airsoft/Paintball",
+   "products_count": 10,
+   "available_count": 0
+  },
+  {
+   "handle": "bengale-candele",
+   "title": "Bengale/Candele",
+   "products_count": 8,
+   "available_count": 6
+  },
+  {
+   "handle": "oferta-la-bax",
+   "title": "Oferta La Bax",
+   "products_count": 8,
+   "available_count": 0
+  },
+  {
+   "handle": "confetti",
+   "title": "Confetti",
+   "products_count": 5,
+   "available_count": 3
+  },
+  {
+   "handle": "artificii-de-brad",
+   "title": "Artificii De Brad",
+   "products_count": 4,
+   "available_count": 2
+  },
+  {
+   "handle": "artificii-de-interior",
+   "title": "Artificii De Interior",
+   "products_count": 4,
+   "available_count": 1
+  },
+  {
+   "handle": "gender-reveal",
+   "title": "Gender Reveal",
+   "products_count": 4,
+   "available_count": 2
+  },
+  {
+   "handle": "torte",
+   "title": "Torțe",
+   "products_count": 3,
+   "available_count": 0
+  },
+  {
+   "handle": "asortimente-pachete",
+   "title": "Asortimente/Pachete",
+   "products_count": 2,
+   "available_count": 1
+  }
+ ]
+}

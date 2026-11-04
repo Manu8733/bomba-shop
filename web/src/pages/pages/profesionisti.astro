@@ -1,0 +1,638 @@
+---
+// Professionals area: who may buy P1/T1, what Legea 92/2025 changes, the 3-step authorization flow, the upload
+// form and the pro collections. Liquid: templates/page.profesionisti.json → sections pro-hero, pro-who, pro-law,
+// pro-steps, pro-auth-form, pro-collections. At the port the form posts the file to the verification app and
+// staff add the customer tag „autorizat”; here it only stores metadata through scripts/mode.ts (nothing is sent).
+// skipGate: this page explains the gate, so it has to be readable before the visitor answers it.
+import Theme from '../../layouts/Theme.astro';
+import CatBadge from '../../snippets/CatBadge.astro';
+import Icon from '../../snippets/Icon.astro';
+import Fuse from '../../snippets/Fuse.astro';
+import { products, collectionByHandle, collectionUrl, available, isPro, category, type Collection } from '../../lib/catalog';
+import { law, shop } from '../../config';
+
+const lawNo = law.reference.match(/nr\.\s*[\d/]+/)?.[0] ?? '';
+const lawName = `Legea ${lawNo}`;
+// Authorized-only categories this catalogue actually has (P1, T1); the rest of config.law.proCategories is mentioned once.
+const proCats = law.proCategories.filter((c) => products.some((p) => category(p) === c));
+const proCatsText = proCats.join(' și ');
+const otherProCats = law.proCategories.filter((c) => !proCats.includes(c));
+const proProducts = products.filter(isPro);
+const proInStock = proProducts.filter(available).length;
+// The old shop labelled P1/T1 „18 ani” (metafield category_raw); only say so if the data still shows it.
+const wasMarked18 = proProducts.some((p) => /18\s*ani/i.test(p.metafields.pyro.category_raw ?? ''));
+const confirmNote = law.reviewedByLawyer ? undefined : 'Text juridic neverificat de avocat (config.law.reviewedByLawyer = false). De confirmat înainte de lansare.';
+
+/** Romanian counting: 1 produs, 2–19 produse, 20+ de produse (101 produse, 120 de produse). */
+const count = (n: number, one: string, many: string) =>
+  n === 1 ? `1 ${one}` : `${n} ${n !== 0 && (n % 100 === 0 || n % 100 >= 20) ? 'de ' : ''}${many}`;
+
+const PRO_HANDLES = ['baterii-de-artificii', 'artificii-de-exterior', 'petarde', 'produse-import', 'oferta-la-bax'];
+const proCollections = PRO_HANDLES.map((h) => collectionByHandle(h))
+  .filter((c): c is Collection => !!c)
+  .map((c) => {
+    const total = c.products.length;
+    const inStock = c.products.filter(available);
+    const proIn = inStock.filter(isPro).length;
+    const publicIn = inStock.filter((p) => !isPro(p));
+    const allF1 = publicIn.every((p) => category(p) === law.publicCategory);
+    const cats = [...new Set(c.products.map(category).filter((x): x is string => !!x))].sort();
+    let tone: 'out' | 'partial' | 'ok';
+    let note: string;
+    if (inStock.length === 0) {
+      tone = 'out';
+      note = total === 1 ? 'Momentan, produsul e fără stoc.' : `Momentan, toate cele ${count(total, 'produs', 'produse')} sunt fără stoc.`;
+    } else if (proIn === 0) {
+      tone = 'partial';
+      note = `${proCatsText}: momentan fără stoc. În stoc acum: ${count(publicIn.length, 'produs', 'produse')} pentru public${allF1 ? ` (${law.publicCategory})` : ''}.`;
+    } else {
+      tone = 'ok';
+      note = `În stoc: ${count(proIn, 'produs', 'produse')} ${proCatsText}.`;
+    }
+    return { handle: c.handle, title: c.title, blurb: c.blurb, cats, tone, note };
+  });
+
+const site = Astro.site!;
+const breadcrumbs = {
+  '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Acasă', item: new URL('/', site).href },
+    { '@type': 'ListItem', position: 2, name: 'Profesioniști autorizați', item: new URL('/pages/profesionisti', site).href },
+  ],
+};
+---
+<Theme
+  title={`Profesioniști autorizați · ${proCatsText}`}
+  description={`Cum comandă ${proCatsText} firmele autorizate și persoanele cu carnet de pirotehnician: ce cere ${lawName} și cum încarci autorizația.`}
+  skipGate
+  current="profesionisti"
+  jsonLd={breadcrumbs}
+>
+  <section class="hero" aria-labelledby="pro-title">
+    <div class="container">
+      <nav class="crumbs" aria-label="Fir de navigare">
+        <ol role="list">
+          <li><a href="/">Acasă</a></li>
+          <li><span aria-current="page">Profesioniști</span></li>
+        </ol>
+      </nav>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <h1 id="pro-title">Profesioniști autorizați</h1>
+          <p class="lead">
+            Articolele {proCatsText} se vând doar firmelor autorizate și persoanelor cu carnet de pirotehnician.
+            Încarci autorizația o dată, noi o verificăm, apoi poți comanda.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#autorizatie"><Icon name="upload" size={18} /> Încarcă autorizația</a>
+            <a class="btn btn-secondary" href="#colectii">Vezi colecțiile</a>
+          </div>
+          <p class="spec-label state-label" data-hero-status data-state="none">
+            <span><small>Autorizația ta</small><span data-hero-status-text data-none="Neîncărcată" data-started="De încărcat"
+              data-pending="În verificare" data-verified="Verificată">Neîncărcată</span></span>
+          </p>
+        </div>
+        <div class="hero-badges">{proCats.map((c) => <CatBadge category={c} size="lg" />)}</div>
+      </div>
+      {proInStock === 0 && (
+        <p class="stock-note"><Icon name="info" size={18} /> Momentan nu avem în stoc produse {proCatsText}. Autorizația o poți încărca oricând.</p>
+      )}
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="who-title">
+    <div class="container">
+      <div class="section-head"><h2 id="who-title">Cine poate cumpăra {proCatsText}</h2></div>
+      <ul class="who-grid" role="list">
+        <li>
+          <h3>Firme autorizate</h3>
+          <p>Firme care au autorizație pentru lucrul cu articole pirotehnice. Încarci documentul de autorizare al firmei; CUI-ul ne ajută să o găsim mai repede.</p>
+        </li>
+        <li>
+          <h3>Persoane cu carnet de pirotehnician</h3>
+          <p>Persoane fizice cu carnet de pirotehnician valabil. Încarci o fotografie clară sau un PDF al carnetului.</p>
+        </li>
+      </ul>
+      <p class="who-none">
+        Fără autorizație? Ca persoană fizică poți cumpăra articole {law.publicCategory}, de la {law.publicMinAge} ani.
+        <a href={collectionUrl('public')}>Vezi produsele {law.publicCategory}</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="section law" aria-labelledby="law-title" data-confirm={confirmNote}>
+    <div class="container law-grid">
+      <h2 id="law-title">Ce schimbă {lawName}</h2>
+      <div>
+        <ul class="law-list" role="list">
+          <li>
+            <CatBadge category={law.publicCategory} size="sm" />
+            <p><strong>Persoanele fizice</strong> pot cumpăra doar articole {law.publicCategory}, de la {law.publicMinAge} ani.</p>
+          </li>
+          <li>
+            <span class="law-badges">{proCats.map((c) => <CatBadge category={c} size="sm" />)}</span>
+            <p>
+              <strong>{proCatsText}</strong> se vând doar persoanelor autorizate: firme autorizate sau persoane cu carnet de pirotehnician.
+              {otherProCats.length > 0 && ` Același regim îl au ${otherProCats.join(', ')}, categorii pe care nu le avem în catalog.`}
+            </p>
+          </li>
+          {wasMarked18 && (
+            <li>
+              <span class="law-icon"><Icon name="alert" size={22} /></span>
+              <p>Până acum, pe site, produsele {proCatsText} aveau limita „18 ani”. Vârsta nu mai e suficientă: pentru ele e nevoie de autorizație.</p>
+            </li>
+          )}
+        </ul>
+        <p class="cite"><cite>{law.reference}</cite></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="steps-title">
+    <div class="container">
+      <div class="section-head"><h2 id="steps-title">Trei pași până la comandă</h2></div>
+      <div class="fuse-wrap"><Fuse id="pro-fuse" value={0} label="Progresul autorizației" /></div>
+      <ol class="steps" role="list" data-steps data-done="Făcut" data-current="Acum" data-todo="Urmează">
+        <li class="pstep" data-state="current">
+          <p class="pmeta"><span>Pasul 1</span><span class="pstate" data-pstate>Acum</span></p>
+          <h3>Încarcă autorizația</h3>
+          <p>Autorizația firmei sau carnetul de pirotehnician, ca PDF, JPG sau PNG.</p>
+        </li>
+        <li class="pstep" data-state="todo">
+          <p class="pmeta"><span>Pasul 2</span><span class="pstate" data-pstate>Urmează</span></p>
+          <h3>Verificăm</h3>
+          <p>Un coleg verifică documentul și datele. Până atunci poți răsfoi catalogul și prețurile.</p>
+        </li>
+        <li class="pstep" data-state="todo">
+          <p class="pmeta"><span>Pasul 3</span><span class="pstate" data-pstate>Urmează</span></p>
+          <h3>Poți comanda {proCats.join(' / ')}</h3>
+          <p>După verificare, comanda se deblochează pentru produsele {proCatsText}.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section auth" id="autorizatie" aria-labelledby="auth-title">
+    <div class="container auth-grid">
+      <div class="auth-intro">
+        <h2 id="auth-title">Încarcă autorizația</h2>
+        <p>Ne trebuie un singur document: autorizația firmei sau carnetul de pirotehnician. Îl folosim doar ca să verificăm că poți cumpăra {proCatsText}.</p>
+        <p class="small">Întrebări despre autorizație? Scrie-ne la <a href={`mailto:${shop.email.office}`}>{shop.email.office}</a>.</p>
+      </div>
+
+      <div class="auth-box">
+        <div class="auth-status" data-auth-status data-state="pending" tabindex="-1" aria-labelledby="auth-status-title" hidden>
+          <span class="spec-label status-label">
+            <span><small>Stare</small><span data-auth-state-text data-pending="În verificare" data-verified="Verificată">În verificare</span></span>
+            <span><small>Fișier</small><span class="clip" data-auth-file>—</span></span>
+            <span><small>Nr.</small><span class="clip" data-auth-licence>—</span></span>
+          </span>
+          <h3 id="auth-status-title" data-auth-title data-pending="Autorizația e în verificare" data-verified="Autorizație verificată">Autorizația e în verificare</h3>
+          <p data-auth-text
+            data-pending={`Verificăm documentul trimis. Până atunci poți răsfoi catalogul; după verificare poți comanda ${proCatsText}.`}
+            data-verified={`Poți comanda produsele ${proCatsText}.`}></p>
+          <div class="status-actions">
+            <button class="btn btn-sm btn-secondary" type="button" data-auth-replace>Înlocuiește documentul</button>
+            <a class="btn btn-sm btn-ghost" href="#colectii">Vezi colecțiile</a>
+          </div>
+        </div>
+
+        <p class="auth-hint" data-auth-hint hidden>
+          <Icon name="info" size={18} /> Ai ales modul profesionist. Mai trebuie să încarci autorizația ca să poți comanda {proCatsText}.
+        </p>
+
+        <form class="auth-form" data-auth-form novalidate aria-labelledby="auth-title"
+          data-placeholder="Fără backend: la trimitere se salvează doar metadatele (setProAuth). La port: upload real + tag „autorizat”.">
+          <fieldset class="kind">
+            <legend>Cine trimite autorizația</legend>
+            <div class="kind-opts">
+              <label><input type="radio" name="kind" value="firma" checked /> <span>Firmă autorizată</span></label>
+              <label><input type="radio" name="kind" value="persoana" /> <span>Persoană cu carnet</span></label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label for="pa-name" data-name-label data-firma="Denumirea firmei" data-persoana="Nume și prenume">Denumirea firmei</label>
+            <input class="input" id="pa-name" name="company" type="text" autocomplete="organization" required aria-describedby="pa-name-err" />
+            <p class="err" id="pa-name-err"></p>
+          </div>
+
+          <div class="field" data-cui-field>
+            <label for="pa-cui">CUI <span class="opt">opțional</span></label>
+            <input class="input" id="pa-cui" name="cui" type="text" inputmode="text" autocomplete="off" spellcheck="false" aria-describedby="pa-cui-hint pa-cui-err" />
+            <p class="hint" id="pa-cui-hint">Cu sau fără RO în față.</p>
+            <p class="err" id="pa-cui-err"></p>
+          </div>
+
+          <div class="field">
+            <label for="pa-licence" data-licence-label data-firma="Numărul autorizației" data-persoana="Numărul carnetului de pirotehnician">Numărul autorizației</label>
+            <input class="input" id="pa-licence" name="licence" type="text" autocomplete="off" spellcheck="false" required aria-describedby="pa-licence-err" />
+            <p class="err" id="pa-licence-err"></p>
+          </div>
+
+          <div class="field">
+            <span class="file-label" id="pa-file-label">Documentul</span>
+            <div class="drop" data-drop>
+              <Icon name="upload" size={28} />
+              <span class="drop-title">Trage fișierul aici sau <u>alege-l din dispozitiv</u></span>
+              <span class="drop-hint" id="pa-file-hint">PDF, JPG sau PNG, cel mult 10 MB</span>
+              <input class="file-input" id="pa-file" name="file" type="file" required
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                aria-labelledby="pa-file-label" aria-describedby="pa-file-hint pa-file-err" />
+            </div>
+            <p class="file-chip" data-file-chip hidden>
+              <Icon name="check" size={18} />
+              <span class="clip" data-file-name></span>
+              <span class="mono size" data-file-size></span>
+              <button class="btn btn-sm btn-ghost" type="button" data-file-clear>Șterge<span class="visually-hidden"> fișierul ales</span></button>
+            </p>
+            <p class="err" id="pa-file-err"></p>
+          </div>
+
+          <div class="field">
+            <label class="consent">
+              <input type="checkbox" id="pa-consent" name="consent" required aria-describedby="pa-consent-err" />
+              <span data-confirm={confirmNote}>Sunt de acord ca {shop.name} să folosească datele și documentul trimis doar pentru verificarea autorizației.</span>
+            </label>
+            <p class="err" id="pa-consent-err"></p>
+          </div>
+
+          <button class="btn btn-primary submit" type="submit">Trimite autorizația</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="section colls" id="colectii" aria-labelledby="colls-title">
+    <div class="container">
+      <div class="section-head"><h2 id="colls-title">Colecțiile pentru profesioniști</h2></div>
+      <ul class="coll-list" role="list">
+        {proCollections.map((c) => (
+          <li class="coll">
+            <span class="coll-badges">{c.cats.map((cat) => <CatBadge category={cat} size="sm" />)}</span>
+            <div class="coll-main">
+              <h3><a href={collectionUrl(c.handle)}>{c.title}</a></h3>
+              <p class="coll-blurb">{c.blurb}</p>
+            </div>
+            <p class:list={['coll-stock', c.tone]}>{c.note}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Theme>
+
+<style>
+  /* hero */
+  .hero { padding-block: var(--space-4) clamp(48px, 7vw, 96px); }
+  @media (min-width: 768px) { .hero { padding-top: var(--space-6); } }
+  .crumbs ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2); margin: 0 0 var(--space-4); padding: 0;
+    font: 500 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
+  .crumbs li { display: inline-flex; align-items: center; min-height: 44px; }
+  .crumbs li + li::before { content: ''; width: 6px; height: 6px; margin-right: var(--space-2); border-top: 1px solid var(--night-600);
+    border-right: 1px solid var(--night-600); transform: rotate(45deg); }
+  .crumbs a { display: inline-flex; align-items: center; min-height: 44px; color: var(--smoke-200); text-decoration: none; }
+  .crumbs a:hover { color: var(--magnesium-400); text-decoration: underline; text-underline-offset: 4px; }
+  @media (min-width: 768px) { .crumbs li, .crumbs a { min-height: 32px; } }
+  .hero-grid { display: grid; gap: var(--space-8); align-items: center; }
+  .hero-copy { min-width: 0; }
+  .hero h1 { font-size: clamp(2.75rem, 9vw + 1rem, 7.5rem); font-weight: 900; line-height: .9; overflow-wrap: break-word; }
+  .lead { margin-top: var(--space-6); max-width: 56ch; font-size: var(--text-md); color: var(--smoke-200); }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-8); }
+  .state-label { margin-top: var(--space-6); color: var(--smoke-200); }
+  .state-label[data-state='pending'] { color: var(--warn); }
+  .state-label[data-state='verified'] { color: var(--ok); }
+  .hero-badges { order: -1; display: flex; }
+  .hero .hero-badges :global(.cat-badge.lg) { --s: 96px; }
+  .hero .hero-badges :global(.cat-badge + .cat-badge) { margin-left: -14px; }
+  @media (min-width: 900px) {
+    .hero-grid { grid-template-columns: minmax(0, 1fr) auto; }
+    .hero-badges { order: 0; }
+    .hero .hero-badges :global(.cat-badge.lg) { --s: 168px; }
+    .hero .hero-badges :global(.cat-badge + .cat-badge) { margin-left: -28px; }
+  }
+  .stock-note, .auth-hint { display: flex; align-items: flex-start; gap: var(--space-2); max-width: 64ch; color: var(--smoke-200); font-size: var(--text-sm); }
+  .stock-note { margin-top: var(--space-8); }
+  .stock-note :global(.icon), .auth-hint :global(.icon) { flex: none; margin-top: 2px; color: var(--smoke-400); }
+
+  /* who qualifies: two plain columns under a rule, no cards */
+  .who-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); }
+  @media (min-width: 900px) { .who-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); } }
+  .who-grid li { display: grid; gap: var(--space-3); align-content: start; padding-top: var(--space-4); border-top: 2px solid var(--white); }
+  .who-grid h3 { font-size: var(--text-2xl); }
+  .who-grid p { max-width: 52ch; color: var(--smoke-200); }
+  .who-none { margin-top: var(--space-8); max-width: 64ch; color: var(--smoke-200); }
+  .who-none a { color: var(--white); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+  .who-none a:hover { color: var(--magnesium-400); }
+
+  /* law */
+  .law { border-top: var(--border); }
+  .law-grid { display: grid; gap: var(--space-8); }
+  @media (min-width: 900px) { .law-grid { grid-template-columns: 5fr 7fr; gap: var(--space-12); } }
+  .law h2 { font-size: clamp(2.25rem, 5vw, 4rem); }
+  .law-list { list-style: none; margin: 0; padding: 0; border-top: var(--border); }
+  .law-list li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-4); align-items: center; padding: var(--space-4) 0; border-bottom: var(--border); }
+  .law-list p { color: var(--smoke-200); }
+  .law-list strong { color: var(--white); font-weight: 600; }
+  .law-badges { display: flex; }
+  .law-badges > :global(.cat-badge + .cat-badge) { margin-left: -24px; }
+  .law-icon { display: grid; place-items: center; width: 48px; height: 48px; color: var(--warn); }
+  .cite { margin-top: var(--space-4); font-size: var(--text-sm); color: var(--smoke-400); }
+  cite { font-style: normal; }
+
+  /* steps: the fuse is the progress line, the three steps hang under it */
+  .fuse-wrap { margin-bottom: var(--space-6); }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); }
+  @media (min-width: 768px) { .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .pstep { display: grid; gap: var(--space-3); align-content: start; }
+  .pmeta { display: flex; gap: var(--space-3); font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--smoke-400); }
+  .pstep h3 { font-size: var(--text-2xl); transition: color var(--dur-ui); }
+  .pstep p:not(.pmeta) { max-width: 40ch; color: var(--smoke-200); }
+  .pstep[data-state='current'] .pstate { color: var(--magnesium-400); }
+  .pstep[data-state='done'] .pstate { color: var(--ok); }
+  .pstep[data-state='todo'] h3 { color: var(--smoke-200); }
+
+  /* authorization form */
+  .auth { border-top: var(--border); }
+  .auth-grid { display: grid; gap: var(--space-8); }
+  @media (min-width: 900px) { .auth-grid { grid-template-columns: 5fr 7fr; gap: var(--space-12); align-items: start; } }
+  .auth-intro { display: flex; flex-direction: column; gap: var(--space-4); max-width: 52ch; }
+  .auth-intro h2 { font-size: clamp(2.25rem, 5vw, 4rem); }
+  .auth-intro p { color: var(--smoke-200); }
+  .auth-intro .small { font-size: var(--text-sm); color: var(--smoke-400); }
+  .auth-intro a { color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .auth-intro a:hover { color: var(--magnesium-400); }
+  .auth-box { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+  .auth-form { display: flex; flex-direction: column; gap: var(--space-6); }
+
+  .kind { margin: 0; padding: 0; border: 0; min-width: 0; }
+  .kind legend { padding: 0; margin-bottom: 6px; font: 600 var(--text-sm)/1 var(--font-body); color: var(--smoke-200); }
+  .kind-opts { display: grid; gap: var(--space-2); }
+  @media (min-width: 480px) { .kind-opts { grid-template-columns: 1fr 1fr; } }
+  .kind-opts label { display: flex; align-items: center; gap: var(--space-3); min-height: 48px; padding: var(--space-2) var(--space-3);
+    background: var(--night-900); border: 1px solid var(--night-600); border-radius: var(--radius-label); cursor: pointer; transition: border-color var(--dur-ui); }
+  .kind-opts label:hover { border-color: var(--smoke-400); }
+  .kind-opts label:has(input:checked) { border-color: var(--magnesium-400); }
+  .kind-opts input, .consent input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--magnesium-400); cursor: pointer; }
+  .consent { display: flex; align-items: flex-start; gap: var(--space-3); min-height: 44px; padding-block: var(--space-2); cursor: pointer;
+    font-size: var(--text-sm); line-height: 1.5; color: var(--smoke-200); }
+  .consent input { margin-top: 1px; }
+  .consent:has(input[aria-invalid='true']) input { outline: 2px solid var(--danger); outline-offset: 2px; }
+
+  .field label .opt { margin-left: 4px; color: var(--smoke-400); font-weight: 500; }
+  .input[aria-invalid='true'] { border-color: var(--danger); }
+  .hint { font-size: var(--text-sm); color: var(--smoke-400); }
+  .err { color: var(--danger); font-size: var(--text-sm); }
+  .err:empty { display: none; }
+
+  .file-label { font: 600 var(--text-sm)/1 var(--font-body); color: var(--smoke-200); }
+  .drop { position: relative; display: grid; justify-items: center; align-content: center; gap: var(--space-2); min-height: 168px; padding: var(--space-6);
+    text-align: center; background: var(--night-900); border: 1px solid var(--night-600); border-radius: var(--radius-label);
+    color: var(--smoke-200); transition: border-color var(--dur-ui), background-color var(--dur-ui); }
+  .drop :global(.icon) { color: var(--smoke-400); }
+  .drop:hover { border-color: var(--smoke-400); }
+  .drop.over { border-color: var(--magnesium-400); background: color-mix(in srgb, var(--magnesium-400) 6%, var(--night-900)); }
+  .drop.over :global(.icon) { color: var(--magnesium-400); }
+  .drop:has(.file-input:focus-visible) { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
+  .drop:has(.file-input[aria-invalid='true']) { border-color: var(--danger); }
+  .drop-title { font-weight: 600; color: var(--white); }
+  .drop-title u { text-underline-offset: 4px; }
+  .drop:hover .drop-title u { color: var(--magnesium-400); }
+  .drop-hint { font: 500 var(--text-sm)/1.4 var(--font-body); color: var(--smoke-400); }
+  /* the real input covers the zone: native click, keyboard and drop all work */
+  .file-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  .file-chip { display: flex; align-items: center; gap: var(--space-2); min-width: 0; padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+    background: var(--night-800); border-radius: var(--radius-label); font-size: var(--text-sm); }
+  .file-chip :global(.icon) { flex: none; color: var(--ok); }
+  .file-chip .size { flex: none; color: var(--smoke-400); font-size: var(--text-xs); }
+  .file-chip .btn { margin-left: auto; flex: none; }
+  .clip { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .submit { align-self: flex-start; }
+  @media (max-width: 479px) { .submit { align-self: stretch; } }
+  .submit[aria-busy='true'] { opacity: .7; pointer-events: none; }
+
+  .auth-status { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: var(--space-2) 0 var(--space-2) var(--space-6);
+    border-left: 3px solid var(--warn); }
+  .auth-status[data-state='verified'] { border-left-color: var(--ok); }
+  .auth-status h3 { font-size: var(--text-xl); }
+  .auth-status p { color: var(--smoke-200); }
+  .status-label { color: var(--warn); }
+  .auth-status[data-state='verified'] .status-label { color: var(--ok); }
+  .status-label > span { min-width: 0; max-width: 100%; }
+  .status-label .clip { max-width: 22ch; color: var(--white); }
+  .status-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+  /* pro collections: a manifest, one row per collection; the whole row is the link */
+  .coll-list { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--white); }
+  .coll { position: relative; display: grid; gap: var(--space-3); padding: var(--space-6) 0; border-bottom: var(--border); }
+  @media (min-width: 900px) { .coll { grid-template-columns: 9rem minmax(0, 1.3fr) minmax(0, 1fr); gap: var(--space-8); align-items: center; } }
+  .coll-badges { display: flex; }
+  .coll-badges > :global(.cat-badge + .cat-badge) { margin-left: -8px; }
+  .coll-main { display: grid; gap: var(--space-2); min-width: 0; }
+  .coll h3 { font-size: var(--text-2xl); transition: color var(--dur-micro); }
+  .coll h3 a { text-decoration: none; }
+  .coll h3 a::after { content: ''; position: absolute; inset: 0; }
+  .coll:hover h3, .coll h3 a:hover { color: var(--magnesium-400); }
+  .coll h3 a:focus-visible { outline: none; }
+  .coll h3 a:focus-visible::after { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
+  .coll-blurb { max-width: 52ch; color: var(--smoke-200); }
+  .coll-stock { font-size: var(--text-sm); line-height: 1.5; }
+  .coll-stock.out { color: var(--smoke-400); }
+  .coll-stock.partial { color: var(--smoke-200); }
+  .coll-stock.ok { color: var(--ok); }
+</style>
+
+<script>
+  import { getMode, setMode, getProAuth, setProAuth, type ProAuth } from '../../scripts/mode';
+
+  // Placeholder limit for the client check; align it with the upload app chosen at the Shopify port.
+  const MAX_MB = 10;
+  const OK_FILE = /\.(pdf|jpe?g|png)$/i;
+  const MSG = {
+    nameFirm: 'Scrie denumirea firmei.',
+    namePerson: 'Scrie numele și prenumele.',
+    cui: 'CUI-ul are între 2 și 10 cifre, cu sau fără RO în față.',
+    licence: 'Scrie numărul autorizației sau al carnetului.',
+    file: 'Alege documentul: PDF, JPG sau PNG.',
+    fileType: 'Fișierul trebuie să fie PDF, JPG sau PNG.',
+    fileSize: `Fișierul are peste ${MAX_MB} MB. Încearcă o fotografie mai mică sau un PDF comprimat.`,
+    consent: 'Bifează acordul ca să putem verifica documentul.',
+  };
+
+  type State = 'none' | 'started' | 'pending' | 'verified';
+  const stateOf = (a: ProAuth | null): State =>
+    !a || a.status === 'none' ? 'none' : a.status === 'verified' ? 'verified' : a.fileName ? 'pending' : 'started';
+
+  const form = document.querySelector<HTMLFormElement>('[data-auth-form]');
+  if (form) init(form);
+
+  function init(form: HTMLFormElement) {
+    const q = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+    const heroLabel = q('[data-hero-status]');
+    const heroText = q('[data-hero-status-text]');
+    const fuse = q('#pro-fuse');
+    const stepList = q('[data-steps]');
+    const steps = [...stepList.querySelectorAll<HTMLElement>('.pstep')];
+    const status = q('[data-auth-status]');
+    const hint = q('[data-auth-hint]');
+    const replaceBtn = q<HTMLButtonElement>('[data-auth-replace]');
+    const name = q<HTMLInputElement>('#pa-name');
+    const cui = q<HTMLInputElement>('#pa-cui');
+    const licence = q<HTMLInputElement>('#pa-licence');
+    const file = q<HTMLInputElement>('#pa-file');
+    const consent = q<HTMLInputElement>('#pa-consent');
+    const drop = q('[data-drop]');
+    const chip = q('[data-file-chip]');
+    const nameLabel = q('[data-name-label]');
+    const licenceLabel = q('[data-licence-label]');
+    const cuiField = q('[data-cui-field]');
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    let replacing = false;
+
+    const isFirm = () => (form.elements.namedItem('kind') as RadioNodeList | null)?.value !== 'persoana';
+
+    function render(focusStatus = false) {
+      const auth = getProAuth();
+      const st = stateOf(auth);
+
+      heroLabel.dataset.state = st;
+      heroText.textContent = heroText.dataset[st] ?? '';
+
+      const progress = { none: 0, started: 0, pending: 0.5, verified: 1 }[st];
+      const stepNo = { none: 1, started: 1, pending: 2, verified: 3 }[st];
+      fuse.style.setProperty('--p', String(progress));
+      fuse.setAttribute('aria-valuenow', String(Math.round(progress * 100)));
+      fuse.setAttribute('aria-valuetext', `Pasul ${stepNo} din 3`);
+      steps.forEach((li, i) => {
+        const s = st === 'verified' || i < stepNo - 1 ? 'done' : i === stepNo - 1 ? 'current' : 'todo';
+        li.dataset.state = s;
+        li.querySelector('[data-pstate]')!.textContent = stepList.dataset[s] ?? '';
+      });
+
+      const showStatus = st === 'pending' || st === 'verified';
+      status.hidden = !showStatus;
+      hint.hidden = st !== 'started';
+      if (showStatus && auth) {
+        status.dataset.state = st;
+        for (const el of status.querySelectorAll<HTMLElement>('[data-auth-state-text], [data-auth-title], [data-auth-text]')) {
+          el.textContent = el.dataset[st] ?? '';
+        }
+        const f = status.querySelector<HTMLElement>('[data-auth-file]')!;
+        f.textContent = auth.fileName ?? '—';
+        f.title = auth.fileName ?? '';
+        status.querySelector<HTMLElement>('[data-auth-licence]')!.textContent = auth.licence || '—';
+      }
+      replaceBtn.hidden = st !== 'pending' || replacing;
+      form.hidden = showStatus && !replacing;
+      if (focusStatus && showStatus) status.focus();
+    }
+
+    function applyKind() {
+      const firm = isFirm();
+      nameLabel.textContent = (firm ? nameLabel.dataset.firma : nameLabel.dataset.persoana) ?? '';
+      licenceLabel.textContent = (firm ? licenceLabel.dataset.firma : licenceLabel.dataset.persoana) ?? '';
+      name.autocomplete = firm ? 'organization' : 'name';
+      cuiField.hidden = !firm;
+      if (name.getAttribute('aria-invalid')) check(name);
+    }
+
+    function setError(input: HTMLInputElement, msg: string) {
+      document.getElementById(`${input.id}-err`)!.textContent = msg;
+      if (msg) input.setAttribute('aria-invalid', 'true');
+      else input.removeAttribute('aria-invalid');
+      return !msg;
+    }
+
+    function fileProblem(f: File | undefined) {
+      if (!f) return MSG.file;
+      if (!OK_FILE.test(f.name)) return MSG.fileType;
+      if (f.size > MAX_MB * 1024 * 1024) return MSG.fileSize;
+      return '';
+    }
+
+    function check(input: HTMLInputElement) {
+      if (input === name) return setError(name, name.value.trim().length >= 2 ? '' : isFirm() ? MSG.nameFirm : MSG.namePerson);
+      if (input === cui) {
+        const v = cui.value.trim();
+        return setError(cui, !isFirm() || !v || /^(RO)?\s?\d{2,10}$/i.test(v) ? '' : MSG.cui);
+      }
+      if (input === licence) return setError(licence, licence.value.trim() ? '' : MSG.licence);
+      if (input === file) return setError(file, fileProblem(file.files?.[0]));
+      if (input === consent) return setError(consent, consent.checked ? '' : MSG.consent);
+      return true;
+    }
+
+    function showFile() {
+      const f = file.files?.[0];
+      chip.hidden = !f;
+      if (!f) return;
+      const nameEl = chip.querySelector<HTMLElement>('[data-file-name]')!;
+      nameEl.textContent = f.name;
+      nameEl.title = f.name;
+      const mb = f.size / (1024 * 1024);
+      chip.querySelector('[data-file-size]')!.textContent = mb >= 1 ? `${mb.toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(f.size / 1024))} KB`;
+    }
+
+    file.addEventListener('change', () => {
+      const problem = fileProblem(file.files?.[0]);
+      if (problem && file.files?.length) file.value = ''; // refuse the wrong file instead of keeping it selected
+      setError(file, file.files?.length ? '' : problem);
+      showFile();
+    });
+    chip.querySelector('[data-file-clear]')!.addEventListener('click', () => {
+      file.value = '';
+      showFile();
+      file.focus();
+    });
+
+    // Drag & drop: the input under the pointer takes the file natively; this only styles the zone and keeps a
+    // file dropped anywhere else on the page from replacing the page.
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files');
+    drop.addEventListener('dragenter', (e) => { if (hasFiles(e)) drop.classList.add('over'); });
+    drop.addEventListener('dragleave', (e) => { if (!drop.contains(e.relatedTarget as Node | null)) drop.classList.remove('over'); });
+    drop.addEventListener('drop', () => drop.classList.remove('over'));
+    for (const type of ['dragover', 'drop'] as const) {
+      window.addEventListener(type, (e) => { if (hasFiles(e) && e.target !== file) e.preventDefault(); });
+    }
+
+    form.addEventListener('change', (e) => {
+      const t = e.target as HTMLInputElement;
+      if (t.name === 'kind') applyKind();
+      else if (t !== file && t.getAttribute('aria-invalid')) check(t);
+    });
+    form.addEventListener('input', (e) => {
+      const t = e.target as HTMLInputElement;
+      if (t.getAttribute('aria-invalid') && t.type !== 'file') check(t);
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fields = [name, cui, licence, file, consent];
+      const invalid = fields.filter((f) => !check(f));
+      if (invalid.length) { invalid[0].focus(); return; }
+      submit.setAttribute('aria-busy', 'true');
+      const f = file.files![0];
+      // Shopify port: send FormData (file + fields) to the verification app here and store the status only after a 2xx.
+      // ProAuth has no `cui` field yet, so the CUI is validated but not stored.
+      setProAuth({ status: 'pending', fileName: f.name, company: name.value.trim(), licence: licence.value.trim() });
+      if (getMode() !== 'pro') setMode('pro');
+      submit.removeAttribute('aria-busy');
+      replacing = false;
+      render(true);
+    });
+
+    replaceBtn.addEventListener('click', () => {
+      const auth = getProAuth();
+      replacing = true;
+      name.value = auth?.company ?? '';
+      licence.value = auth?.licence ?? '';
+      render();
+      name.focus();
+    });
+
+    window.addEventListener('proauth:change', () => render());
+    window.addEventListener('storage', () => render());
+    applyKind();
+    render();
+  }
+</script>

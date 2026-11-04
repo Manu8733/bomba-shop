@@ -1,0 +1,51 @@
+---
+// Liquid: templates/page.contact.json with {% form 'contact' %}.
+import Theme from '../../layouts/Theme.astro';
+import ContentHero from '../../sections/ContentHero.astro';
+import { shop } from '../../config';
+---
+<Theme title="Contact" description="Contactează Bomba Shop: întrebări despre produse, comenzi și spectacole pirotehnice." skipGate>
+  <ContentHero title="Contact" lede="Întrebări despre produse, comenzi sau spectacole. Răspundem pe email." />
+  <div class="container section layout">
+    <dl class="info">
+      <div><dt>Email</dt><dd><a href={`mailto:${shop.email.office}`}>{shop.email.office}</a></dd></div>
+      <div><dt>Despre o comandă</dt><dd><a href={`mailto:${shop.email.orders}`}>{shop.email.orders}</a></dd></div>
+      {shop.phone.value && <div><dt>Telefon</dt><dd>{shop.phone.value}</dd></div>}
+      {shop.address.value && <div><dt>Adresă</dt><dd>{shop.address.value}</dd></div>}
+      <div><dt>Firmă</dt><dd>{shop.company.legalName}<br />CUI {shop.company.cui}<br />{shop.company.regCom}</dd></div>
+    </dl>
+    <form class="form" data-demo-form novalidate>
+      <div data-fields class="grid">
+        <div class="field"><label for="ct-name">Nume</label><input class="input" id="ct-name" required autocomplete="name" /><p class="err" data-err-for="ct-name" hidden>Scrie-ți numele.</p></div>
+        <div class="field"><label for="ct-email">Email</label><input class="input" id="ct-email" type="email" required autocomplete="email" /><p class="err" data-err-for="ct-email" hidden>Scrie o adresă de email validă.</p></div>
+        <div class="field span"><label for="ct-order">Număr comandă (opțional)</label><input class="input" id="ct-order" /></div>
+        <div class="field span"><label for="ct-msg">Mesaj</label><textarea class="input" id="ct-msg" required></textarea><p class="err" data-err-for="ct-msg" hidden>Scrie mesajul.</p></div>
+        <label class="check span"><input type="checkbox" id="ct-consent" required /> <span>Sunt de acord cu prelucrarea datelor pentru a primi răspuns. <a href="/pages/confidentialitate">Confidențialitate</a></span></label>
+        <p class="err span" data-err-for="ct-consent" hidden>Bifează acordul ca să-ți putem răspunde.</p>
+        <div class="span"><button class="btn btn-primary" type="submit">Trimite mesajul</button></div>
+      </div>
+      <div class="done" data-done hidden tabindex="-1"><h2>Mesaj trimis</h2><p>Îți răspundem pe email.</p></div>
+    </form>
+  </div>
+</Theme>
+<style>
+  .layout { display: grid; gap: var(--space-12); padding-top: var(--space-4); }
+  @media (min-width: 1024px) { .layout { grid-template-columns: 320px minmax(0, 52rem); gap: var(--space-16); padding-top: var(--space-8); } }
+  .info { display: grid; gap: var(--space-6); align-content: start; margin: 0; }
+  .info dt { font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--smoke-400); }
+  .info dd { margin: 4px 0 0; font-size: var(--text-md); color: var(--smoke-200); overflow-wrap: anywhere; }
+  .info a { display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+  .info a:hover { color: var(--magnesium-400); }
+  .grid { display: grid; gap: var(--space-6) var(--space-4); }
+  @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } .span { grid-column: 1 / -1; } }
+  .check { display: flex; gap: 10px; align-items: flex-start; }
+  .check input { width: 20px; height: 20px; accent-color: var(--magnesium-400); flex: none; }
+  .err { color: var(--danger); font-size: var(--text-sm); }
+  .done { display: grid; gap: var(--space-3); padding-left: var(--space-4); border-left: 2px solid var(--ok); }
+  .done h2 { font-size: var(--text-3xl); }
+  .done p { color: var(--smoke-200); }
+</style>
+<script>
+  import { initDemoForms } from '../../scripts/forms';
+  initDemoForms();
+</script>

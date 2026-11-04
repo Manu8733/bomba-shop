@@ -1,0 +1,163 @@
+---
+// Liquid: the buy column of sections/main-product.liquid.
+import CatBadge from '../../snippets/CatBadge.astro';
+import SpecLabel from '../../snippets/SpecLabel.astro';
+import Price from '../../snippets/Price.astro';
+import Icon from '../../snippets/Icon.astro';
+import { available, category, isPro, price, variant, effectColor, imagesOf, money, cardSpecs, type Product } from '../../lib/catalog';
+import { commerce } from '../../config';
+interface Props { product: Product }
+const { product: p } = Astro.props;
+const v = variant(p);
+const inStock = available(p);
+const cat = category(p);
+const pro = isPro(p);
+const fx = effectColor(p);
+const max = v.inventory_quantity ?? 20;
+const canBuy = inStock && price(p) != null;
+const thumb = imagesOf(p)[0]?.files[0]?.src;
+// a label holding only the category cell would repeat the diamond right above it
+const hasSpecs = cardSpecs(p, 5).length > 0;
+const stockText = !inStock ? 'Epuizat momentan' : v.inventory_quantity && v.inventory_quantity <= 5 ? `Ultimele ${v.inventory_quantity} bucăți` : 'În stoc';
+---
+<section class="buy" data-buy aria-labelledby="pdp-title">
+  <p class="meta mono">{[p.vendor, v.sku && `Cod ${v.sku}`].filter(Boolean).join(' · ')}</p>
+  <h1 id="pdp-title">{p.title}</h1>
+
+  <div class="cat">
+    <CatBadge category={cat} size="lg" />
+    <p>{!cat ? 'Categoria pirotehnică nu e trecută în fișa produsului.'
+      : pro ? <>Categoria <b>{cat}</b>: se vinde doar firmelor și persoanelor autorizate (Legea 92/2025).</>
+      : <>Categoria <b>F1</b>: poate fi cumpărat de orice persoană de peste 16 ani.</>}</p>
+  </div>
+
+  {hasSpecs && <SpecLabel product={p} mode="known" class="buy-spec" />}
+  {fx && <p class="fx"><i style={`--c:${fx.color}`}></i>Culoare: {fx.label.toLowerCase()} <span class="muted">({fx.salt})</span></p>}
+
+  <div class="pricebox">
+    <Price product={p} size="lg" />
+    <span class="tva muted">TVA inclus</span>
+  </div>
+  <p class:list={['stock', { no: !inStock }]}><span aria-hidden="true">{inStock ? '●' : '○'}</span> {stockText}</p>
+
+  {pro ? (
+    <div class="pro">
+      <div class="pro-public">
+        <p><Icon name="shield" size={20} />Produs doar pentru clienți autorizați. Ca persoană fizică poți cumpăra produsele F1.</p>
+        <div class="row"><a class="btn btn-pro" href="/pages/profesionisti">Sunt autorizat</a><a class="btn btn-secondary" href="/collections/public">Vezi produsele F1</a></div>
+      </div>
+      <div class="pro-ok">
+        <p class="muted">Profil autorizat. Comanda se confirmă după verificarea autorizației tale.</p>
+      </div>
+    </div>
+  ) : null}
+
+  {!pro && canBuy && (
+    <div class="actions" data-main-buy>
+      <div class="stepper" data-stepper>
+        <button type="button" data-dec aria-label="Scade cantitatea"><Icon name="minus" size={18} /></button>
+        <label class="visually-hidden" for="qty">Cantitate</label>
+        <input id="qty" type="number" inputmode="numeric" min="1" max={max} value="1" />
+        <button type="button" data-inc aria-label="Crește cantitatea"><Icon name="plus" size={18} /></button>
+      </div>
+      <button class="btn btn-primary add" type="button" data-add-to-cart data-handle={p.handle} data-qty-input="#qty">
+        <Icon name="cart" size={20} />Adaugă în coș
+      </button>
+    </div>
+  )}
+  {pro && canBuy && (
+    <div class="actions pro-actions" data-main-buy>
+      <button class="btn btn-pro add" type="button" data-add-to-cart data-handle={p.handle}>Adaugă în coș (autorizat)</button>
+    </div>
+  )}
+
+  {!inStock && (
+    <form class="notify" id="anunta" data-notify novalidate>
+      <div data-fields>
+        <p class="nt">Anunță-mă când revine</p>
+        <p class="muted">Îți scriem o singură dată, când produsul e din nou în stoc.</p>
+        <div class="row">
+          <label class="visually-hidden" for="notify-email">Adresa ta de email</label>
+          <input class="input" id="notify-email" type="email" required placeholder="nume@exemplu.ro" autocomplete="email" aria-describedby="notify-err" />
+          <button class="btn btn-secondary" type="submit">Anunță-mă</button>
+        </div>
+        <p class="err" id="notify-err" data-error hidden>Scrie o adresă de email validă, de forma nume@exemplu.ro.</p>
+      </div>
+      <p class="done" data-done hidden role="status"><Icon name="check" size={20} /> Gata. Te anunțăm când revine.</p>
+    </form>
+  )}
+
+  <ul class="perks">
+    <li>Livrare prin curier în {commerce.shipping.courierDays}.</li>
+    <li>Drept de retragere {commerce.returns.days} zile. <a href="/pages/livrare-retur">Vezi condițiile</a></li>
+    <li><a href="/pages/siguranta">Cum folosești în siguranță</a></li>
+  </ul>
+
+  {canBuy && (!pro) && (
+    <div class="sticky" data-sticky aria-hidden="true">
+      {thumb && <img src={thumb} alt="" width="48" height="48" />}
+      <span class="st-title">{p.title}<b class="mono">{money(price(p))}</b></span>
+      <button class="btn btn-primary btn-sm" type="button" tabindex="-1" data-add-to-cart data-handle={p.handle} data-qty-input="#qty">Adaugă</button>
+    </div>
+  )}
+</section>
+
+<style>
+  .buy { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+  .meta { font-size: var(--text-sm); color: var(--smoke-400); }
+  h1 { font-size: clamp(2.4rem, 5vw, 4rem); line-height: .95; }
+  .cat { display: flex; gap: var(--space-3); align-items: center; }
+  .cat p { max-width: 36ch; font-size: var(--text-sm); color: var(--smoke-200); }
+  .buy :global(.buy-spec) { align-self: flex-start; }
+  .fx { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--smoke-200); }
+  .fx i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+  .pricebox { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); }
+  .tva { font-size: var(--text-xs); }
+  .stock { font: 500 var(--text-sm)/1 var(--font-body); color: var(--fx-barium); }
+  .stock.no { color: var(--smoke-400); }
+  .actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+  .actions .add { flex: 1; min-width: 200px; min-height: 56px; font-size: var(--text-md); }
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--night-600); border-radius: var(--radius-label); }
+  .stepper button { width: 48px; height: 54px; border: 0; background: none; color: var(--white); display: grid; place-items: center; }
+  .stepper button:hover { color: var(--magnesium-400); }
+  .stepper input { width: 52px; height: 54px; border: 0; background: none; color: var(--white); text-align: center; font: 600 var(--text-md)/1 var(--font-body); -moz-appearance: textfield; }
+  .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .pro { margin-top: var(--space-2); }
+  .pro p { display: flex; gap: 10px; align-items: flex-start; max-width: 46ch; font-weight: 500; }
+  .pro p :global(.icon) { flex: none; margin-top: 2px; color: var(--strontium-500); }
+  .pro .row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
+  .pro-ok, .pro-actions { display: none; }
+  :global(html[data-mode='pro']) .pro-public { display: none; }
+  :global(html[data-mode='pro']) .pro-ok, :global(html[data-mode='pro']) .pro-actions { display: block; }
+  .notify { margin-top: var(--space-4); padding-top: var(--space-6); border-top: var(--border); scroll-margin-top: 120px; }
+  .notify .nt { font-weight: 600; }
+  .notify .muted { margin-top: 2px; font-size: var(--text-sm); }
+  .notify .row { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-4); }
+  .notify .input { flex: 1; min-width: 200px; }
+  .err { color: var(--danger); font-size: var(--text-sm); margin-top: var(--space-2); }
+  .done { display: flex; gap: 8px; align-items: center; color: var(--fx-barium); }
+  .perks { list-style: none; margin: var(--space-4) 0 0; padding: var(--space-4) 0 0; border-top: var(--border); display: grid; font-size: var(--text-sm); color: var(--smoke-200); }
+  .perks li { display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; min-height: 36px; }
+  .perks a { display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .perks a:hover { color: var(--magnesium-400); }
+  .sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-drawer); display: flex; align-items: center; gap: var(--space-3);
+    padding: 10px var(--gutter) calc(env(safe-area-inset-bottom, 0px) + 10px); background: rgba(14, 12, 20, .96); border-top: var(--border);
+    backdrop-filter: blur(10px); transform: translateY(110%); transition: transform var(--dur-ui) var(--ease-out-expo); }
+  .sticky[data-show='true'] { transform: none; }
+  .sticky img { width: 44px; height: 44px; object-fit: contain; background: var(--night-800); border-radius: var(--radius-label); }
+  .st-title { flex: 1; min-width: 0; display: grid; font-size: var(--text-sm); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .st-title b { font-weight: 600; }
+  @media (min-width: 1024px) { .sticky { display: none; } }
+  /* the bar is up from the first screen on phones: keep the end of the page clear of it */
+  @media (max-width: 1023px) { :global(.site-footer) { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } }
+</style>
+
+<script>
+  import { initStepper, initStickyBar, initNotify } from '../../scripts/product';
+  const root = document.querySelector<HTMLElement>('[data-buy]');
+  if (root) {
+    initStepper(root);
+    initStickyBar(root.querySelector('[data-main-buy]'), root.querySelector('[data-sticky]'));
+    initNotify(root.querySelector('[data-notify]'));
+  }
+</script>

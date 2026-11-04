@@ -1,0 +1,128 @@
+---
+// UI reference only: the real checkout is Shopify's. Mirrors its steps so the design can be matched with
+// checkout branding / extensions at the port.
+import Theme from '../layouts/Theme.astro';
+import { commerce, law } from '../config';
+const counties = ['Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsăud', 'Botoșani', 'Brașov', 'Brăila', 'București', 'Buzău', 'Caraș-Severin', 'Călărași', 'Cluj', 'Constanța', 'Covasna', 'Dâmbovița', 'Dolj', 'Galați', 'Giurgiu', 'Gorj', 'Harghita', 'Hunedoara', 'Ialomița', 'Iași', 'Ilfov', 'Maramureș', 'Mehedinți', 'Mureș', 'Neamț', 'Olt', 'Prahova', 'Satu Mare', 'Sălaj', 'Sibiu', 'Suceava', 'Teleorman', 'Timiș', 'Tulcea', 'Vaslui', 'Vâlcea', 'Vrancea'];
+---
+<Theme title="Finalizează comanda" description="Finalizarea comenzii Bomba Shop." noindex>
+  <div class="container section">
+    <div class="head"><h1>Finalizează comanda</h1>
+      <p class="demo" role="note">Pagină demonstrativă: după lansare, comenzile se plasează în checkout-ul securizat Shopify.</p></div>
+    <div class="layout">
+      <form class="form" novalidate data-checkout>
+        <fieldset><legend>Contact</legend><div class="fs">
+          <div class="row2">
+            <div class="field"><label for="c-email">E-mail</label><input class="input" id="c-email" type="email" required autocomplete="email" /></div>
+            <div class="field"><label for="c-phone">Telefon</label><input class="input" id="c-phone" type="tel" required autocomplete="tel" pattern="^(\+40|0)7[0-9]{8}$" placeholder="07xx xxx xxx" /></div>
+          </div>
+        </div></fieldset>
+        <fieldset><legend>Adresă de livrare</legend><div class="fs">
+          <div class="row2">
+            <div class="field"><label for="c-fn">Prenume</label><input class="input" id="c-fn" required autocomplete="given-name" /></div>
+            <div class="field"><label for="c-ln">Nume</label><input class="input" id="c-ln" required autocomplete="family-name" /></div>
+          </div>
+          <div class="field"><label for="c-addr">Stradă și număr</label><input class="input" id="c-addr" required autocomplete="address-line1" /></div>
+          <div class="row3">
+            <div class="field"><label for="c-city">Localitate</label><input class="input" id="c-city" required autocomplete="address-level2" /></div>
+            <div class="field"><label for="c-county">Județ</label>
+              <select class="input" id="c-county" required autocomplete="address-level1"><option value="">Alege</option>{counties.map((c) => <option>{c}</option>)}</select></div>
+            <div class="field"><label for="c-zip">Cod poștal</label><input class="input" id="c-zip" required inputmode="numeric" pattern="^[0-9]{6}$" autocomplete="postal-code" /></div>
+          </div>
+        </div></fieldset>
+        <fieldset><legend>Livrare</legend><div class="fs opts">
+          <label class="opt"><input type="radio" name="ship" checked /> <span><b>Curier</b><small>{commerce.shipping.courierDays} · tariful se calculează la plasarea comenzii</small></span></label>
+        </div></fieldset>
+        <fieldset><legend>Plată</legend><div class="fs opts">
+          {commerce.payments.methods.map((m, i) => <label class="opt"><input type="radio" name="pay" checked={i === 0} /> <span><b>{m}</b></span></label>)}
+        </div></fieldset>
+        <fieldset class="legal"><legend class="visually-hidden">Confirmări</legend><div class="fs">
+          <label class="check"><input type="checkbox" id="c-age" required /> <span>Confirm că am cel puțin {law.publicMinAge} ani și că produsele F1 sunt pentru uz propriu.</span></label>
+          <label class="check"><input type="checkbox" id="c-terms" required /> <span>Am citit <a href="/pages/termeni">Termenii și condițiile</a> și <a href="/pages/confidentialitate">Politica de confidențialitate</a>.</span></label>
+          <p class="pro-note" data-pro-note hidden></p>
+        </div></fieldset>
+        <div class="submit">
+          <div class="errors" role="alert" data-errors hidden></div>
+          <button class="btn btn-primary btn-block" type="submit">Verifică datele</button>
+          <p class="muted small">Butonul de plasare a comenzii se activează după integrarea cu Shopify.</p>
+          <p class="ok" role="status" data-ok hidden>Datele sunt complete. În magazinul live, aici ai continua la plată.</p>
+        </div>
+      </form>
+      <aside class="sum" aria-labelledby="co-sum"><h2 id="co-sum">Comanda ta</h2><ul data-sum></ul><p class="tot"><span>Subtotal</span><b class="mono" data-total>—</b></p><p class="muted small">TVA inclus. Livrarea se adaugă la plasare.</p></aside>
+    </div>
+  </div>
+</Theme>
+<style>
+  .head { display: grid; gap: var(--space-3); margin-bottom: var(--space-8); }
+  h1 { font-size: clamp(2.4rem, 6vw, 4rem); }
+  .demo { font-size: var(--text-sm); color: var(--smoke-200); max-width: 70ch; }
+  .layout { display: grid; gap: var(--space-8); }
+  @media (min-width: 1024px) { .layout { grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-12); align-items: start; } }
+  /* sections sit on hairlines; from 1024px the title takes a left column and the fields line up to its right */
+  .form { --lg: 0px; display: grid; }
+  fieldset { margin: 0; padding: var(--space-6) 0; border: 0; border-top: var(--border); display: grid; gap: var(--space-4); min-width: 0; }
+  legend { float: left; padding: 0; font: 800 var(--text-xl)/1 var(--font-display); text-transform: uppercase; } /* floated: a plain grid item, not the border legend */
+  .fs { display: grid; gap: var(--space-4); min-width: 0; }
+  .legal { border-top: 0; padding-top: var(--space-2); }
+  @media (min-width: 1024px) {
+    .form { --lg: 180px; }
+    fieldset { grid-template-columns: var(--lg) minmax(0, 1fr); gap: var(--space-6); }
+    legend { padding-top: 14px; }
+    .fs { grid-column: 2; }
+    .submit { padding-left: calc(var(--lg) + var(--space-6)); }
+  }
+  .row2, .row3 { display: grid; gap: var(--space-4); }
+  @media (min-width: 640px) { .row2 { grid-template-columns: 1fr 1fr; } .row3 { grid-template-columns: 2fr 1.5fr 1fr; } }
+  .opt, .check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+  /* radio options: one group, rows split by hairlines, the chosen row lifted onto a surface */
+  .opts { gap: 0; border: 1px solid var(--night-700); border-radius: var(--radius-label); }
+  .opt { align-items: center; min-height: 56px; padding: 12px 14px; }
+  .opt + .opt { border-top: 1px solid var(--night-700); }
+  .opt:has(:checked) { background: var(--night-900); }
+  .opt span { display: grid; gap: 4px; } .opt small { color: var(--smoke-400); }
+  .opt input { margin-top: 0; }
+  .check { min-height: 44px; align-items: center; }
+  input[type='radio'], input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--magnesium-400); flex: none; margin-top: 2px; }
+  .input[aria-invalid='true'] { border-color: var(--danger); }
+  input[type='checkbox'][aria-invalid='true'] { outline: 2px solid var(--danger); outline-offset: 2px; }
+  .submit { display: grid; gap: var(--space-4); padding-top: var(--space-2); }
+  .errors { padding: var(--space-4); border: 1px solid var(--danger); border-radius: var(--radius-label); color: var(--white); font-size: var(--text-sm); }
+  .errors ul { margin: 8px 0 0; padding-left: 1.2em; }
+  .ok { color: var(--ok); }
+  .small { font-size: var(--text-xs); }
+  .pro-note { color: var(--strontium-500); font-size: var(--text-sm); }
+  /* summary: a flat surface, no outline */
+  .sum { position: sticky; top: calc(var(--header-h) + 16px); padding: var(--space-6); border-radius: var(--radius-card); background: var(--night-900); display: grid; gap: var(--space-3); }
+  .sum h2 { font: 600 var(--text-lg)/1.3 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .sum ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: var(--text-sm); }
+  .sum :global(li) { display: flex; justify-content: space-between; gap: 12px; }
+  .sum :global(li a) { display: inline-flex; align-items: center; min-height: 44px; margin-block: -12px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .sum :global(li b) { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tot { display: flex; justify-content: space-between; padding-top: var(--space-3); border-top: var(--border); font-variant-numeric: tabular-nums; }
+</style>
+<script>
+  import { getCart, money } from '../scripts/cart';
+  import { getProAuth } from '../scripts/mode';
+  void getCart().then((cart) => {
+    const ul = document.querySelector('[data-sum]')!;
+    if (!cart.items.length) ul.innerHTML = '<li><span>Coșul e gol.</span><a href="/collections/public">Produse F1</a></li>';
+    cart.items.forEach((it) => { const li = document.createElement('li'); li.innerHTML = '<span></span><b class="mono"></b>'; li.firstElementChild!.textContent = `${it.quantity} × ${it.product.title}`; li.lastElementChild!.textContent = money(it.line_price); ul.append(li); });
+    document.querySelector('[data-total]')!.textContent = money(cart.total_price);
+    if (cart.items.some((i) => i.product.pro)) {
+      const a = getProAuth(), note = document.querySelector<HTMLElement>('[data-pro-note]')!;
+      note.hidden = false;
+      note.textContent = a.status === 'verified' ? 'Autorizație verificată pentru produsele P1/T1.' : 'Coșul conține produse P1/T1: încarcă autorizația pe pagina Profesioniști; comanda se confirmă după verificare.';
+    }
+  });
+  const form = document.querySelector<HTMLFormElement>('[data-checkout]')!;
+  const msg: Record<string, string> = { 'c-email': 'Scrie o adresă de email validă.', 'c-phone': 'Scrie un număr de mobil românesc, de forma 07xx xxx xxx.', 'c-fn': 'Completează prenumele.', 'c-ln': 'Completează numele.',
+    'c-addr': 'Completează strada și numărul.', 'c-city': 'Completează localitatea.', 'c-county': 'Alege județul.', 'c-zip': 'Codul poștal are 6 cifre.', 'c-age': 'Confirmă că ai cel puțin 16 ani.', 'c-terms': 'Acceptă termenii pentru a continua.' };
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const bad = [...form.querySelectorAll<HTMLInputElement>('[required]')].filter((el) => { const ok = el.checkValidity(); el.setAttribute('aria-invalid', String(!ok)); return !ok; });
+    const box = form.querySelector<HTMLElement>('[data-errors]')!;
+    form.querySelector<HTMLElement>('[data-ok]')!.hidden = bad.length > 0;
+    box.hidden = !bad.length;
+    if (bad.length) { box.innerHTML = '<b>Mai sunt de completat:</b><ul></ul>'; bad.forEach((el) => { const li = document.createElement('li'); li.textContent = msg[el.id] ?? 'Câmp obligatoriu.'; box.querySelector('ul')!.append(li); }); bad[0].focus(); }
+  });
+</script>

@@ -1,0 +1,26 @@
+---
+// Price block. Liquid: {{ product.price | money }} with compare_at_price when it is higher.
+import { price, compareAt, money, discountPct, type Product } from '../lib/catalog';
+interface Props { product: Product; size?: 'sm' | 'md' | 'lg' }
+const { product, size = 'md' } = Astro.props;
+const v = price(product), c = compareAt(product), pct = discountPct(product);
+---
+<span class:list={['price', size]}>
+  {v == null ? <span class="ask">Preț la cerere</span> : (
+    <>
+      {c && <s><span class="visually-hidden">Preț obișnuit </span>{money(c)}</s>}
+      <span class="now"><span class="visually-hidden">{c ? 'Preț redus ' : 'Preț '}</span>{money(v)}</span>
+      {pct > 0 && <span class="off">−{pct}%</span>}
+    </>
+  )}
+</span>
+<style>
+  .price { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-family: var(--font-body); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .now { font-weight: 600; font-size: 1.15rem; color: var(--white); }
+  .sm .now { font-size: 1rem; }
+  .lg .now { font-size: clamp(1.6rem, 3vw, 2.1rem); }
+  s { color: var(--smoke-400); font-size: .8rem; }
+  .lg s { font-size: 1rem; }
+  .off { font: 700 .75rem/1 var(--font-body); padding: 4px 6px; border-radius: 2px; background: var(--strontium-500); color: #fff; }
+  .ask { color: var(--smoke-200); font-size: .95rem; }
+</style>

@@ -1,0 +1,92 @@
+---
+// Liquid: templates/list-collections.json → collection-header + list-collections (blocks grouped by the collection's group metafield).
+import Theme from '../../layouts/Theme.astro';
+import CollectionHeader from '../../sections/collection/CollectionHeader.astro';
+import Img from '../../snippets/Img.astro';
+import { collections, groups, products, virtualCollections, available, isPublic, imagesOf, collectionUrl } from '../../lib/catalog';
+import { productsPhrase } from '../../scripts/filters';
+const order = ['petrecere', 'cer', 'fum', 'pro', 'altele'] as const;
+const pick = (c: (typeof collections)[number]) =>
+  c.products.find((p) => available(p) && imagesOf(p)[0]?.kind === 'cutout') ?? c.products.find((p) => imagesOf(p)[0]);
+const listed = collections.filter((c) => c.products.length);
+const publicCount = products.filter(isPublic).length;
+const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Colecții' }];
+const ld = {
+  '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+  itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.label, item: new URL(c.href ?? '/collections', Astro.site).href })),
+};
+---
+<Theme title="Toate colecțiile" description="Toate colecțiile Bomba Shop: artificii de tort, vulcani, bengale, fumigene, confetti și produse pentru profesioniști." jsonLd={ld}>
+  <CollectionHeader title="Colecții" crumbs={crumbs} seed="colectii"
+    blurb="Alege după ocazie sau după efect. Pe fiecare produs scrie categoria lui: F1 pentru public, P1 și T1 doar pentru persoane autorizate."
+    facts={`${listed.length} colecții, ${productsPhrase(products.length)} în total`}>
+    <p class="quick">
+      <a class="btn btn-primary" href="/collections/public">Vezi produsele F1 ({publicCount})</a>
+      <a class="plain" href="/collections/all">{virtualCollections.all.title}</a>
+    </p>
+  </CollectionHeader>
+  <div class="container index">
+    {order.map((g) => {
+      const cols = listed.filter((c) => c.group === g);
+      return cols.length > 0 && (
+        <section class="group" aria-labelledby={`g-${g}`}>
+          <div class="ghead"><h2 id={`g-${g}`}>{groups[g].title}</h2><p>{groups[g].blurb}</p></div>
+          <ul class="tiles">
+            {cols.map((c) => {
+              const p = pick(c), stock = c.products.filter(available).length;
+              return (
+                <li><a href={collectionUrl(c.handle)} class="tile">
+                  <span class="img"><Img image={p ? imagesOf(p)[0] : undefined} alt="" sizes="(min-width:1024px) 18vw, 45vw" /></span>
+                  <span class="t">{c.title}</span>
+                  {c.blurb && <span class="b">{c.blurb}</span>}
+                  <span class="n">{stock ? `${stock} din ${c.products.length} în stoc` : (c.products.length === 1 ? 'Momentan epuizat' : 'Momentan epuizate')}</span>
+                </a></li>
+              );
+            })}
+          </ul>
+        </section>
+      );
+    })}
+  </div>
+</Theme>
+<style>
+  .quick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-6); margin-top: var(--space-2); }
+  .plain { display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .plain:hover { color: var(--magnesium-400); }
+
+  .index { padding-block: var(--space-12) var(--space-24); }
+  .group + .group { margin-top: var(--space-16); }
+  .ghead { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-6); }
+  .ghead h2 { font-size: clamp(2rem, 4vw, 3rem); }
+  .ghead p { color: var(--smoke-400); font-size: var(--text-sm); }
+
+  .tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-6) var(--space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tiles li { min-width: 0; }
+  .tile { min-width: 0; display: flex; flex-direction: column; gap: 6px; height: 100%; text-decoration: none; }
+  .img { min-width: 0; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 10%; margin-bottom: var(--space-2); border-radius: var(--radius-card);
+    background: radial-gradient(70% 55% at 50% 100%, rgba(255, 182, 72, .2), transparent 70%), var(--night-800); transition: background-color var(--dur-ui); }
+  .img :global(img) { transition: transform var(--dur-reveal) var(--ease-out-expo); }
+  .tile:hover .img { background-color: var(--night-700); }
+  .tile:hover .img :global(img) { transform: translateY(-4px); }
+  .tile:hover .t { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .tile:hover { color: var(--white); }
+  .t { font: 800 clamp(1.25rem, 2vw, 1.6rem)/1 var(--font-display); text-transform: uppercase; text-wrap: balance; }
+  .b { font-size: var(--text-sm); color: var(--smoke-200); }
+  .n { margin-top: auto; padding-top: 2px; font-size: var(--text-sm); font-variant-numeric: tabular-nums; color: var(--smoke-400); }
+
+  @media (min-width: 768px) {
+    .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-8) var(--space-6); }
+  }
+  /* desktop: each group reads like a line in a catalogue index, name on the left, its collections on the right */
+  @media (min-width: 1024px) {
+    .index { padding-top: var(--space-16); }
+    .group { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: var(--space-12); }
+    .group + .group { margin-top: var(--space-24); }
+    .ghead { position: sticky; top: calc(var(--header-h) + var(--space-6)); align-self: start; margin: 0; }
+    .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .img :global(img) { transition: none; }
+    .tile:hover .img :global(img) { transform: none; }
+  }
+</style>

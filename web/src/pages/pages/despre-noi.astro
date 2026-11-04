@@ -1,0 +1,27 @@
+---
+// Liquid: templates/page.despre-noi.json. Only verifiable facts; the owner adds the story (see DE COMPLETAT).
+import Theme from '../../layouts/Theme.astro';
+import ContentHero from '../../sections/ContentHero.astro';
+import ContentPage from '../../sections/ContentPage.astro';
+import { shop } from '../../config';
+import { products, available, isPublic } from '../../lib/catalog';
+const f1 = products.filter((p) => isPublic(p) && available(p)).length;
+// Romanian counting: 1 produs, 2–19 produse, 20+ de produse (101 produse, 120 de produse).
+const f1Text = f1 === 1 ? '1 produs' : `${f1} ${f1 !== 0 && (f1 % 100 === 0 || f1 % 100 >= 20) ? 'de ' : ''}produse`;
+---
+<Theme title="Despre noi" description="Bomba Shop: artificii F1 pentru public, produse pirotehnice pentru profesioniști autorizați și spectacole pentru evenimente.">
+  <ContentHero title="Despre noi" lede="Cine suntem, ce vindem și cui." />
+  <ContentPage>
+    <!-- DE COMPLETAT: povestea magazinului (anul înființării, locația, echipa), cu fapte confirmate de proprietar. -->
+    <p>Bomba Shop este magazinul online al firmei {shop.company.legalName} (CUI {shop.company.cui}). Vindem articole pirotehnice din categoria F1 pentru oricine are peste 16 ani, produse P1 și T1 pentru clienții autorizați și organizăm spectacole pirotehnice pentru evenimente.</p>
+    <h2>Ce găsești aici</h2>
+    <ul>
+      <li>{f1Text} F1 în stoc acum: vulcani, bengale, artificii de tort și de brad, confetti, fum colorat.</li>
+      <li>Categoria pirotehnică pe fiecare produs, ca să știi din prima ce poți cumpăra.</li>
+      <li>Specificații tehnice preluate din fișele producătorilor, fără valori inventate.</li>
+      <li><a href="/pages/spectacole">Spectacole pirotehnice</a> pentru nunți, botezuri, evenimente corporate și festivaluri.</li>
+    </ul>
+    <h2>Contact</h2>
+    <p>Scrie-ne la <a href={`mailto:${shop.email.office}`}>{shop.email.office}</a>.</p>
+  </ContentPage>
+</Theme>

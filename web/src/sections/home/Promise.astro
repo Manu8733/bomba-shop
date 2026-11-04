@@ -1,0 +1,50 @@
+---
+// Liquid: sections/home-promise.liquid. What a buyer should know before ordering, as plain facts, and two notes:
+// safety, and the authorised (P1/T1) route. Real facts only; nothing here is a claim we cannot back.
+import { commerce, law } from '../../config';
+import { products, available, isPublic } from '../../lib/catalog';
+const inStock = products.filter((p) => available(p) && isPublic(p)).length;
+const facts = [
+  { k: 'Categoria e scrisă pe fiecare produs', d: `F1 se vinde oricui are peste ${law.publicMinAge} ani. P1 și T1 doar clienților cu autorizație.` },
+  { k: 'Datele tehnice vin de la producător', d: 'Focuri, calibru, durată. Ce producătorul nu declară apare ca „—”, nu ghicit.' },
+  { k: `Livrare prin curier în ${commerce.shipping.courierDays}`, d: `Plătești ${commerce.payments.methods.join(' sau ').toLowerCase()}.` },
+  { k: `${inStock} produse F1 în stoc acum`, d: 'Stocul de pe site e cel din depozit, actualizat odată cu catalogul.' },
+];
+---
+<section class="section promise" aria-labelledby="promise-h">
+  <div class="container grid">
+    <h2 id="promise-h">Înainte să comanzi</h2>
+    <dl class="facts">
+      {facts.map((f) => <div><dt>{f.k}</dt><dd>{f.d}</dd></div>)}
+    </dl>
+    <div class="notes">
+      <div class="note">
+        <h3>Trei reguli când aprinzi</h3>
+        <ol><li>Citește instrucțiunile de pe ambalaj.</li><li>Păstrează distanța indicată de producător.</li><li>Nu reaprinde un articol care nu a funcționat.</li></ol>
+        <a href="/pages/siguranta">Ghidul de siguranță</a>
+      </div>
+      <div class="note">
+        <h3>Ești pirotehnician autorizat?</h3>
+        <p>Încarci autorizația o singură dată, apoi comanzi și produse P1 și T1.</p>
+        <a href="/pages/profesionisti">Cum funcționează contul profesionist</a>
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  .grid { display: grid; gap: var(--space-12); }
+  @media (min-width: 1024px) { .grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: var(--space-16); row-gap: var(--space-16); } .notes { grid-column: 2; } }
+  h2 { font-size: clamp(2.4rem, 5vw, 4rem); line-height: .92; }
+  .facts { margin: 0; display: grid; gap: var(--space-8); }
+  @media (min-width: 640px) { .facts { grid-template-columns: 1fr 1fr; } }
+  .facts dt { font: 600 var(--text-lg)/1.25 var(--font-body); color: var(--white); text-wrap: balance; }
+  .facts dd { margin: 8px 0 0; color: var(--smoke-200); max-width: 38ch; }
+  .notes { display: grid; gap: var(--space-8); padding-top: var(--space-8); border-top: var(--border); }
+  @media (min-width: 640px) { .notes { grid-template-columns: 1fr 1fr; } }
+  .note { display: grid; gap: var(--space-3); align-content: start; }
+  .note h3 { font: 700 var(--text-md)/1.3 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .note ol { margin: 0; padding-left: 1.2em; color: var(--smoke-200); display: grid; gap: 4px; }
+  .note p { margin: 0; color: var(--smoke-200); }
+  .note a { justify-self: start; display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .note a:hover { color: var(--magnesium-400); }
+</style>

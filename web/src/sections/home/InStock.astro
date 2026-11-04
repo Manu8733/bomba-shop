@@ -1,0 +1,16 @@
+---
+// Liquid: sections/featured-collection.liquid.
+import ProductCard from '../../snippets/ProductCard.astro';
+import { products, available, isPublic, imagesOf, specs } from '../../lib/catalog';
+const score = (p: (typeof products)[number]) => (imagesOf(p)[0]?.kind === 'cutout' ? 4 : imagesOf(p)[0] ? 1 : 0) + specs(p).filter((s) => s.value).length;
+const picks = products.filter((p) => available(p) && isPublic(p)).sort((a, b) => score(b) - score(a)).slice(0, 8);
+---
+<section class="section" aria-labelledby="stock-h">
+  <div class="container">
+    <div class="section-head">
+      <div class="stack"><h2 id="stock-h">În stoc acum</h2></div>
+      <a class="btn btn-secondary" href="/collections/public">Toate produsele F1</a>
+    </div>
+    <div class="grid-products">{picks.map((p) => <ProductCard product={p} />)}</div>
+  </div>
+</section>

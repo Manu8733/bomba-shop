@@ -1,0 +1,308 @@
+---
+// Content page body. Liquid: sections/main-page.liquid, rendering {{ page.content }} in the prose column.
+// The table of contents is built from the h2s at render time (Liquid: split page.content on '<h2', or build it in
+// assets/content-page.js). The section also carries the content kit every page.* template uses: prose, notes,
+// fact lists, step lists and the contact-style forms (validation + success state, see the script below).
+interface Props {
+  /** sticky table of contents built from the h2 headings (skip one with data-toc-skip, rename with data-toc="…") */
+  toc?: boolean;
+  tocTitle?: string;
+  /** 'prose' keeps a reading column; 'wide' lets the page lay out grids and forms on the full container */
+  width?: 'prose' | 'wide';
+  class?: string;
+}
+const { toc = false, tocTitle = 'Cuprins', width = 'prose', class: cls } = Astro.props;
+
+const decode = (s: string) =>
+  s.replace(/&quot;/g, '"').replace(/&#0?39;|&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const slug = (s: string) =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'sectiune';
+
+let html = await Astro.slots.render('default');
+const items: { id: string; label: string }[] = [];
+if (toc) {
+  const used = new Set<string>();
+  html = html.replace(/<h2\b([^>]*)>([\s\S]*?)<\/h2>/g, (match, attrs: string, inner: string) => {
+    if (/\sdata-toc-skip\b/.test(attrs)) return match;
+    const text = decode(inner.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+    let id = attrs.match(/\sid="([^"]+)"/)?.[1];
+    if (!id) {
+      const base = slug(text);
+      let n = 2;
+      id = base;
+      while (used.has(id)) id = `${base}-${n++}`;
+      attrs += ` id="${id}"`;
+    }
+    used.add(id);
+    const custom = attrs.match(/\sdata-toc="([^"]*)"/)?.[1];
+    items.push({ id, label: custom ? decode(custom) : text });
+    return `<h2${attrs}>${inner}</h2>`;
+  });
+}
+---
+<div class:list={['cpage', `w-${width}`, { 'has-toc': items.length > 0 }, cls]}>
+  <div class="container cpage-grid">
+    {items.length > 0 && (
+      <nav class="toc" aria-label={tocTitle}>
+        <details class="toc-box" data-toc>
+          <summary><span class="toc-title">{tocTitle}</span></summary>
+          <ol>
+            {items.map((it) => <li><a href={`#${it.id}`}>{it.label}</a></li>)}
+          </ol>
+        </details>
+      </nav>
+    )}
+    <div class="cpage-body" set:html={html} />
+  </div>
+</div>
+
+<style>
+  .cpage { padding-block: var(--space-12) var(--space-24); }
+  @media (min-width: 768px) { .cpage { padding-block: var(--space-16) var(--space-32); } }
+  .cpage-grid { display: grid; gap: var(--space-8); align-items: start; }
+  .cpage-body { min-width: 0; }
+  .w-prose .cpage-body { max-width: 68ch; }
+  @media (min-width: 1024px) {
+    .has-toc .cpage-grid { grid-template-columns: 248px minmax(0, 1fr); gap: var(--space-16); }
+  }
+
+  /* table of contents: collapsible row on phones, sticky column from 1024px (opened by the script) */
+  .toc-box { border-block: var(--border); }
+  .toc-box summary { display: flex; align-items: center; gap: var(--space-3); min-height: 52px; cursor: pointer; list-style: none; }
+  .toc-box summary::-webkit-details-marker { display: none; }
+  .toc-box summary::after { content: ''; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid var(--smoke-200);
+    border-bottom: 2px solid var(--smoke-200); transform: translateY(-2px) rotate(45deg); transition: transform var(--dur-ui) var(--ease-out-expo); }
+  .toc-box[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+  .toc-title { font: 600 var(--text-sm)/1 var(--font-body); color: var(--white); }
+  .toc ol { list-style: none; margin: 0; padding: 0 0 var(--space-3); }
+  .toc a { display: flex; align-items: center; min-height: 44px; padding: 10px var(--space-2) 10px var(--space-4);
+    border-left: 2px solid var(--night-700); color: var(--smoke-200); text-decoration: none; font-size: var(--text-sm); line-height: 1.35;
+    transition: color var(--dur-micro), border-color var(--dur-micro); }
+  .toc a:hover { color: var(--white); border-left-color: var(--night-600); }
+  .toc a[aria-current='true'] { color: var(--white); border-left-color: var(--magnesium-400); }
+  @media (min-width: 1024px) {
+    .toc { position: sticky; top: calc(var(--header-h) + var(--space-6)); max-height: calc(100vh - var(--header-h) - var(--space-12)); overflow: auto; }
+    .toc-box { border: 0; }
+    .toc-box summary { min-height: 40px; padding: 0; }
+    .toc ol { padding: var(--space-2) 0 0; }
+    .toc a { min-height: 40px; padding-block: 10px; }
+  }
+</style>
+
+<style is:global>
+  /* Content kit. Global with :where() so the container adds no specificity: any page rule wins over these defaults. */
+  /* the flow rule needs one class of weight, or base.css `p { margin: 0 }` wins and paragraphs touch */
+  .cpage-body :where(p, ul, ol, dl, table, .note, details, .table-wrap) + :where(p, ul, ol, dl, .note, .table-wrap, details) { margin-top: var(--space-4); }
+  :where(.cpage-body) :where(p, li, dd) { color: var(--smoke-200); }
+  :where(.cpage-body) strong { color: var(--white); font-weight: 600; }
+  :where(.cpage-body) h2 { font-size: clamp(1.875rem, 1.1rem + 2.6vw, 2.75rem); margin: var(--space-16) 0 var(--space-4);
+    scroll-margin-top: calc(var(--header-h) + var(--space-6)); }
+  :where(.cpage-body) h3 { font-size: var(--text-xl); margin: var(--space-8) 0 var(--space-3); scroll-margin-top: calc(var(--header-h) + var(--space-6)); }
+  :where(.cpage-body) :where(h2 + h3) { margin-top: var(--space-4); }
+  :where(.cpage-body) > :first-child, :where(.cpage-body) .flush { margin-top: 0; }
+  :where(.cpage-body) a:where(:not(.btn)) { color: var(--white); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+  :where(.cpage-body) a:where(:not(.btn)):hover { color: var(--magnesium-400); }
+
+  /* lists: small muted diamonds (the category badge shape); plain numbers for real sequences */
+  :where(.cpage-body) ul:where(:not([class])) { list-style: none; padding: 0; margin: 0; }
+  :where(.cpage-body) ul:where(:not([class])) > li { position: relative; padding-left: 22px; }
+  :where(.cpage-body) ul:where(:not([class])) > li + li { margin-top: var(--space-2); }
+  :where(.cpage-body) ul:where(:not([class])) > li::before { content: ''; position: absolute; left: 3px; top: .62em; width: 7px; height: 7px;
+    background: var(--smoke-400); transform: rotate(45deg); }
+  :where(.cpage-body) ol:where(:not([class])) { list-style: none; padding: 0; margin: 0; counter-reset: li; }
+  :where(.cpage-body) ol:where(:not([class])) > li { position: relative; padding-left: 28px; counter-increment: li; }
+  :where(.cpage-body) ol:where(:not([class])) > li + li { margin-top: var(--space-3); }
+  :where(.cpage-body) ol:where(:not([class])) > li::before { content: counter(li) '.'; content: counter(li) '.' / '';
+    position: absolute; left: 0; font-weight: 600; color: var(--white); font-variant-numeric: tabular-nums; }
+
+  /* callout: a rule in the margin, not a box */
+  :where(.cpage-body) .note { padding: var(--space-1) 0 var(--space-1) var(--space-4); border-left: 2px solid var(--smoke-400); }
+  :where(.cpage-body) .note > * + * { margin-top: var(--space-2); }
+  :where(.cpage-body) .note-title { font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--white); }
+  :where(.cpage-body) .note.pro { border-left-color: var(--strontium-500); }
+
+  /* facts: label/value rows in mono, like a shipping label */
+  :where(.cpage-body) dl.facts { display: grid; margin: 0; border: 2px solid var(--white); border-radius: var(--radius-label); }
+  :where(.cpage-body) dl.facts > div { display: grid; gap: 4px; padding: var(--space-3) var(--space-4); }
+  :where(.cpage-body) dl.facts > div + div { border-top: 2px solid var(--white); }
+  :where(.cpage-body) dl.facts dt { font: 600 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-400); }
+  :where(.cpage-body) dl.facts dd { margin: 0; font: 600 var(--text-sm)/1.4 var(--font-body); color: var(--white); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  @media (min-width: 560px) {
+    :where(.cpage-body) dl.facts > div { grid-template-columns: 10rem minmax(0, 1fr); align-items: baseline; gap: var(--space-4); }
+  }
+
+  /* tables */
+  :where(.cpage-body) .table-wrap { overflow-x: auto; border: var(--border); border-radius: var(--radius-label); }
+  :where(.cpage-body) table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+  :where(.cpage-body) :where(th, td) { text-align: left; vertical-align: top; padding: var(--space-3) var(--space-4); border-bottom: var(--border); }
+  :where(.cpage-body) tr:last-child td { border-bottom: 0; }
+  :where(.cpage-body) th { font: 600 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-400); background: var(--night-900); }
+  :where(.cpage-body) td { color: var(--smoke-200); }
+  :where(.cpage-body) code { font: 500 .85em/1 var(--font-mono); color: var(--white); background: var(--night-800); padding: 2px 6px; border-radius: var(--radius-label); }
+
+  /* step list: a real sequence, numbered plainly; in a row from 768px with .row */
+  :where(.cpage-body) ol.steps { list-style: none; margin: var(--space-6) 0 0; padding: 0; display: grid; gap: var(--space-6); counter-reset: step; }
+  :where(.cpage-body) ol.steps > li { counter-increment: step; padding-top: var(--space-3); border-top: 2px solid var(--night-700); }
+  :where(.cpage-body) ol.steps > li::before { content: 'Pasul ' counter(step); content: 'Pasul ' counter(step) / '';
+    display: block; margin-bottom: var(--space-2); font: 600 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
+  :where(.cpage-body) ol.steps strong { display: block; margin-bottom: 4px; }
+  @media (min-width: 768px) { :where(.cpage-body) ol.steps.row { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); } }
+
+  /* forms (contact, cerere ofertă). Liquid: {% form 'contact' %} with contact[...] field names */
+  :where(.cpage-body) .cform { display: grid; gap: var(--space-6); }
+  :where(.cpage-body) .cform-row { display: grid; gap: var(--space-6); }
+  @media (min-width: 640px) { :where(.cpage-body) .cform-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  :where(.cpage-body) .cform .opt { margin-left: 6px; color: var(--smoke-400); text-transform: none; letter-spacing: 0; font-weight: 500; }
+  :where(.cpage-body) .cform .input { width: 100%; font-size: var(--text-base); transition: border-color var(--dur-micro); }
+  :where(.cpage-body) .cform .input:hover { border-color: var(--smoke-400); }
+  :where(.cpage-body) .cform .input[aria-invalid='true'] { border-color: var(--danger); }
+  :where(.cpage-body) .cform select.input { appearance: none; padding-right: 44px; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--smoke-200) 50%), linear-gradient(135deg, var(--smoke-200) 50%, transparent 50%);
+    background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%; background-size: 6px 6px; background-repeat: no-repeat; }
+  :where(.cpage-body) .cform .hint { font-size: var(--text-sm); color: var(--smoke-400); }
+  :where(.cpage-body) .cform .err { display: flex; gap: 8px; align-items: baseline; font-size: var(--text-sm); color: var(--danger); }
+  :where(.cpage-body) .cform .err:empty { display: none; }
+  :where(.cpage-body) .cform .err::before { content: ''; flex: none; width: 7px; height: 7px; background: currentColor; transform: translateY(-1px) rotate(45deg); }
+  :where(.cpage-body) .cform .check { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+  :where(.cpage-body) .cform .check label { font-size: var(--text-sm); line-height: 1.5; color: var(--smoke-200); cursor: pointer; padding-block: 2px; }
+  :where(.cpage-body) .cform input[type='checkbox'] { appearance: none; margin: 0; width: 24px; height: 24px; display: grid; place-content: center; cursor: pointer;
+    border: 2px solid var(--smoke-400); border-radius: var(--radius-label); background: var(--night-900); transition: background-color var(--dur-micro), border-color var(--dur-micro); }
+  :where(.cpage-body) .cform input[type='checkbox']:hover { border-color: var(--white); }
+  :where(.cpage-body) .cform input[type='checkbox']:checked { background: var(--magnesium-400); border-color: var(--magnesium-400); }
+  :where(.cpage-body) .cform input[type='checkbox']:checked::after { content: ''; width: 6px; height: 12px; margin-top: -3px;
+    border: solid var(--on-magnesium); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+  :where(.cpage-body) .cform input[type='checkbox'][aria-invalid='true'] { border-color: var(--danger); }
+  :where(.cpage-body) .cform-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+  :where(.cpage-body) .cform-status { font-size: var(--text-sm); color: var(--danger); }
+  :where(.cpage-body) .cform-status:empty { display: none; }
+  :where(.cpage-body) .cform [type='submit'][aria-busy='true'] { cursor: progress; }
+  :where(.cpage-body) .cform-success { padding-left: var(--space-4); border-left: 2px solid var(--ok); }
+  :where(.cpage-body) .cform-success:focus { outline: none; }
+  :where(.cpage-body) .cform-success:focus-visible { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
+  :where(.cpage-body) .cform-success > * + * { margin-top: var(--space-4); }
+  :where(.cpage-body) .cform-success .stamp { font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--ok); }
+  :where(.cpage-body) .cform-success .success-title { font: 800 var(--text-2xl)/1 var(--font-display); text-transform: uppercase; color: var(--white); }
+</style>
+
+<script>
+  // 1) Table of contents: closed on phones (no layout shift), opened from 1024px, highlights the section in view.
+  const toc = document.querySelector<HTMLDetailsElement>('[data-toc]');
+  if (toc) {
+    const wide = matchMedia('(min-width: 1024px)');
+    if (wide.matches) toc.open = true;
+    wide.addEventListener('change', () => { if (wide.matches) toc.open = true; });
+    toc.addEventListener('click', (e) => {
+      if (!wide.matches && (e.target as Element).closest('a')) toc.open = false;
+    });
+    const links = [...toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')];
+    const heads = links.map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))));
+    let ticking = false;
+    const spy = () => {
+      ticking = false;
+      const line = innerHeight * 0.3;
+      let current = -1;
+      heads.forEach((h, i) => { if (h && h.getBoundingClientRect().top <= line) current = i; });
+      links.forEach((a, i) => (i === current ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+    };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
+    spy();
+  }
+
+  // 2) Deep links into <details> (FAQ): open the targeted accordion.
+  const openFromHash = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id ? document.getElementById(id) : null;
+    const d = el?.closest('details');
+    if (el && d && !d.open) { d.open = true; el.scrollIntoView(); }
+  };
+  openFromHash();
+  addEventListener('hashchange', openFromHash);
+
+  // 3) Forms: inline validation (on blur once edited, live while an error shows), loading and success states.
+  // Prototype: nothing is sent. Shopify posts {% form 'contact' %} to /contact; render the success panel when
+  // form.posted_successfully? and server errors from form.errors.
+  type Ctl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+  const isCtl = (x: unknown): x is Ctl => x instanceof HTMLInputElement || x instanceof HTMLTextAreaElement || x instanceof HTMLSelectElement;
+  const messageFor = (el: Ctl) => {
+    const v = el.validity, d = el.dataset;
+    if (v.valid) return '';
+    if (v.valueMissing) return d.msgRequired ?? 'Completează acest câmp.';
+    if (v.typeMismatch || v.patternMismatch || v.badInput) return d.msgType ?? 'Valoarea nu are formatul corect.';
+    if (v.tooShort) return d.msgShort ?? `Scrie cel puțin ${(el as HTMLInputElement).minLength} caractere.`;
+    if (v.rangeUnderflow) return d.msgMin ?? 'Valoarea e prea mică.';
+    if (v.rangeOverflow) return d.msgMax ?? 'Valoarea e prea mare.';
+    return el.validationMessage;
+  };
+  const check = (el: Ctl) => {
+    const msg = messageFor(el);
+    const err = document.getElementById(`${el.id}-err`);
+    if (msg) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+    if (err) err.textContent = msg;
+    return !msg;
+  };
+  const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+
+  document.querySelectorAll<HTMLFormElement>('form[data-validate]').forEach((form) => {
+    const panel = form.dataset.success ? document.getElementById(form.dataset.success) : null;
+    const status = form.querySelector<HTMLElement>('[data-form-status]');
+    const submit = form.querySelector<HTMLButtonElement>('[type="submit"]');
+    const submitLabel = submit?.querySelector<HTMLElement>('[data-label]');
+    const idle = submitLabel?.textContent ?? '';
+    const ctls = () => [...form.elements].filter(isCtl).filter((c) => c.willValidate);
+    form.querySelectorAll<HTMLInputElement>('input[type="date"][data-min-today]').forEach((i) => (i.min = today()));
+
+    form.addEventListener('input', (e) => {
+      const el = e.target;
+      if (!isCtl(el)) return;
+      el.dataset.edited = '1';
+      if (el.getAttribute('aria-invalid') === 'true') check(el);
+    });
+    form.addEventListener('change', (e) => {
+      const el = e.target;
+      if (isCtl(el) && (el.type === 'checkbox' || el instanceof HTMLSelectElement)) check(el);
+    });
+    form.addEventListener('focusout', (e) => {
+      const el = e.target;
+      if (isCtl(el) && el.dataset.edited) check(el);
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const bad = ctls().filter((c) => !check(c));
+      if (bad.length) {
+        if (status) status.textContent = bad.length === 1 ? 'Un câmp trebuie corectat.' : `${bad.length} câmpuri trebuie corectate.`;
+        bad[0].focus();
+        return;
+      }
+      if (status) status.textContent = '';
+      if (submit) { submit.disabled = true; submit.setAttribute('aria-busy', 'true'); }
+      if (submitLabel) submitLabel.textContent = 'Se trimite…';
+      window.setTimeout(() => {
+        if (!panel) return;
+        panel.querySelectorAll<HTMLElement>('[data-echo]').forEach((n) => {
+          const f = form.elements.namedItem(n.dataset.echo!) as HTMLInputElement | null;
+          const v = f?.value.trim() ?? '';
+          n.textContent = n.hasAttribute('data-first') ? v.split(/\s+/)[0] : v;
+        });
+        form.hidden = true;
+        panel.hidden = false;
+        panel.focus();
+      }, 700);
+    });
+
+    panel?.querySelector('[data-form-reset]')?.addEventListener('click', () => {
+      form.reset();
+      ctls().forEach((c) => {
+        c.removeAttribute('aria-invalid');
+        delete c.dataset.edited;
+        const err = document.getElementById(`${c.id}-err`);
+        if (err) err.textContent = '';
+      });
+      if (submit) { submit.disabled = false; submit.removeAttribute('aria-busy'); }
+      if (submitLabel) submitLabel.textContent = idle;
+      panel.hidden = true;
+      form.hidden = false;
+      ctls()[0]?.focus();
+    });
+  });
+</script>

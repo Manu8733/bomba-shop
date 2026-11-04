@@ -1,0 +1,27 @@
+---
+// Liquid: sections/home-shows.liquid. Copy based on the shop's own services page; image is an AI illustration.
+---
+<section class="shows" aria-labelledby="shows-h">
+  <img class="bg" src="/images/fx/show-lake-1600.webp" srcset="/images/fx/show-lake-800.webp 800w, /images/fx/show-lake-1600.webp 1600w" sizes="100vw"
+    width="1600" height="900" alt="" loading="lazy" decoding="async" data-parallax="-0.14" />
+  <img class="rain" src="/images/fx/layer-rain-800.webp" width="450" height="800" alt="" loading="lazy" aria-hidden="true" data-parallax="0.3" />
+  <div class="container in">
+    <h2 id="shows-h">Spectacole de artificii, gândite pentru locul tău</h2>
+    <p class="lede">Pentru nunți, botezuri, petreceri private, evenimente corporate, festivaluri, concerte și inaugurări. Alegem efectele după locație, atmosferă și buget, și le aprind pirotehnicieni autorizați.</p>
+    <p class="types">Artificii de seară, artificii de zi colorate, efecte de interior, cascade, scris pirotehnic, jerbe și vulcani.</p>
+    <a class="btn btn-primary" href="/pages/spectacole">Cere o ofertă</a>
+    <p class="cap">Imagine ilustrativă</p>
+  </div>
+</section>
+<style>
+  .shows { position: relative; overflow: hidden; isolation: isolate; padding-block: clamp(96px, 16vw, 200px); border-block: var(--border); }
+  .bg { position: absolute; left: 0; right: 0; top: -12%; width: 100%; height: 124%; object-fit: cover; z-index: -2; }
+  .rain { position: absolute; right: 6%; top: -20%; width: min(26vw, 320px); height: auto; mix-blend-mode: screen; opacity: .7; z-index: -1; pointer-events: none; }
+  .shows::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(7, 6, 11, .94) 0%, rgba(7, 6, 11, .7) 45%, rgba(7, 6, 11, .15) 100%); }
+  .in { display: grid; gap: var(--space-6); justify-items: start; }
+  h2 { max-width: 14ch; font-size: clamp(2.6rem, 6vw, 5rem); line-height: .92; text-wrap: balance; }
+  .lede { max-width: 54ch; color: var(--smoke-200); }
+  .types { margin: 0; max-width: 50ch; color: var(--white); font-weight: 600; }
+  .cap { font-size: var(--text-xs); color: var(--smoke-400); }
+  @media (max-width: 767px) { .shows::after { background: rgba(7, 6, 11, .78); } .rain { display: none; } }
+</style>

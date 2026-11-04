@@ -1,0 +1,25 @@
+---
+// Pyrotechnic category diamond (DESIGN.md §5). F1 = public 16+, everything else = authorized only.
+interface Props { category: string | null; size?: 'sm' | 'md' | 'lg'; class?: string }
+const { category, size = 'md', class: cls } = Astro.props;
+const pro = !!category && category !== 'F1';
+const sub = !category ? '' : pro ? 'AUTORIZAT' : 'PUBLIC 16+';
+const label = !category ? 'Categorie necunoscută' : pro ? `Categoria ${category}, doar pentru persoane autorizate` : `Categoria ${category}, pentru public de la 16 ani`;
+---
+{category && (
+  <span class:list={['cat-badge', size, { pro }, cls]} role="img" aria-label={label}>
+    <span class="txt">{category}<small>{sub}</small></span>
+  </span>
+)}
+<style>
+  .cat-badge { --s: 64px; width: var(--s); height: var(--s); position: relative; display: inline-grid; place-items: center; flex: none; }
+  .cat-badge.sm { --s: 48px; }
+  .cat-badge.lg { --s: 88px; }
+  .cat-badge::before { content: ''; position: absolute; inset: 15%; transform: rotate(45deg); background: var(--cat-f1);
+    box-shadow: inset 0 0 0 3px var(--cat-f1), inset 0 0 0 5px var(--night-950); border-radius: 1px; }
+  .cat-badge.pro::before { background: var(--cat-pro); box-shadow: inset 0 0 0 3px var(--cat-pro), inset 0 0 0 5px var(--night-950); }
+  .txt { position: relative; text-align: center; color: var(--on-magnesium); font: 900 calc(var(--s) * .27)/1 var(--font-display); }
+  .pro .txt { color: #fff; }
+  small { display: block; font: 700 calc(var(--s) * .085)/1.1 var(--font-body); letter-spacing: .04em; margin-top: 2px; }
+  .sm small { display: none; }
+</style>

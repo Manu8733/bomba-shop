@@ -1,0 +1,55 @@
+---
+// Liquid: sections/product-safety.liquid. Drawn as the warning label printed on fireworks packaging.
+// General guidance only; product-specific distances come from the packaging.
+import { category, isPro, type Product } from '../../lib/catalog';
+import { law } from '../../config';
+interface Props { product: Product }
+const { product: p } = Astro.props;
+const cat = category(p);
+const pro = isPro(p);
+const steps = [
+  ['Citește', 'Instrucțiunile și distanța de siguranță de pe ambalaj, înainte de orice.'],
+  ['Așază', 'Pe o suprafață plană și stabilă, în exterior, dacă ambalajul nu spune altfel.'],
+  ['Aprinde', 'Cu brațul întins, din lateral. Apoi îndepărtează-te imediat.'],
+  ['Nu reaprinde', 'Un articol care nu a funcționat. Așteaptă 15 minute și pune-l în apă.'],
+];
+---
+<section class="safety" aria-labelledby="safety-h">
+  <div class="container">
+    <div class="warn">
+      <div class="stripe" aria-hidden="true"></div>
+      <div class="head">
+        <span class="sym" aria-hidden="true">!</span>
+        <div>
+          <h2 id="safety-h">Înainte să aprinzi</h2>
+          <p>{pro ? `Categoria ${cat}: doar persoane autorizate (Legea 92/2025).` : cat === 'F1' ? `Categoria F1: vânzare de la ${law.publicMinAge} ani.` : 'Respectă instrucțiunile producătorului.'}</p>
+        </div>
+      </div>
+      <ol class="steps">
+        {steps.map(([t, d], i) => <li><b><span class="n">{i + 1}</span>{t}</b><span>{d}</span></li>)}
+      </ol>
+      <a class="more" href="/pages/siguranta">Citește ghidul complet de siguranță</a>
+    </div>
+  </div>
+</section>
+<style>
+  .safety { padding-block: var(--space-12) var(--space-8); }
+  .warn { border: 3px solid var(--fx-sodium); border-radius: var(--radius-label); overflow: hidden; background: var(--night-900); }
+  .stripe { height: 18px; background: repeating-linear-gradient(-45deg, var(--fx-sodium) 0 14px, var(--night-950) 14px 28px); }
+  .head { display: flex; gap: var(--space-4); align-items: center; padding: var(--space-6) var(--space-6) 0; }
+  .sym { flex: none; width: 56px; height: 50px; display: grid; place-items: center; padding-top: 10px; background: var(--fx-sodium); color: var(--night-950);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%); font: 900 1.8rem/1 var(--font-display); }
+  h2 { font-size: clamp(1.8rem, 4vw, 3rem); }
+  .head p { margin-top: 6px; font-size: var(--text-sm); color: var(--smoke-200); }
+  /* a real sequence (read, place, light, never relight), so the steps keep their numbers */
+  .steps { list-style: none; margin: 0; padding: var(--space-8) var(--space-6) var(--space-4); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6) var(--space-8); }
+  .steps li { display: grid; gap: 8px; align-content: start; }
+  .steps b { display: flex; gap: 10px; align-items: baseline; font: 800 var(--text-xl)/1 var(--font-display); text-transform: uppercase; }
+  .n { color: var(--fx-sodium); font-variant-numeric: tabular-nums; }
+  .steps li > span { max-width: 34ch; color: var(--smoke-200); font-size: var(--text-sm); }
+  .more { display: inline-flex; align-items: center; min-height: 44px; margin: 0 var(--space-6) var(--space-4); color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .more:hover { color: var(--fx-sodium); }
+  @media (max-width: 900px) { .steps { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .head { align-items: flex-start; padding: var(--space-4) var(--space-4) 0; } .sym { width: 44px; height: 40px; font-size: 1.4rem; padding-top: 8px; }
+    .steps { grid-template-columns: 1fr; padding: var(--space-6) var(--space-4) var(--space-2); } .more { margin-inline: var(--space-4); } }
+</style>

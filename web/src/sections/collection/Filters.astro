@@ -1,0 +1,287 @@
+---
+// Filter panel: sticky sidebar from 1024px, bottom sheet below. Logic: scripts/filters.ts (reads the cards' data-* attributes).
+// Liquid: the facets block of sections/main-collection-product-grid.liquid, looping `collection.filters`
+// (filter.type == 'boolean' / 'list' / 'price_range'); colour chips read the swatch from the pyro.effect metafield.
+import Icon from '../../snippets/Icon.astro';
+import { available, category, compareAt, effectColor, effectType, price, type Product } from '../../lib/catalog';
+import { slug, priceScale, leiInt, productsPhrase } from '../../scripts/filters';
+
+interface Props { products: Product[]; id: string }
+const { products: list, id } = Astro.props;
+
+const tally = <K extends string>(keys: (K | null)[]) => {
+  const m = new Map<K, number>();
+  for (const k of keys) if (k) m.set(k, (m.get(k) ?? 0) + 1);
+  return m;
+};
+
+// Disponibilitate / Reduceri: only useful when they split the list
+const inStock = list.filter(available).length;
+const onSale = list.filter((p) => !!compareAt(p)).length;
+const showStock = inStock > 0 && inStock < list.length;
+const showSale = onSale > 0 && onSale < list.length;
+
+// Categorie
+const CAT_ORDER = ['F1', 'P1', 'T1', 'nespecificat'];
+const catRank = (v: string) => (CAT_ORDER.includes(v) ? CAT_ORDER.indexOf(v) : CAT_ORDER.length - 1);
+const cats = [...tally(list.map((p) => category(p) ?? 'nespecificat'))]
+  .sort(([a], [b]) => catRank(a) - catRank(b))
+  .map(([value, n]) => ({
+    value, n,
+    label: value === 'nespecificat' ? 'Nespecificată' : value === 'F1' ? 'F1, public de la 16 ani' : `${value}, doar autorizați`,
+    tone: value === 'nespecificat' ? 'na' : value === 'F1' ? 'f1' : 'pro',
+  }));
+const showCat = cats.length > 1;
+
+// Efect (labels from catalog.effectType, only those present here)
+const effects = [...tally(list.map(effectType))].sort((a, b) => b[1] - a[1]).map(([label, n]) => ({ label, n, value: slug(label) }));
+const withEffect = effects.reduce((s, e) => s + e.n, 0);
+const showEffect = effects.length > 1 || (effects.length === 1 && withEffect < list.length);
+
+// Culoare (salt colours, fixed order of the palette)
+const SALT_ORDER = ['rosu', 'galben', 'verde', 'albastru', 'violet', 'alb'];
+const colorMap = new Map<string, { key: string; salt: string; color: string; labels: Set<string>; n: number }>();
+for (const p of list) {
+  const fx = effectColor(p);
+  if (!fx) continue;
+  const c = colorMap.get(fx.key) ?? { key: fx.key, salt: fx.salt, color: fx.color, labels: new Set<string>(), n: 0 };
+  c.labels.add(fx.label);
+  c.n++;
+  colorMap.set(fx.key, c);
+}
+const colors = [...colorMap.values()].sort((a, b) => SALT_ORDER.indexOf(a.key) - SALT_ORDER.indexOf(b.key));
+const withColor = colors.reduce((s, c) => s + c.n, 0);
+const showColor = colors.length > 1 || (colors.length === 1 && withColor < list.length);
+
+// Preț
+const prices = list.map(price).filter((v): v is number => v != null);
+const lo = prices.length ? Math.floor(Math.min(...prices)) : 0;
+const hi = prices.length ? Math.ceil(Math.max(...prices)) : 0;
+const showPrice = prices.length >= 2 && hi > lo;
+const scale = priceScale(lo, hi);
+const BINS = 20;
+const bins = Array.from({ length: BINS }, (_, i) => ({ from: (i * 1000) / BINS, to: ((i + 1) * 1000) / BINS, n: 0 }));
+for (const v of prices) bins[Math.min(BINS - 1, Math.floor(scale.toT(v) / (1000 / BINS)))].n++;
+const binMax = Math.max(1, ...bins.map((b) => b.n));
+
+const anyGroup = showStock || showCat || showEffect || showColor || showPrice || showSale;
+---
+<aside class="filters" aria-labelledby={`${id}-title`}>
+  <div class="backdrop" data-sheet-backdrop hidden></div>
+  <div class="sheet" id={`${id}-sheet`} data-sheet aria-labelledby={`${id}-title`}>
+    <div class="sheet-head">
+      <h2 id={`${id}-title`} class="sheet-title">Filtre</h2>
+      <button type="button" class="head-reset" data-reset-head hidden>Resetează</button>
+      <button type="button" class="close" data-sheet-close aria-label="Închide filtrele"><Icon name="close" size={22} /></button>
+    </div>
+
+    <form class="sheet-body" data-filter-form action="" method="get" novalidate>
+      {!anyGroup && <p class="muted none">Colecția e mică; nu are nevoie de filtre.</p>}
+
+      {showStock && (
+        <fieldset class="group">
+          <legend>Disponibilitate</legend>
+          <div class="chips">
+            <label class="chip">
+              <input type="checkbox" name="stock" value="1" />
+              <span class="ui"><Icon name="check" size={16} class="tick" /><span data-label>Doar în stoc</span><span class="n" data-opt-count>{inStock}</span></span>
+            </label>
+          </div>
+        </fieldset>
+      )}
+
+      {showCat && (
+        <fieldset class="group">
+          <legend>Categorie</legend>
+          <div class="chips">
+            {cats.map((c) => (
+              <label class="chip">
+                <input type="checkbox" name="cat" value={c.value} />
+                <span class="ui">
+                  <Icon name="check" size={16} class="tick" />
+                  <i class:list={['dia', c.tone]} aria-hidden="true"></i>
+                  <span data-label>{c.label}</span><span class="n" data-opt-count>{c.n}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {cats.some((c) => c.tone === 'pro') && (
+            <p class="hint">P1 și T1 se vând doar persoanelor autorizate. <a href="/pages/profesionisti">Detalii</a></p>
+          )}
+        </fieldset>
+      )}
+
+      {showEffect && (
+        <fieldset class="group">
+          <legend>Efect</legend>
+          <div class="chips">
+            {effects.map((e) => (
+              <label class="chip">
+                <input type="checkbox" name="effect" value={e.value} />
+                <span class="ui"><Icon name="check" size={16} class="tick" /><span data-label>{e.label}</span><span class="n" data-opt-count>{e.n}</span></span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {showColor && (
+        <fieldset class="group">
+          <legend>Culoare</legend>
+          <div class="chips">
+            {colors.map((c) => (
+              <label class="chip">
+                <input type="checkbox" name="color" value={c.key} />
+                <span class="ui">
+                  <Icon name="check" size={16} class="tick" />
+                  <i class="dot" style={`--c:${c.color}`} aria-hidden="true"></i>
+                  <span data-label>{[...c.labels].join(' / ')}</span>
+                  <small class="salt">{c.salt}</small>
+                  <span class="n" data-opt-count>{c.n}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p class="hint">Culoarea efectului, după sarea care o produce.</p>
+        </fieldset>
+      )}
+
+      {showPrice && (
+        <fieldset class="group price" data-price data-lo={lo} data-hi={hi} style="--a:0%;--b:100%">
+          <legend>Preț</legend>
+          <div class="hist" aria-hidden="true">
+            {bins.map((b) => (
+              <span class="on" data-bar data-from={b.from} data-to={b.to} style={`--h:${b.n ? Math.max(0.08, b.n / binMax).toFixed(3) : 0}`}></span>
+            ))}
+          </div>
+          <div class="range">
+            <label class="visually-hidden" for={`${id}-min`}>Preț minim</label>
+            <input id={`${id}-min`} type="range" min="0" max="1000" step="1" value="0" data-price-min aria-valuetext={leiInt(lo)} />
+            <label class="visually-hidden" for={`${id}-max`}>Preț maxim</label>
+            <input id={`${id}-max`} type="range" min="0" max="1000" step="1" value="1000" data-price-max aria-valuetext={leiInt(hi)} />
+          </div>
+          <p class="price-out" data-price-out>{leiInt(lo)} – {leiInt(hi)}</p>
+        </fieldset>
+      )}
+
+      {showSale && (
+        <fieldset class="group">
+          <legend>Reduceri</legend>
+          <div class="chips">
+            <label class="chip">
+              <input type="checkbox" name="sale" value="1" />
+              <span class="ui"><Icon name="check" size={16} class="tick" /><span data-label>Doar produse reduse</span><span class="n" data-opt-count>{onSale}</span></span>
+            </label>
+          </div>
+        </fieldset>
+      )}
+    </form>
+
+    <div class="sheet-foot">
+      <button type="button" class="btn btn-ghost" data-reset-soft disabled>Resetează</button>
+      <button type="button" class="btn btn-primary" data-sheet-apply><span data-apply-count>Arată {productsPhrase(list.length)}</span></button>
+    </div>
+  </div>
+</aside>
+
+<style>
+  .filters { min-width: 0; }
+  .backdrop { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 1); background: color-mix(in srgb, var(--night-950) 74%, transparent); }
+
+  /* mobile: bottom sheet */
+  .sheet { position: fixed; z-index: var(--z-drawer); left: 0; right: 0; bottom: 0; display: flex; flex-direction: column;
+    max-height: min(88dvh, 780px); background: var(--night-900); border-top: 1px solid var(--night-600);
+    border-radius: var(--radius-card) var(--radius-card) 0 0; transform: translateY(100%); visibility: hidden;
+    transition: transform var(--dur-ui) var(--ease-out-expo), visibility 0s linear var(--dur-ui); }
+  .sheet.is-open { transform: none; visibility: visible; transition: transform var(--dur-ui) var(--ease-out-expo); }
+  .sheet-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--gutter); border-bottom: var(--border); }
+  .sheet-title { margin-right: auto; font: 600 var(--text-lg)/1.2 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .head-reset { min-height: 44px; padding: 0 var(--space-2); background: none; border: 0; color: var(--white);
+    font: 600 var(--text-sm)/1 var(--font-body); text-decoration: underline; text-underline-offset: 4px; }
+  .head-reset:hover { color: var(--magnesium-400); }
+  .close { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -10px; background: none; border: 0; border-radius: var(--radius-label); color: var(--white); }
+  .close:hover { background: var(--night-800); }
+  .sheet-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--gutter) var(--space-6); }
+  .sheet-foot { display: grid; grid-template-columns: auto 1fr; gap: var(--space-3); padding: var(--space-3) var(--gutter) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    border-top: var(--border); background: var(--night-900); }
+  .sheet-foot .btn-ghost { border-color: var(--night-600); }
+  .none { padding-top: var(--space-6); font-size: var(--text-sm); }
+
+  /* groups */
+  .group { border: 0; margin: 0; padding: var(--space-6) 0 0; min-width: 0; }
+  .group + .group { padding-top: var(--space-8); }
+  legend { float: left; width: 100%; padding: 0; margin-bottom: var(--space-2);
+    font: 600 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
+  legend + * { clear: both; }
+  .hint { margin-top: var(--space-3); font-size: var(--text-xs); color: var(--smoke-400); }
+  .hint a { color: var(--smoke-200); }
+
+  /* options: one checkbox row each, label left, count right */
+  .chips { display: grid; }
+  .chip { position: relative; display: flex; min-width: 0; }
+  .chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+  .ui { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; min-width: 0; color: var(--smoke-200);
+    font: 500 var(--text-sm)/1.2 var(--font-body); transition: color var(--dur-micro); }
+  .chip:hover .ui { color: var(--white); }
+  .chip input:focus-visible + .ui { outline: 2px solid var(--magnesium-400); outline-offset: 2px; }
+  .chip :global(.tick) { flex: none; box-sizing: border-box; width: 20px; height: 20px; padding: 1px; border: 2px solid var(--night-600); border-radius: var(--radius-label);
+    color: transparent; transition: background-color var(--dur-micro), border-color var(--dur-micro); }
+  .chip:hover :global(.tick) { border-color: var(--smoke-400); }
+  .chip input:checked + .ui { color: var(--white); }
+  .chip input:checked + .ui :global(.tick) { background: var(--magnesium-400); border-color: var(--magnesium-400); color: var(--on-magnesium); stroke-width: 2.5; }
+  .chip.zero .ui { color: var(--smoke-400); }
+  .n { margin-left: auto; padding-left: var(--space-2); font: 500 var(--text-sm)/1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--smoke-400); }
+  .dia { width: 9px; height: 9px; flex: none; transform: rotate(45deg); border-radius: 1px; background: var(--cat-f1); }
+  .dia.pro { background: var(--cat-pro); }
+  .dia.na { background: none; border: 1.5px solid var(--smoke-400); }
+  .dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--c); }
+  .salt { font: 500 var(--text-xs)/1 var(--font-body); color: var(--smoke-400); }
+
+  /* price: histogram + two range inputs on one track */
+  .hist { display: flex; align-items: flex-end; gap: 2px; height: 36px; margin: var(--space-1) 14px 0; }
+  .hist span { flex: 1; height: calc(var(--h) * 100%); min-height: 0; background: var(--night-700); border-radius: 1px 1px 0 0; transition: background-color var(--dur-micro); }
+  .hist span.on { background: var(--smoke-400); }
+  .range { position: relative; height: 44px; }
+  .range::before { content: ''; position: absolute; left: 14px; right: 14px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--night-700) var(--a), var(--magnesium-400) var(--a) var(--b), var(--night-700) var(--b)); }
+  .range input { position: absolute; inset: 0; width: 100%; height: 44px; margin: 0; background: none; pointer-events: none;
+    -webkit-appearance: none; appearance: none; z-index: 2; }
+  .range input:focus-visible { outline: none; }
+  .range input::-webkit-slider-runnable-track { height: 44px; background: none; }
+  .range input::-moz-range-track { height: 44px; background: none; }
+  .range input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 28px; height: 28px; margin-top: 8px;
+    border-radius: var(--radius-label); background: var(--magnesium-400); border: 2px solid var(--night-950); cursor: grab; }
+  .range input::-moz-range-thumb { pointer-events: auto; width: 24px; height: 24px; border-radius: var(--radius-label);
+    background: var(--magnesium-400); border: 2px solid var(--night-950); cursor: grab; }
+  .range input:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--night-950), 0 0 0 4px var(--magnesium-400); }
+  .range input:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(--night-950), 0 0 0 4px var(--magnesium-400); }
+  .price-out { margin-top: var(--space-1); font: 600 var(--text-sm)/1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--white); }
+
+  @media (pointer: fine) {
+    .ui { min-height: 36px; }
+  }
+  /* wider sheet: two columns of options */
+  @media (min-width: 560px) and (max-width: 1023px) {
+    .chips { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-8); }
+  }
+
+  /* desktop: sticky sidebar */
+  @media (min-width: 1024px) {
+    .backdrop { display: none; }
+    .filters { position: sticky; top: calc(var(--header-h) + var(--space-4)); align-self: start;
+      max-height: calc(100dvh - var(--header-h) - var(--space-8)); overflow-y: auto; scrollbar-width: thin;
+      scrollbar-color: var(--night-600) transparent; padding-right: var(--space-2); }
+    .sheet { position: static; transform: none; visibility: visible; max-height: none; transition: none;
+      background: none; border: 0; border-radius: 0; }
+    .sheet-head { min-height: 64px; padding: 0 0 var(--space-4); } /* same height as the toolbar, so both rules line up */
+    .sheet-title { font-size: var(--text-md); }
+    .close, .sheet-foot { display: none; }
+    .sheet-body { overflow: visible; padding: 0; }
+    .group:first-child { padding-top: var(--space-2); }
+  }
+</style>
+
+<script>
+  import { initFilters } from '../../scripts/filters';
+  document.querySelectorAll<HTMLElement>('[data-collection]').forEach(initFilters);
+</script>

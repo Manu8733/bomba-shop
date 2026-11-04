@@ -1,0 +1,285 @@
+---
+// Liquid: sections/home-hero.liquid (blocks: featured product × n, each with effect, colour and nozzle points).
+// The stage: one real product at a time stands on the ground and is fired live above its nozzle (scripts/stage.ts).
+// Left/right and the fuse tabs pick the product; the fuse under the active tab is the autoplay timer. Countdown to
+// Revelion in the corner. No scroll hijacking.
+import Img from '../../snippets/Img.astro';
+import Icon from '../../snippets/Icon.astro';
+import { byHandle, available, isPro, imagesOf, price, money, productUrl, variant } from '../../lib/catalog';
+import { law } from '../../config';
+import type { Effect } from '../../scripts/stage';
+
+type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number };
+const defs: Def[] = [
+  { handle: 'vulcan-etna', name: 'Vulcan Etna', kind: 'Vulcan', unit: 'pentru o bucată',
+    line: 'Jerbă de scântei argintii. Distanța minimă de siguranță: 1 m.', effect: 'fountain', color: 'silver', nozzles: [[.55, .015]], k: .78 },
+  { handle: 'candele-romane-30-foc', name: 'Candele romane', kind: 'Candelă romană', unit: 'pentru pachetul de 12', img: 2,
+    line: 'Câte 30 de bile colorate, trase pe rând spre cer.', effect: 'candle', color: 'gold', nozzles: [[.14, .005], [.62, .005], [.38, .005], [.86, .005]], k: .74 },
+  { handle: 'bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc', name: 'Bengală verde', kind: 'Bengală crackling', unit: 'pentru setul de 6',
+    line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]] },
+  { handle: 'artificii-tort-30cm-set-4-bucati-ardere-120-secunde', name: 'Artificii de tort', kind: 'Artificii de tort', unit: 'pentru setul de 4',
+    line: 'Scântei aurii de 30 cm, care ard 120 de secunde.', effect: 'ice', color: 'gold', nozzles: [[.16, .01], [.39, .01], [.61, .01], [.84, .01]], k: .82 },
+  { handle: 'fumigena-portocalie-cu-inel', name: 'Fumigenă portocalie', kind: 'Fumigenă cu inel', unit: 'pentru o bucată',
+    line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff7a26', nozzles: [[.42, .01]] },
+];
+const slides = defs.flatMap((d) => {
+  const p = byHandle(d.handle);
+  const img = p && (imagesOf(p).find((x) => x.n === (d.img ?? 1)) ?? imagesOf(p)[0]);
+  if (!p || !img) return [];
+  const qty = variant(p).inventory_quantity;
+  const inStock = available(p), pro = isPro(p);
+  return [{ ...d, p, img, inStock, pro, url: productUrl(p), price: money(price(p)),
+    stock: !inStock ? 'Revine în curând' : qty && qty <= 5 ? `Ultimele ${qty} în stoc` : 'În stoc',
+    who: pro ? `${p.metafields.pyro.category}, doar pentru persoane autorizate` : `F1, de la ${law.publicMinAge} ani` }];
+});
+const n = slides.length;
+---
+<section class="hero" data-hero aria-labelledby="hero-h">
+  <canvas class="fx" aria-hidden="true" data-stage-canvas></canvas>
+  <div class="container in">
+    <div class="top">
+      <h1 id="hero-h">Artificii și petarde pentru Revelion, nunți și aniversări</h1>
+      <div class="count" data-countdown>
+        <p class="c-k" data-c-label>Până la Revelion</p>
+        <p class="c-n" role="timer" aria-live="off">
+          <span><b data-u="d">––</b><small data-u-l="d">zile</small></span>
+          <span><b data-u="h">––</b><small>ore</small></span>
+          <span><b data-u="m">––</b><small>min</small></span>
+          <span><b data-u="s">––</b><small>sec</small></span>
+        </p>
+      </div>
+    </div>
+
+    <div class="stage" data-stage aria-hidden="true">
+      {slides.map((s, i) => (
+        <a class:list={['shot', { on: i === 0 }]} href={s.url} tabindex="-1" data-shot style={`--k:${s.k ?? 1}`}>
+          <Img image={s.img} alt="" sizes="(min-width: 1024px) 18vw, 40vw" eager={i === 0} />
+        </a>
+      ))}
+    </div>
+
+    <div class="slides" id="hero-slides" data-slides aria-roledescription="carusel" aria-label="Produse aprinse pe scenă">
+      {slides.map((s, i) => (
+        <article class:list={['slide', { on: i === 0 }]} data-slide aria-roledescription="slide" aria-label={`${i + 1} din ${n}: ${s.name}`}
+          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} inert={i > 0}>
+          <p class="kind">{s.kind} <span class:list={['who', { pro: s.pro }]}>{s.who}</span></p>
+          <h2 class="name"><a href={s.url}>{s.name}</a></h2>
+          <p class="line">{s.line}</p>
+          <div class="buy">
+            <p class="price"><b>{s.price}</b> <span>{s.unit}</span></p>
+            <p class:list={['stock', { no: !s.inStock }]}>{s.stock}</p>
+            <div class="acts">
+              {s.pro
+                ? <a class="btn btn-secondary" href={s.url}>Vezi condițiile</a>
+                : s.inStock
+                  ? <button class="btn btn-primary" type="button" data-add-to-cart data-handle={s.p.handle} aria-label={`Adaugă ${s.p.title} în coș`}><Icon name="plus" size={18} />Adaugă în coș</button>
+                  : <a class="btn btn-secondary" href={`${s.url}#anunta`}>Anunță-mă când revine</a>}
+              <a class="more" href={s.url}>Detalii</a>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div class="picker">
+      <div class="arrows">
+        <button class="arw prev" type="button" data-prev aria-controls="hero-slides" aria-label="Produsul anterior"><Icon name="arrow" size={20} /></button>
+        <button class="arw" type="button" data-next aria-controls="hero-slides" aria-label="Produsul următor"><Icon name="arrow" size={20} /></button>
+        <button class="arw pause" type="button" data-pause aria-pressed="false" aria-label="Oprește schimbarea automată">
+          <svg class="i-pause" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
+          <svg class="i-play" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor" /></svg>
+        </button>
+      </div>
+      <ol class="tabs">
+        {slides.map((s, i) => (
+          <li><button type="button" class="tab" data-go={i} aria-controls="hero-slides" aria-current={i === 0 ? 'true' : undefined}>
+            <span>{s.name}</span><i class="fuse" aria-hidden="true"><i></i></i>
+          </button></li>
+        ))}
+      </ol>
+      <a class="all" href="/collections/public">Toate produsele F1 <Icon name="arrow" size={16} /></a>
+    </div>
+  </div>
+</section>
+<style>
+  .hero { position: relative; isolation: isolate; overflow: hidden; margin-top: calc(-1 * var(--header-h));
+    min-height: calc(100vh - var(--announce-h)); min-height: calc(100svh - var(--announce-h)); display: flex; --announce-h: 36px; padding-block: calc(var(--header-h) + 28px) 28px;
+    background: linear-gradient(180deg, #07060b 0%, #0b0911 55%, #110d18 100%); }
+  /* the ground the product stands on; its top edge is placed by the stage script at the product's base */
+  .hero::after { content: ''; position: absolute; inset: var(--ground, 82%) 0 0; z-index: -2;
+    background: linear-gradient(180deg, #16121e 0%, #0c0a12 38%, #07060b 100%); box-shadow: 0 -1px 0 rgba(246, 241, 234, .06); }
+  .fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+  .in { flex: 1; display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "top" "stage" "info" "pick"; grid-template-rows: auto minmax(300px, 1fr) auto auto; }
+  @media (min-width: 1024px) {
+    .in { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-12);
+      grid-template-areas: "top stage" "info stage" "pick pick"; grid-template-rows: auto 1fr auto; }
+  }
+
+  .top { grid-area: top; display: grid; justify-items: start; gap: var(--space-8); }
+  h1 { max-width: 26ch; font: 500 clamp(1.05rem, 1.35vw, 1.25rem)/1.4 var(--font-body); text-transform: none; color: var(--smoke-200); letter-spacing: 0; }
+  .count { display: grid; gap: 6px; }
+  .c-k { margin: 0; font: 600 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-400); }
+  .c-n { margin: 0; display: flex; gap: 14px; align-items: flex-end; }
+  .c-n span { display: grid; justify-items: start; gap: 2px; }
+  .c-n b { font: 800 clamp(2rem, 3.4vw, 3rem)/.9 var(--font-display); font-variant-numeric: tabular-nums; color: var(--white); min-width: 2ch; }
+  .c-n span:first-child b { color: var(--magnesium-400); }
+  .c-n small { font: 500 var(--text-xs)/1 var(--font-body); color: var(--smoke-400); }
+
+  .stage { grid-area: stage; position: relative; min-height: 300px; touch-action: pan-y; }
+  .shot { position: absolute; left: 0; right: 0; bottom: 0; margin-inline: auto; width: fit-content; height: calc(var(--ph) * var(--k, 1));
+    --ph: clamp(250px, 46vh, 460px); opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
+    transition: opacity .5s var(--ease-out-expo), transform .7s var(--ease-out-expo), visibility 0s .7s; }
+  .shot.on { opacity: 1; transform: none; visibility: visible; transition-delay: .12s, .12s, 0s; }
+  .shot :global(img.pimg) { height: 100%; width: auto; filter: drop-shadow(0 -4px 18px rgb(var(--fx, 236 236 255) / .28)) drop-shadow(0 16px 18px rgba(0, 0, 0, .75)); }
+
+  .slides { grid-area: info; display: grid; align-self: end; }
+  .slide { grid-area: 1 / 1; display: grid; gap: var(--space-3); align-content: end; opacity: 0; transform: translateY(12px); visibility: hidden;
+    transition: opacity .35s ease-out, transform .5s var(--ease-out-expo), visibility 0s .5s; }
+  .slide.on { opacity: 1; transform: none; visibility: visible; transition-delay: .1s, .1s, 0s; }
+  .kind { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--white); }
+  .who { color: var(--smoke-400); font-weight: 500; }
+  .who.pro { color: var(--strontium-500); }
+  .name { font: 900 clamp(3rem, 6.2vw, 6rem)/.88 var(--font-display); text-transform: uppercase; letter-spacing: -.005em; text-wrap: balance;
+    text-shadow: 0 0 60px rgb(var(--fx, 236 236 255) / .22); }
+  .name a { color: inherit; text-decoration: none; }
+  .name a:hover { color: var(--white); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
+  .line { margin: 0; max-width: 40ch; font-size: clamp(1rem, 1.2vw, 1.12rem); color: var(--smoke-200); }
+  .buy { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-6); margin-top: var(--space-3); }
+  .price { margin: 0; display: flex; align-items: baseline; gap: 8px; }
+  .price b { font: 800 clamp(1.6rem, 2.2vw, 2rem)/1 var(--font-display); font-variant-numeric: tabular-nums; }
+  .price span { font-size: var(--text-sm); color: var(--smoke-400); }
+  .stock { margin: 0; font-size: var(--text-sm); color: var(--fx-barium); }
+  .stock.no { color: var(--smoke-400); }
+  .acts { display: flex; align-items: center; gap: var(--space-6); flex-basis: 100%; }
+  .more { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 4px; color: var(--smoke-200); font-weight: 600; text-underline-offset: 4px; }
+  .more:hover { color: var(--white); }
+
+  .picker { grid-area: pick; display: flex; align-items: center; gap: var(--space-6); padding-top: var(--space-4); }
+  .arrows { display: flex; gap: 8px; flex: none; }
+  .arw { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--night-600);
+    background: rgba(7, 6, 11, .55); color: var(--white); cursor: pointer; transition: border-color var(--dur-ui), background var(--dur-ui); }
+  .arw:hover { border-color: var(--white); background: rgba(246, 241, 234, .06); }
+  .arw:focus-visible, .tab:focus-visible { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
+  .prev :global(svg) { transform: rotate(180deg); }
+  .pause .i-play, .hero.stopped .pause .i-pause { display: none; }
+  .hero.stopped .pause .i-play { display: block; }
+  .tabs { position: relative; list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-6); flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .tab { display: grid; gap: 10px; padding: 10px 0 8px; background: none; border: 0; color: var(--smoke-400); font: 600 var(--text-sm)/1 var(--font-body);
+    white-space: nowrap; cursor: pointer; transition: color var(--dur-ui); }
+  .tab:hover, .tab[aria-current] { color: var(--white); }
+  /* the fuse burns down the time left on this product */
+  .fuse { display: block; height: 2px; background: var(--night-700); overflow: hidden; }
+  .fuse i { display: block; height: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, #ff7a26, #ffd23f); }
+  .tab[aria-current] .fuse i { animation: burn var(--slide-ms, 9000ms) linear forwards; }
+  .hero.paused .tab[aria-current] .fuse i { animation-play-state: paused; }
+  .hero.stopped .tab[aria-current] .fuse i { animation: none; transform: none; }
+  @keyframes burn { to { transform: none; } }
+  .all { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .all:hover { color: var(--magnesium-400); }
+
+  @media (max-width: 1023px) {
+    /* phone: the stage comes first so the effect rises into the empty night under the header, never behind text */
+    .hero { --announce-h: 54px; padding-top: var(--header-h); }
+    .in { gap: var(--space-4); grid-template-areas: "stage" "info" "pick" "top"; grid-template-rows: minmax(0, 1fr) auto auto auto; }
+    .top { gap: var(--space-4); padding-top: var(--space-6); border-top: var(--border); }
+    .stage { min-height: 54svh; }
+    .shot { --ph: clamp(180px, 28svh, 280px); }
+    .picker { flex-wrap: wrap; gap: var(--space-4); }
+    .tabs { order: 3; flex-basis: 100%; gap: var(--space-4); }
+    .all { margin-left: auto; }
+  }
+  @media (max-width: 520px) {
+    .c-n { gap: 10px; }
+    .name { font-size: clamp(2.6rem, 13vw, 3.4rem); }
+    .acts .btn { flex: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .shot, .slide { transition: none; } .tab[aria-current] .fuse i { animation: none; transform: none; } }
+</style>
+<script>
+  import type { Effect } from '../../scripts/stage';
+  const root = document.querySelector<HTMLElement>('[data-hero]');
+  if (root) {
+    // ---- countdown to Revelion (midnight, Romanian time; 1 January is always winter time, UTC+2)
+    const cd = root.querySelector<HTMLElement>('[data-countdown]')!;
+    const u = (k: string) => cd.querySelector<HTMLElement>(`[data-u="${k}"]`)!;
+    const label = cd.querySelector<HTMLElement>('[data-c-label]')!, dl = cd.querySelector<HTMLElement>('[data-u-l="d"]')!;
+    const pad = (v: number) => String(v).padStart(2, '0');
+    const tick = () => {
+      const now = Date.now(), y = new Date(now + 2 * 3600e3).getUTCFullYear();
+      const since = now - Date.UTC(y, 0, 1, -2);
+      const greet = since >= 0 && since < 864e5; // all of 1 January
+      label.textContent = greet ? `La mulți ani! Revelion ${y}` : `Până la Revelion ${y + 1}`;
+      const left = Math.max(0, Date.UTC(y + 1, 0, 1, -2) - now);
+      const d = Math.floor(left / 864e5), h = Math.floor(left / 36e5) % 24, m = Math.floor(left / 6e4) % 60, s = Math.floor(left / 1e3) % 60;
+      u('d').textContent = String(d); dl.textContent = d === 1 ? 'zi' : 'zile';
+      u('h').textContent = pad(h); u('m').textContent = pad(m); u('s').textContent = pad(s);
+      setTimeout(tick, 1000 - (now % 1000) + 5);
+    };
+    tick();
+
+    // ---- the product picker
+    const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];
+    const shots = [...root.querySelectorAll<HTMLElement>('[data-shot]')];
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-go]')];
+    const pauseBtn = root.querySelector<HTMLButtonElement>('[data-pause]')!;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let i = 0, stage: ReturnType<typeof import('../../scripts/stage').startStage> | null = null;
+    const shotOf = (k: number) => {
+      const s = slides[k];
+      return { effect: s.dataset.effect as Effect, color: s.dataset.color!, nozzles: JSON.parse(s.dataset.nozzles!), el: shots[k].querySelector('img') ?? shots[k] };
+    };
+    const go = (k: number) => {
+      k = (k + slides.length) % slides.length;
+      if (k === i && stage) return;
+      slides[i].classList.remove('on'); slides[i].inert = true; shots[i].classList.remove('on'); tabs[i].removeAttribute('aria-current');
+      i = k;
+      slides[i].classList.add('on'); slides[i].inert = false; shots[i].classList.add('on'); tabs[i].setAttribute('aria-current', 'true');
+      // bring the active tab into the row's own scroll box (never scroll the page: autoplay runs while you read below)
+      const row = tabs[i].closest('ol')!, tb = tabs[i].parentElement!;
+      if (tb.offsetLeft < row.scrollLeft || tb.offsetLeft + tb.offsetWidth > row.scrollLeft + row.clientWidth)
+        row.scrollTo({ left: tb.offsetLeft - 16, behavior: reduce ? 'auto' : 'smooth' });
+      stage?.fire(shotOf(i));
+    };
+    // autoplay: the active tab's fuse is the timer; any choice by hand stops it (the pause button too)
+    const stop = () => { root.classList.add('stopped'); pauseBtn.setAttribute('aria-pressed', 'true'); pauseBtn.setAttribute('aria-label', 'Pornește schimbarea automată');
+      root.querySelector('[data-slides]')!.setAttribute('aria-live', 'polite'); };
+    const resume = () => { root.classList.remove('stopped'); pauseBtn.setAttribute('aria-pressed', 'false'); pauseBtn.setAttribute('aria-label', 'Oprește schimbarea automată');
+      root.querySelector('[data-slides]')!.setAttribute('aria-live', 'off'); };
+    if (reduce) stop();
+    root.addEventListener('animationend', (e) => { if ((e.target as HTMLElement).closest('.fuse') && !root.classList.contains('stopped')) go(i + 1); });
+    root.querySelector('[data-prev]')!.addEventListener('click', () => { stop(); go(i - 1); });
+    root.querySelector('[data-next]')!.addEventListener('click', () => { stop(); go(i + 1); });
+    pauseBtn.addEventListener('click', () => (root.classList.contains('stopped') ? resume() : stop()));
+    tabs.forEach((t, k) => t.addEventListener('click', () => { stop(); go(k); }));
+    root.querySelector('.picker')!.addEventListener('keydown', (e) => {
+      const ke = e as KeyboardEvent, d = ke.key === 'ArrowRight' ? 1 : ke.key === 'ArrowLeft' ? -1 : 0;
+      if (!d || !(ke.target as HTMLElement).closest('[data-go]')) return;
+      ke.preventDefault(); stop(); go(i + d); tabs[i].focus();
+    });
+    // hover or keyboard focus inside the hero holds the fuse
+    const hold = (on: boolean) => root.classList.toggle('paused', on);
+    root.addEventListener('pointerenter', (e) => { if ((e as PointerEvent).pointerType === 'mouse') hold(true); });
+    root.addEventListener('pointerleave', () => hold(root.contains(document.activeElement)));
+    root.addEventListener('focusin', () => hold(true));
+    root.addEventListener('focusout', (e) => { if (!root.contains((e as FocusEvent).relatedTarget as Node)) hold(false); });
+    // swipe on the stage (touch)
+    const st = root.querySelector<HTMLElement>('[data-stage]')!;
+    let x0 = 0;
+    st.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
+    st.addEventListener('pointerup', (e) => { const dx = e.clientX - x0; if (Math.abs(dx) > 48) { stop(); go(i + (dx < 0 ? 1 : -1)); } });
+
+    // ---- the live effect starts once the entry intro has landed, so both never fight for frames
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-stage-canvas]')!;
+    const start = () => import('../../scripts/stage').then(({ startStage }) => {
+      stage = startStage(canvas, root);
+      const img = shots[i].querySelector('img');
+      const fire = () => stage!.fire(shotOf(i));
+      img && !img.complete ? img.addEventListener('load', fire, { once: true }) : fire();
+    }).catch(() => {});
+    root.classList.add('paused'); // hold the first fuse until the stage is lit
+    const lit = () => { start(); hold(root.matches(':hover') || root.contains(document.activeElement)); };
+    if (document.documentElement.classList.contains('intro')) addEventListener('intro:done', lit, { once: true });
+    else ('requestIdleCallback' in window ? requestIdleCallback(lit, { timeout: 600 }) : setTimeout(lit, 150));
+  }
+</script>

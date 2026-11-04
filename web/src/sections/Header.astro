@@ -1,0 +1,334 @@
+---
+// Liquid: sections/header.liquid (+ the search modal; assets/search.js = scripts/search.ts).
+import Logo from '../snippets/Logo.astro';
+import Icon from '../snippets/Icon.astro';
+import CatBadge from '../snippets/CatBadge.astro';
+import Img from '../snippets/Img.astro';
+import { collections, groups, available, imagesOf, collectionUrl } from '../lib/catalog';
+import { shop } from '../config';
+interface Props { current?: string }
+const { current } = Astro.props;
+const home = current === 'home';
+
+type GroupKey = keyof typeof groups;
+const order: GroupKey[] = ['petrecere', 'cer', 'fum', 'pro'];
+const nav = order.map((key) => {
+  const cols = collections.filter((c) => c.group === key && c.products.length);
+  const feature = cols.flatMap((c) => c.products).find((p) => available(p) && imagesOf(p)[0]?.kind === 'cutout')
+    ?? cols.flatMap((c) => c.products).find((p) => imagesOf(p)[0]);
+  return {
+    key, ...groups[key],
+    cols: cols.map((c) => ({ title: c.title, href: collectionUrl(c.handle), stock: c.products.filter(available).length, total: c.products.length })),
+    feature: feature ? { image: imagesOf(feature)[0], title: feature.title } : null,
+  };
+});
+const popular = [
+  { label: 'Divertisment F1', href: '/collections/produse-f1-pentru-public' },
+  { label: 'Vulcani și fântâni', href: '/collections/vulcani-artificii' },
+  { label: 'Artificii de tort', href: '/collections/artificii-de-tort' },
+  { label: 'Bengale și candele', href: '/collections/bengale-candele' },
+];
+---
+<div class="announce">
+  <div class="container"><a href="/pages/siguranta">Persoanele fizice pot cumpăra doar produse F1, de la 16 ani. <span>Află de ce</span></a></div>
+</div>
+<header class:list={['site-header', { home }]} data-header>
+  <div class="container bar">
+    <button class="icon-btn menu-btn" type="button" aria-label="Deschide meniul" data-menu-open><Icon name="menu" size={24} /></button>
+    <a class="brand" href="/" aria-label="Bomba Shop, pagina principală"><Logo height={26} /></a>
+    <nav class="primary" aria-label="Principal">
+      <ul>
+        {nav.map((g) => (
+          <li class="has-mega" data-mega>
+            <button type="button" class="nav-link" aria-expanded="false" aria-controls={`mega-${g.key}`}>{g.title}</button>
+            <div class="mega" id={`mega-${g.key}`} hidden>
+              <div class="container mega-in">
+                <div class="mega-intro">
+                  <p class="mega-blurb">{g.blurb}</p>
+                  {g.key === 'pro' && <a class="mega-note" href="/pages/profesionisti">Cum devii client autorizat</a>}
+                </div>
+                <ul class="mega-list">
+                  {g.cols.map((c) => (
+                    <li><a href={c.href}><span>{c.title}</span><small class="mono">{c.stock ? `${c.stock} în stoc` : 'epuizat momentan'}</small></a></li>
+                  ))}
+                </ul>
+                {g.feature && (
+                  <div class="mega-feature" aria-hidden="true"><Img image={g.feature.image} alt="" sizes="220px" /></div>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+        <li><a class="nav-link" href="/pages/spectacole" aria-current={current === 'spectacole' ? 'page' : undefined}>Spectacole</a></li>
+      </ul>
+    </nav>
+    <div class="actions">
+      <button class="icon-btn" type="button" aria-label="Caută" data-search-open><Icon name="search" size={22} /></button>
+      <div class="mode" data-mode-menu>
+        <button type="button" class="mode-chip" aria-expanded="false" aria-controls="mode-pop">
+          <span class="dot" aria-hidden="true"></span><span class="mode-label" data-mode-label>Alege profilul</span>
+        </button>
+        <div class="mode-pop" id="mode-pop" hidden>
+          <p class="eyebrow">Cumpăr ca</p>
+          <button type="button" data-set-mode="public" aria-pressed="false"><b>Persoană fizică</b><span>Produse F1, de la 16 ani</span><Icon name="check" size={18} /></button>
+          <button type="button" data-set-mode="pro" aria-pressed="false"><b>Client autorizat</b><span>Și produse P1 / T1, cu autorizație</span><Icon name="check" size={18} /></button>
+          <a href="/pages/profesionisti">Ce înseamnă client autorizat</a>
+        </div>
+      </div>
+      <button class="icon-btn cart-btn" type="button" data-cart-toggle aria-label="Coșul tău, 0 produse">
+        <Icon name="cart" size={22} /><span class="count mono" data-cart-count hidden>0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<dialog class="drawer" data-menu-dialog data-lock aria-label="Meniu">
+  <div class="drawer-head">
+    <Logo height={22} />
+    <button class="icon-btn" type="button" aria-label="Închide meniul" data-menu-close><Icon name="close" size={24} /></button>
+  </div>
+  <form class="drawer-search" action="/search" role="search">
+    <label class="visually-hidden" for="drawer-q">Caută produse</label>
+    <input class="input" id="drawer-q" name="q" type="search" placeholder="Caută: vulcan, tort, fum…" autocomplete="off" />
+  </form>
+  <nav aria-label="Meniu mobil">
+    {nav.map((g) => (
+      <details class="acc">
+        <summary>{g.title}<Icon name="plus" size={18} /></summary>
+        <ul>{g.cols.map((c) => <li><a href={c.href}>{c.title}<small class="mono">{c.stock ? `${c.stock} în stoc` : 'epuizat'}</small></a></li>)}</ul>
+      </details>
+    ))}
+    <a class="acc-link" href="/pages/spectacole">Spectacole pirotehnice</a>
+    <a class="acc-link" href="/pages/profesionisti">Pentru profesioniști</a>
+    <a class="acc-link" href="/pages/ghid">Cum alegi artificiile</a>
+  </nav>
+  <div class="drawer-foot">
+    <p class="drawer-mode">Cumperi ca <b data-mode-label>Alege profilul</b></p>
+    <button type="button" class="btn btn-secondary btn-block" data-set-mode-open>Schimbă profilul</button>
+    <p class="muted">Scrie-ne: <a href={`mailto:${shop.email.office}`}>{shop.email.office}</a></p>
+  </div>
+</dialog>
+
+<dialog class="search" data-search-dialog data-lock aria-label="Căutare">
+  <div class="container search-in">
+    <form class="search-form" action="/search" role="search" data-search-form>
+      <Icon name="search" size={24} />
+      <label class="visually-hidden" for="search-q">Caută produse</label>
+      <input id="search-q" name="q" type="search" placeholder="Ce cauți? vulcan, artificii de tort, fum roz…" autocomplete="off"
+        role="combobox" aria-expanded="true" aria-controls="search-results" aria-autocomplete="list" data-search-input />
+      <button type="button" class="icon-btn" aria-label="Șterge căutarea" data-search-clear hidden><Icon name="close" size={18} /></button>
+      <button type="button" class="btn btn-ghost btn-sm" data-search-close>Închide</button>
+    </form>
+    <p class="search-status eyebrow" data-search-status></p>
+    <div class="visually-hidden" aria-live="polite" data-search-live></div>
+    <div class="results" id="search-results" role="listbox" aria-label="Rezultate" data-search-listbox></div>
+    <a class="all" href="/search" data-search-all>Vezi toate rezultatele (<span data-search-all-count>0</span>)</a>
+    <div class="popular" data-search-popular>
+      <p class="eyebrow">Populare</p>
+      <ul>{popular.map((p) => <li><a href={p.href}>{p.label}</a></li>)}</ul>
+    </div>
+    <template data-cat-tpl="F1"><CatBadge category="F1" size="sm" /></template>
+    <template data-cat-tpl="P1"><CatBadge category="P1" size="sm" /></template>
+    <template data-cat-tpl="T1"><CatBadge category="T1" size="sm" /></template>
+  </div>
+</dialog>
+
+<style>
+  .announce { background: var(--night-900); border-bottom: var(--border); font: 500 var(--text-sm)/1.4 var(--font-body); }
+  .announce a { display: block; padding-block: 8px; text-align: center; color: var(--smoke-200); text-decoration: none; }
+  .announce span { margin-left: 6px; color: var(--white); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+  .announce a:hover span { color: var(--magnesium-400); }
+  .site-header { position: sticky; top: 0; z-index: var(--z-header); background: rgba(7, 6, 11, .86); backdrop-filter: blur(14px) saturate(1.2);
+    border-bottom: 1px solid transparent; padding-top: env(safe-area-inset-top, 0px); transition: background var(--dur-ui), border-color var(--dur-ui); }
+  .site-header.solid, .site-header:not(.home) { border-bottom-color: var(--night-700); }
+  .site-header.home:not(.solid) { background: transparent; backdrop-filter: none; }
+  .bar { display: flex; align-items: center; gap: var(--space-4); height: var(--header-h); }
+  .brand { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 4px; color: var(--white); flex: none; }
+  .icon-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 0; background: transparent; color: var(--white);
+    border-radius: var(--radius-label); position: relative; }
+  .icon-btn:hover { background: var(--night-800); color: var(--magnesium-400); }
+  .menu-btn { margin-left: -10px; }
+  .primary { display: none; margin-inline: auto; }
+  .primary > ul { display: flex; gap: var(--space-1); list-style: none; margin: 0; padding: 0; }
+  .nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 0; background: none; color: var(--white);
+    font: 600 var(--text-sm)/1 var(--font-body); text-decoration: none; border-radius: var(--radius-label); }
+  .nav-link:hover, .nav-link[aria-expanded='true'], .nav-link[aria-current] { color: var(--magnesium-400); }
+  .actions { display: flex; align-items: center; gap: var(--space-1); margin-left: auto; }
+  .count { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    background: var(--magnesium-400); color: var(--on-magnesium); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+  .count.bump { animation: bump var(--dur-reveal) var(--ease-spring); }
+  @keyframes bump { 40% { transform: scale(1.35); } }
+
+  .mode { position: relative; display: none; }
+  /* the shopper profile reads like a nav item; the small rhombus takes the category colour (F1 / P1–T1) */
+  .mode-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; background: none;
+    color: var(--smoke-200); font: 600 var(--text-sm)/1 var(--font-body); border-radius: var(--radius-label); }
+  .mode-chip:hover, .mode-chip[aria-expanded='true'] { color: var(--white); }
+  .dot { width: 7px; height: 7px; flex: none; background: var(--smoke-400); transform: rotate(45deg); }
+  :global(html[data-mode='public']) .dot { background: var(--cat-f1); }
+  :global(html[data-mode='pro']) .dot { background: var(--cat-pro); }
+  .mode-pop { position: absolute; right: 0; top: calc(100% + 6px); width: 300px; padding: var(--space-4) var(--space-2) var(--space-2); display: grid; gap: 2px;
+    background: var(--night-900); border: 1px solid var(--night-700); border-radius: var(--radius-card); box-shadow: 0 24px 48px rgba(0, 0, 0, .6); }
+  .mode-pop .eyebrow { padding: 0 12px var(--space-2); }
+  .mode-pop button { all: unset; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) 18px; gap: 2px var(--space-3); align-items: center;
+    padding: 10px 12px; border-radius: var(--radius-label); }
+  .mode-pop button:hover { background: var(--night-800); }
+  .mode-pop button:focus-visible { outline: 2px solid var(--magnesium-400); outline-offset: -2px; }
+  .mode-pop button b { grid-column: 1; }
+  .mode-pop button span { grid-column: 1; font-size: var(--text-sm); color: var(--smoke-400); }
+  .mode-pop button :global(.icon) { grid-column: 2; grid-row: 1 / span 2; color: var(--magnesium-400); visibility: hidden; }
+  .mode-pop button[aria-pressed='true'] :global(.icon) { visibility: visible; }
+  .mode-pop a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; margin-top: var(--space-1); border-top: 1px solid var(--night-700);
+    color: var(--white); font-size: var(--text-sm); font-weight: 600; text-underline-offset: 4px; }
+  .mode-pop a:hover { color: var(--magnesium-400); }
+
+  .mega { position: absolute; left: 0; right: 0; top: 100%; background: var(--night-900); border-top: var(--border); border-bottom: var(--border);
+    box-shadow: 0 40px 60px rgba(0, 0, 0, .5); animation: drop var(--dur-ui) var(--ease-out-expo); }
+  @keyframes drop { from { opacity: 0; transform: translateY(-6px); } }
+  .mega-in { display: grid; grid-template-columns: 1.1fr 2fr 220px; gap: var(--space-8); padding-block: var(--space-8); }
+  .mega-blurb { max-width: 14ch; font: 800 var(--text-2xl)/1 var(--font-display); text-transform: uppercase; text-wrap: balance; }
+  .mega-note { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--space-3); color: var(--white); font-size: var(--text-sm);
+    font-weight: 600; text-underline-offset: 4px; }
+  .mega-note:hover { color: var(--magnesium-400); }
+  .mega-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px var(--space-6); align-content: start; }
+  .mega-list a { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); padding: 12px 0; border-bottom: 1px solid var(--night-700); text-decoration: none; font-weight: 600; }
+  .mega-list small { color: var(--smoke-400); font-size: 11px; white-space: nowrap; }
+  .mega-feature { aspect-ratio: 1; border-radius: var(--radius-card); padding: var(--space-6); display: grid; place-items: center;
+    background: radial-gradient(70% 55% at 50% 100%, rgba(255, 182, 72, .22), transparent 70%), var(--night-800); }
+
+  @media (min-width: 1024px) {
+    .menu-btn { display: none; }
+    .primary, .mode { display: block; }
+    .actions { margin-left: 0; }
+  }
+
+  .drawer, .search { margin: 0; padding: 0; border: 0; max-width: none; max-height: none; color: var(--white); }
+  .drawer { width: min(420px, 100%); height: 100%; background: var(--night-900); border-right: var(--border);
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) var(--gutter) calc(env(safe-area-inset-bottom, 0px) + 24px); display: none; flex-direction: column; gap: var(--space-4); overflow-y: auto; }
+  .drawer[open] { display: flex; animation: slide var(--dur-reveal) var(--ease-out-expo); }
+  @keyframes slide { from { transform: translateX(-24px); opacity: 0; } }
+  .drawer::backdrop, .search::backdrop { background: rgba(7, 6, 11, .72); backdrop-filter: blur(4px); }
+  .drawer-head { display: flex; justify-content: space-between; align-items: center; }
+  .acc { border-bottom: 1px solid var(--night-700); }
+  .acc summary { list-style: none; display: flex; justify-content: space-between; align-items: center; min-height: 56px;
+    font: 800 var(--text-xl)/1 var(--font-display); text-transform: uppercase; cursor: pointer; }
+  .acc summary::-webkit-details-marker { display: none; }
+  .acc[open] summary :global(.icon) { transform: rotate(45deg); }
+  .acc ul { list-style: none; margin: 0 0 var(--space-3); padding: 0; }
+  .acc li a { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); padding: 12px 0; text-decoration: none; color: var(--smoke-200); }
+  .acc li small { color: var(--smoke-400); font-size: var(--text-xs); white-space: nowrap; }
+  .acc-link { display: flex; align-items: center; min-height: 52px; border-bottom: 1px solid var(--night-700); font-weight: 600; text-decoration: none; }
+  .drawer-search .input { width: 100%; }
+  .drawer-foot { margin-top: auto; display: grid; gap: var(--space-3); font-size: var(--text-sm); }
+  .drawer-mode { color: var(--smoke-400); }
+  .drawer-mode b { color: var(--white); font-weight: 600; }
+
+  .search { width: 100%; height: 100%; background: rgba(7, 6, 11, .96); }
+  .search[open] { display: block; animation: fade var(--dur-ui) ease-out; }
+  @keyframes fade { from { opacity: 0; } }
+  .search-in { padding-block: calc(env(safe-area-inset-top, 0px) + 20px) 40px; display: grid; gap: var(--space-4); max-width: 960px; }
+  .search-form { display: flex; align-items: center; gap: var(--space-3); border-bottom: 2px solid var(--white); padding-bottom: var(--space-3); }
+  .search-form input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--white); outline: none;
+    font: 800 clamp(1.6rem, 4vw, 2.6rem)/1.1 var(--font-display); text-transform: uppercase; }
+  .search-form input::placeholder { color: var(--night-600); }
+  .search-form input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; } /* our own clear button replaces it */
+  .results { display: grid; gap: 2px; }
+  .results :global(.sr-item) { display: grid; grid-template-columns: 64px 1fr auto; gap: var(--space-4); align-items: center; padding: 10px; border-radius: var(--radius-label); text-decoration: none; }
+  .results :global(.sr-item[aria-selected='true']), .results :global(.sr-item:hover) { background: var(--night-800); color: var(--white); }
+  .results :global(.sr-thumb) { position: relative; width: 64px; height: 64px; border-radius: var(--radius-label); background: var(--night-800); display: grid; place-items: center; overflow: hidden; }
+  .results :global(.sr-thumb img) { width: 100%; height: 100%; object-fit: contain; }
+  .results :global(.sr-thumb .cat-badge) { position: absolute; left: -8px; top: -8px; --s: 34px; }
+  .results :global(.sr-noimg) { font: 500 9px/1 var(--font-body); color: var(--smoke-400); }
+  .results :global(.sr-body) { display: grid; gap: 4px; min-width: 0; }
+  .results :global(.sr-title) { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .results :global(.sr-meta) { font: 500 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-400); }
+  .results :global(.sr-meta > span + span)::before { content: ' · '; }
+  .results :global(.sr-price) { font: 600 var(--text-sm)/1 var(--font-body); text-align: right; }
+  .results :global(.sr-out) { display: block; color: var(--strontium-500); font-size: 11px; margin-top: 4px; }
+  .all { justify-self: start; display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .all:hover { color: var(--magnesium-400); }
+  .popular ul { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); list-style: none; margin: var(--space-1) 0 0; padding: 0; }
+  .popular a { display: inline-flex; min-height: 44px; align-items: center; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
+  .popular a:hover { color: var(--magnesium-400); }
+</style>
+
+<script>
+  import { initSearch, openModal, closeModal } from '../scripts/search';
+  import { setMode, getProAuth, setProAuth, type Mode } from '../scripts/mode';
+
+  initSearch();
+  const header = document.querySelector<HTMLElement>('[data-header]')!;
+
+  // transparent over the home hero until the visitor scrolls
+  if (header.classList.contains('home')) {
+    const onScroll = () => header.classList.toggle('solid', window.scrollY > 40);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  // mega menus: click toggles, hover opens on desktop, Esc and outside click close
+  const megas = [...document.querySelectorAll<HTMLElement>('[data-mega]')];
+  const closeAll = (except?: HTMLElement) => megas.forEach((m) => {
+    if (m === except) return;
+    m.querySelector('button')!.setAttribute('aria-expanded', 'false');
+    m.querySelector<HTMLElement>('.mega')!.hidden = true;
+  });
+  megas.forEach((m) => {
+    const btn = m.querySelector('button')!, panel = m.querySelector<HTMLElement>('.mega')!;
+    const open = () => { closeAll(m); btn.setAttribute('aria-expanded', 'true'); panel.hidden = false; };
+    btn.addEventListener('click', () => (panel.hidden ? open() : closeAll()));
+    let t = 0;
+    m.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { clearTimeout(t); t = window.setTimeout(open, 90); } });
+    m.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { clearTimeout(t); t = window.setTimeout(() => closeAll(), 160); } });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const openBtn = megas.map((m) => m.querySelector('button')!).find((b) => b.getAttribute('aria-expanded') === 'true');
+    closeAll(); closePop(); openBtn?.focus();
+  });
+  document.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('[data-mega], [data-mode-menu]')) { closeAll(); closePop(); } });
+
+  // shopper mode chip
+  const chip = document.querySelector<HTMLButtonElement>('.mode-chip')!, pop = document.getElementById('mode-pop')!;
+  const modeLabels = document.querySelectorAll('[data-mode-label]'); // header chip + mobile drawer
+  const labels: Record<string, string> = { public: 'Persoană fizică', pro: 'Client autorizat', unset: 'Alege profilul' };
+  const paint = () => {
+    const mode = document.documentElement.dataset.mode ?? 'unset';
+    modeLabels.forEach((l) => (l.textContent = labels[mode] ?? labels.unset));
+    pop.querySelectorAll<HTMLButtonElement>('[data-set-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.setMode === mode)));
+  };
+  function closePop() { pop.hidden = true; chip.setAttribute('aria-expanded', 'false'); }
+  chip.addEventListener('click', () => { pop.hidden = !pop.hidden; chip.setAttribute('aria-expanded', String(!pop.hidden)); });
+  document.querySelectorAll<HTMLButtonElement>('[data-set-mode]').forEach((b) => b.addEventListener('click', () => {
+    const m = b.dataset.setMode as Mode;
+    if (m === 'pro' && getProAuth().status === 'none') setProAuth({ status: 'pending' });
+    setMode(m); closePop();
+    window.dispatchEvent(new CustomEvent('toast', { detail: { message: m === 'pro' ? 'Profil: client autorizat. Încarcă autorizația înainte de prima comandă P1/T1.' : 'Profil: persoană fizică (F1, 16+).' } }));
+  }));
+  window.addEventListener('mode:change', paint);
+  paint();
+
+  // mobile drawer
+  const drawer = document.querySelector<HTMLDialogElement>('[data-menu-dialog]')!;
+  document.querySelector<HTMLButtonElement>('[data-menu-open]')!.addEventListener('click', (e) => openModal(drawer, e.currentTarget as HTMLElement));
+  document.querySelector('[data-menu-close]')!.addEventListener('click', () => closeModal(drawer));
+  drawer.addEventListener('cancel', (e) => { e.preventDefault(); closeModal(drawer); });
+  drawer.addEventListener('click', (e) => { if (e.target === drawer) closeModal(drawer); });
+  document.querySelector('[data-set-mode-open]')!.addEventListener('click', () => {
+    closeModal(drawer, false);
+    document.documentElement.dataset.mode = 'unset';
+    window.dispatchEvent(new CustomEvent('gate:open'));
+  });
+
+  // cart count
+  const count = document.querySelector<HTMLElement>('[data-cart-count]')!;
+  const cartBtn = document.querySelector<HTMLButtonElement>('[data-cart-toggle]')!;
+  cartBtn.addEventListener('click', () => window.dispatchEvent(new CustomEvent('cart:open')));
+  window.addEventListener('cart:change', (e) => {
+    const n = (e as CustomEvent).detail.item_count as number;
+    const changed = count.textContent !== String(n);
+    count.textContent = String(n); count.hidden = n === 0;
+    cartBtn.setAttribute('aria-label', `Coșul tău, ${n} ${n === 1 ? 'produs' : 'produse'}`);
+    if (changed && n) { count.classList.remove('bump'); void count.offsetWidth; count.classList.add('bump'); }
+  });
+</script>

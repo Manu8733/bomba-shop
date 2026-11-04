@@ -1,0 +1,143 @@
+---
+// Header band for collection, collection list and search pages.
+// Liquid: sections/main-collection-banner.liquid ({{ collection.title }}, {{ collection.description }}, {{ collection.products_count }}).
+// The star trails are a static, build-time SVG (long exposure around a pole), seeded per page so each sky differs.
+import CatBadge from '../../snippets/CatBadge.astro';
+import { law } from '../../config';
+
+interface Crumb { label: string; href?: string }
+interface Props {
+  title: string;
+  blurb?: string;
+  crumbs: Crumb[];
+  /** one plain line of real counts, e.g. "110 produse, 87 în stoc" */
+  facts?: string;
+  /** categories present on the page, e.g. ['F1', 'P1'] */
+  categories?: string[];
+  /** who may buy what is listed: drives the legal note next to the title */
+  audience?: 'public' | 'pro' | 'mixed' | null;
+  seed?: string;
+}
+const { title, blurb, crumbs, facts, categories = [], audience = null, seed = title } = Astro.props;
+
+const ORDER = ['F1', 'P1', 'T1'];
+const rank = (c: string) => (ORDER.includes(c) ? ORDER.indexOf(c) : ORDER.length);
+const cats = [...new Set(categories)].sort((a, b) => rank(a) - rank(b));
+const proCats = cats.filter((c) => c !== 'F1');
+const join = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} și ${xs.at(-1)}` : xs[0] ?? '');
+const age = law.publicMinAge;
+
+const note =
+  audience === 'pro'
+    ? { tone: 'pro', title: 'Doar pentru persoane autorizate',
+        body: `Produsele din ${proCats.length > 1 ? 'categoriile' : 'categoria'} ${join(proCats) || 'P1 / T1'} se vând doar firmelor și persoanelor autorizate, conform Legii nr. 92/2025. Le poți vedea oricând; la comandă îți cerem autorizația.` }
+    : audience === 'mixed'
+      ? { tone: 'pro', title: `F1 pentru public, ${join(proCats) || 'P1 / T1'} pentru autorizați`,
+          body: `Produsele F1 le poate cumpăra oricine are peste ${age} ani. Cele din ${proCats.length > 1 ? 'categoriile' : 'categoria'} ${join(proCats) || 'P1 / T1'} se vând doar persoanelor autorizate, conform Legii nr. 92/2025.` }
+      : audience === 'public'
+        ? { tone: 'public', title: `Categoria F1, de la ${age} ani`,
+            // the public collection's blurb already says this; do not repeat it under the badge
+            body: blurb?.includes(`${age} ani`) ? '' : `Tot ce găsești aici poate fi cumpărat legal de orice persoană de peste ${age} ani.` }
+        : null;
+
+// ---- star trails (deterministic PRNG, so builds are reproducible) ----
+let h = 2166136261;
+for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+const rand = () => {
+  h = (h + 0x6d2b79f5) | 0;
+  let t = Math.imul(h ^ (h >>> 15), 1 | h);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+const pole = { x: 1180, y: -140 };
+const trails: { r: number; dash: string; offset: number; w: number; o: number; tone: number }[] = [];
+for (let r = 150; r < 1500; r += 16 + rand() * 26) {
+  const start = 40 + rand() * 140; // degrees, clockwise from 3 o'clock; keeps arcs inside the band
+  const len = 3 + rand() * (r < 500 ? 34 : 18);
+  const split = rand() > 0.72;
+  const a = split ? len * 0.55 : len;
+  const dash = split ? `${a.toFixed(2)} ${(2 + rand() * 6).toFixed(2)} ${(len * 0.35).toFixed(2)} 360` : `${len.toFixed(2)} 360`;
+  trails.push({ r: Math.round(r), dash, offset: -Math.round(start * 100) / 100, w: 0.8 + rand() * 1.1, o: 0.12 + rand() * 0.42, tone: rand() > 0.86 ? 2 : rand() > 0.5 ? 1 : 0 });
+}
+---
+<section class="band" aria-labelledby="page-title">
+  <svg class="sky" viewBox="0 0 1440 520" preserveAspectRatio="xMaxYMin slice" aria-hidden="true" focusable="false">
+    {trails.map((t) => (
+      <circle class:list={['trail', `t${t.tone}`]} cx={pole.x} cy={pole.y} r={t.r} pathLength="360"
+        stroke-dasharray={t.dash} stroke-dashoffset={t.offset} stroke-width={t.w.toFixed(2)} opacity={t.o.toFixed(2)} />
+    ))}
+  </svg>
+  <div class="container inner">
+    <nav class="crumbs" aria-label="Unde te afli">
+      <ol>
+        {crumbs.map((c, i) => (
+          <li>
+            {c.href && i < crumbs.length - 1 ? <a href={c.href}>{c.label}</a> : <span aria-current="page">{c.label}</span>}
+          </li>
+        ))}
+      </ol>
+    </nav>
+    <div class:list={['head', { 'has-note': !!note }]}>
+      <div class="copy">
+        <h1 id="page-title">{title}</h1>
+        {blurb && <p class="blurb">{blurb}</p>}
+        {facts && <p class="facts">{facts}</p>}
+        <slot />
+      </div>
+      {note && (
+        <aside class:list={['note', note.tone]} aria-label="Cine poate cumpăra">
+          <div class="badges">{cats.map((c) => <CatBadge category={c} size="md" />)}</div>
+          <div class="note-copy">
+            <p class="note-title">{note.title}</p>
+            {note.body && <p class="note-body">{note.body}</p>}
+            {note.tone === 'pro' && <a class="note-link" href="/pages/profesionisti">Cum funcționează autorizarea</a>}
+          </div>
+        </aside>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .band { position: relative; isolation: isolate; overflow: clip; border-bottom: var(--border); background: var(--night-950); }
+  /* trails fade out towards the bottom and the left, so they never run through the title and the text */
+  .sky { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, #000 15%, rgba(0, 0, 0, .3) 55%, transparent 90%), linear-gradient(to right, transparent 15%, #000 60%);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to bottom, #000 15%, rgba(0, 0, 0, .3) 55%, transparent 90%), linear-gradient(to right, transparent 15%, #000 60%);
+    mask-composite: intersect; }
+  .trail { fill: none; stroke-linecap: round; }
+  .t0 { stroke: var(--white); }
+  .t1 { stroke: var(--smoke-200); }
+  .t2 { stroke: var(--magnesium-400); }
+
+  .inner { padding-block: var(--space-6) clamp(var(--space-8), 5vw, var(--space-12)); }
+
+  .crumbs ol { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0 0 clamp(var(--space-8), 5vw, var(--space-12)); padding: 0; list-style: none;
+    font: 600 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-400); }
+  .crumbs li { display: inline-flex; align-items: center; min-width: 0; }
+  .crumbs li + li::before { content: '/'; padding-inline: 10px; color: var(--night-600); }
+  .crumbs a { display: inline-flex; align-items: center; min-height: 24px; color: var(--smoke-200); text-decoration: none; }
+  .crumbs a:hover { color: var(--magnesium-400); text-decoration: underline; }
+  .crumbs [aria-current] { color: var(--white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
+
+  .head { display: grid; gap: var(--space-8); align-items: end; }
+  .copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); min-width: 0; }
+  h1 { font-size: clamp(2.75rem, 9vw, 6.5rem); font-weight: 900; max-width: 16ch; overflow-wrap: anywhere; }
+  .blurb { max-width: 56ch; color: var(--smoke-200); font-size: var(--text-md); }
+  .facts { font: 600 var(--text-sm)/1.4 var(--font-body); font-variant-numeric: tabular-nums; color: var(--smoke-400); }
+
+  /* legal note: the category diamond carries the colour, the text stays plain */
+  .note { display: flex; gap: var(--space-4); align-items: center; max-width: 460px; }
+  .badges { display: flex; flex-direction: column; flex: none; }
+  .badges > :global(.cat-badge + .cat-badge) { margin-top: -10px; }
+  .note-copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); min-width: 0; }
+  .note-title { font: 600 var(--text-base)/1.3 var(--font-body); color: var(--white); }
+  .note-body { font-size: var(--text-sm); color: var(--smoke-200); }
+  .note-link { display: inline-flex; align-items: center; min-height: 44px; margin-top: -8px; font-weight: 600; font-size: var(--text-sm); color: var(--white); text-underline-offset: 4px; }
+  .note-link:hover { color: var(--magnesium-400); }
+
+  @media (min-width: 1024px) {
+    .head.has-note { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); }
+  }
+</style>
