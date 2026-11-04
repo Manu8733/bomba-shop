@@ -4,8 +4,10 @@
 
 :root { --font-body: 'Figtree Variable', 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
         --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, Consolas, monospace;
-        --gutter: max(16px, env(safe-area-inset-left, 0px)); --header-h: 64px; --maxw: 1440px; }
+        --gutter: max(16px, env(safe-area-inset-left, 0px)); --header-h: 64px; --maxw: 90rem; }
 @media (min-width: 768px) { :root { --gutter: 24px; --header-h: 72px; } }
+/* big screens: the layout grows with the screen from 1680px instead of floating small in the middle (1rem 16px → 20px at 2560px+) */
+@media (min-width: 1680px) { html { font-size: min(125%, calc(100% + (100vw - 1680px) * .00455)); } :root { --gutter: 2rem; } }
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }

@@ -94,7 +94,9 @@ const sizes = '(min-width: 1440px) 784px, (min-width: 1024px) 55vw, 100vw';
     background:
       radial-gradient(62% 46% at 50% 100%, color-mix(in srgb, var(--magnesium-400) 24%, transparent), transparent 72%),
       linear-gradient(to top, var(--night-800), var(--night-900) 55%, var(--night-950)); }
+  @media (max-width: 767px) { .stage { aspect-ratio: 6 / 5; } }
   @media (min-width: 768px) { .stage { aspect-ratio: 5 / 4; } }
+  @media (max-height: 560px) and (orientation: landscape) { .stage { aspect-ratio: auto; height: calc(100svh - var(--header-h) - 72px); } }
 
   .track { position: relative; display: flex; height: 100%; margin: 0; padding: 0; list-style: none;
     overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }

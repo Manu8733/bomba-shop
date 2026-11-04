@@ -120,6 +120,10 @@ const ogImage = images[0]?.files.at(-1)?.src;
   .crumbs [aria-current] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .pdp { display: grid; gap: var(--space-8); }
+  /* phone on its side: photo and buy box side by side, so the name, price and button share the first screen */
+  @media (min-width: 600px) and (max-width: 1023px) and (max-height: 560px) and (orientation: landscape) {
+    .pdp { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+  }
   @media (min-width: 1024px) {
     .pdp { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--space-12); align-items: start; }
   }

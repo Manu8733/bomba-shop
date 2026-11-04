@@ -131,7 +131,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement) {
     const ramp = Math.min(1, live / .35); // the jet builds up over a third of a second
     const e = shot.effect;
     if (e === 'fountain') {
-      const hT = Math.max(160, n0.y - H * .06), g = 2400 * S, v0 = Math.sqrt(2 * g * hT) * 1.12;
+      const hT = Math.max(160, n0.y - Math.max(H * .06, 84)), g = 2400 * S, v0 = Math.sqrt(2 * g * hT) * 1.12; // never up into the header
       for (let i = count(0, (mobile ? 620 : 1150) * ramp, dt); i--;) {
         const a = -Math.PI / 2 + gauss() * .14 + (rnd() < .12 ? (rnd() - .5) * .8 : 0), v = v0 * (.42 + .58 * Math.sqrt(rnd()));
         spark(n0.x + (rnd() - .5) * 5, n0.y, Math.cos(a) * v, Math.sin(a) * v, .85 + rnd() * .95, rnd() < .8 ? SILVER : GOLD,
@@ -174,7 +174,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement) {
       nextShot -= dt;
       if (nextShot <= 0) {
         const p = nz[shotN % nz.length], c = STAR_COLORS[shotN % STAR_COLORS.length]; shotN++;
-        const g = 1500 * S, h = Math.max(200, p.y - H * (.03 + rnd() * .1)), v = Math.sqrt(2 * g * h);
+        const g = 1500 * S, h = Math.max(200, p.y - Math.max(H * (.03 + rnd() * .1), 90)), v = Math.sqrt(2 * g * h);
         stars.push({ x: p.x, y: p.y, vx: (rnd() - .5) * 90 * S, vy: -v, age: 0, life: (v / g) * (.9 + rnd() * .12), c,
           ramp: rampOf(['#ffffff', c, c, mixHex(c, '#000000', .3), mixHex(c, '#000000', .55)]), acc: 0 });
         glow(p.x, p.y, 70 * S, .16, '#ffe6b0', .9);

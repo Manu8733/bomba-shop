@@ -50,6 +50,7 @@ const n = slides.length;
       </div>
     </div>
 
+    <div class="first">
     <div class="stage" data-stage aria-hidden="true">
       {slides.map((s, i) => (
         <a class:list={['shot', { on: i === 0 }]} href={s.url} tabindex="-1" data-shot style={`--k:${s.k ?? 1}`}>
@@ -99,11 +100,12 @@ const n = slides.length;
       </ol>
       <a class="all" href="/collections/public">Toate produsele F1 <Icon name="arrow" size={16} /></a>
     </div>
+    </div>
   </div>
 </section>
 <style>
   .hero { position: relative; isolation: isolate; overflow: hidden; margin-top: calc(-1 * var(--header-h));
-    min-height: calc(100vh - var(--announce-h)); min-height: calc(100svh - var(--announce-h)); display: flex; --announce-h: 36px; padding-block: calc(var(--header-h) + 28px) 28px;
+    min-height: calc(100vh - var(--announce-h)); min-height: calc(100svh - var(--announce-h)); display: flex; --announce-h: 36px; /* measured by the script */ padding-block: calc(var(--header-h) + 28px) 28px;
     background: linear-gradient(180deg, #07060b 0%, #0b0911 55%, #110d18 100%); }
   /* the ground the product stands on; its top edge is placed by the stage script at the product's base */
   .hero::after { content: ''; position: absolute; inset: var(--ground, 82%) 0 0; z-index: -2;
@@ -111,11 +113,12 @@ const n = slides.length;
   .fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
   .in { flex: 1; display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "top" "stage" "info" "pick"; grid-template-rows: auto minmax(300px, 1fr) auto auto; }
-  @media (min-width: 1024px) {
+  .first { display: contents; } /* stage, product copy and picker: one box on phones (the first screen), grid items otherwise */
+  /* two columns on desktop, and on any landscape screen wide enough (phones on their side, small windows) */
+  @media (min-width: 1024px), (orientation: landscape) and (min-width: 600px) {
     .in { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-12);
       grid-template-areas: "top stage" "info stage" "pick pick"; grid-template-rows: auto 1fr auto; }
   }
-
   .top { grid-area: top; display: grid; justify-items: start; gap: var(--space-8); }
   h1 { max-width: 26ch; font: 500 clamp(1.05rem, 1.35vw, 1.25rem)/1.4 var(--font-body); text-transform: none; color: var(--smoke-200); letter-spacing: 0; }
   .count { display: grid; gap: 6px; }
@@ -127,8 +130,8 @@ const n = slides.length;
   .c-n small { font: 500 var(--text-xs)/1 var(--font-body); color: var(--smoke-400); }
 
   .stage { grid-area: stage; position: relative; min-height: 300px; touch-action: pan-y; }
-  .shot { position: absolute; left: 0; right: 0; bottom: 0; margin-inline: auto; width: fit-content; height: calc(var(--ph) * var(--k, 1));
-    --ph: clamp(250px, 46vh, 460px); opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
+  .shot { position: absolute; left: 0; right: 0; bottom: 0; margin-inline: auto; width: fit-content; height: min(calc(var(--ph) * var(--k, 1)), 88%);
+    --ph: clamp(200px, 46vh, 460px); opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
     transition: opacity .5s var(--ease-out-expo), transform .7s var(--ease-out-expo), visibility 0s .7s; }
   .shot.on { opacity: 1; transform: none; visibility: visible; transition-delay: .12s, .12s, 0s; }
   .shot :global(img.pimg) { height: 100%; width: auto; filter: drop-shadow(0 -4px 18px rgb(var(--fx, 236 236 255) / .28)) drop-shadow(0 16px 18px rgba(0, 0, 0, .75)); }
@@ -140,7 +143,7 @@ const n = slides.length;
   .kind { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--white); }
   .who { color: var(--smoke-400); font-weight: 500; }
   .who.pro { color: var(--strontium-500); }
-  .name { font: 900 clamp(3rem, 6.2vw, 6rem)/.88 var(--font-display); text-transform: uppercase; letter-spacing: -.005em; text-wrap: balance;
+  .name { font: 900 clamp(2.6rem, min(6.2vw, 9.5vh), 6rem)/.88 var(--font-display); text-transform: uppercase; letter-spacing: -.005em; text-wrap: balance;
     text-shadow: 0 0 60px rgb(var(--fx, 236 236 255) / .22); }
   .name a { color: inherit; text-decoration: none; }
   .name a:hover { color: var(--white); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
@@ -178,22 +181,77 @@ const n = slides.length;
   .all { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
   .all:hover { color: var(--magnesium-400); }
 
-  @media (max-width: 1023px) {
-    /* phone: the stage comes first so the effect rises into the empty night under the header, never behind text */
-    .hero { --announce-h: 54px; padding-top: var(--header-h); }
-    .in { gap: var(--space-4); grid-template-areas: "stage" "info" "pick" "top"; grid-template-rows: minmax(0, 1fr) auto auto auto; }
-    .top { gap: var(--space-4); padding-top: var(--space-6); border-top: var(--border); }
-    .stage { min-height: 54svh; }
-    .shot { --ph: clamp(180px, 28svh, 280px); }
-    .picker { flex-wrap: wrap; gap: var(--space-4); }
-    .tabs { order: 3; flex-basis: 100%; gap: var(--space-4); }
-    .all { margin-left: auto; }
-  }
-  @media (max-width: 520px) {
-    .c-n { gap: 10px; }
-    .name { font-size: clamp(2.6rem, 13vw, 3.4rem); }
+  /* phones and tablets held upright: the first screen is exactly stage + product + picker, whatever the height;
+     the stage takes what is left, the title and countdown sit small over the night at its top */
+  @media (max-width: 1023px) and (orientation: portrait), (max-width: 599px) {
+    .hero { --announce-h: 54px; min-height: 0; padding: var(--header-h) 0 0; }
+    .in { display: flex; flex-direction: column; } /* the title block comes first in the markup: send it after the first screen */
+    .top { order: 2; }
+    .first { display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-4);
+      height: calc(100svh - var(--announce-h) - var(--header-h)); min-height: 440px; }
+    .stage { flex: 1 1 0; min-height: 120px; }
+    .shot { --ph: clamp(150px, 30svh, 320px); }
+    .slides, .picker { flex: none; }
+    .top { position: absolute; z-index: 2; top: calc(var(--header-h) + 10px); left: var(--gutter); right: var(--gutter); gap: 6px; pointer-events: none;
+      text-shadow: 0 1px 12px #07060b, 0 0 2px #07060b; }
+    h1 { font-size: .84rem; line-height: 1.35; max-width: 30ch; }
+    .count { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+    .c-n { gap: 8px; }
+    .c-n b { font-size: 1.5rem; }
+    .slide { gap: var(--space-2); }
+    .name { font-size: clamp(2.2rem, min(11vw, 6.4svh), 3.6rem); }
+    .buy { margin-top: 0; gap: var(--space-2) var(--space-4); }
+    .price b { font-size: 1.5rem; }
     .acts .btn { flex: 1; }
+    /* the picker becomes one row: arrows, then the five fuses as segments (names stay for screen readers) */
+    .picker { gap: var(--space-3); padding-top: 0; }
+    .arw { width: 44px; height: 44px; }
+    .tabs { gap: 6px; overflow: visible; }
+    .tabs li { flex: 1; }
+    .tab { width: 100%; padding: 20px 0; }
+    .tab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .fuse { height: 3px; }
+    .all { display: none; }
   }
+  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 720px), (max-width: 599px) and (max-height: 720px) { .line { display: none; } }
+  /* very short phones (iPhone SE class): no room over the stage, the title and countdown follow the first screen */
+  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 620px) {
+    .top { position: static; padding: var(--space-6) var(--gutter) var(--space-8); border-top: var(--border); text-shadow: none; }
+    h1 { font-size: 1rem; }
+  }
+  /* short screens (laptops at 650–760 px, browsers with toolbars): tighter rhythm so the picker stays on screen */
+  @media (orientation: landscape) and (max-height: 780px) {
+    .hero { padding-block: calc(var(--header-h) + 12px) 16px; }
+    .in { row-gap: var(--space-4); }
+    .top { gap: var(--space-4); }
+    .c-n b { font-size: clamp(1.6rem, 5vh, 3rem); }
+    .picker { padding-top: 0; }
+    .buy { margin-top: 0; }
+  }
+  /* phones on their side: the title and countdown go under the first screen, the product and its buy box stay */
+  @media (orientation: landscape) and (max-height: 560px) {
+    .hero { min-height: 0; padding-top: var(--header-h); }
+    .in { display: flex; flex-direction: column; }
+    .top { order: 2; }
+    .first { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-8); row-gap: var(--space-2);
+      grid-template-areas: "info stage" "pick pick"; grid-template-rows: minmax(0, 1fr) auto;
+      height: calc(100svh - var(--announce-h) - var(--header-h) - 8px); min-height: 240px; }
+    .top { margin-top: var(--space-8); padding-top: var(--space-6); border-top: var(--border); }
+    .line, .kind { display: none; }
+    .name { font-size: clamp(1.9rem, 9vh, 3.2rem); }
+    .price b { font-size: 1.4rem; }
+    .slide { gap: var(--space-2); }
+    .shot { --ph: clamp(140px, 60vh, 300px); }
+    .picker { gap: var(--space-3); }
+    .arw { width: 44px; height: 44px; }
+    .tabs { gap: 6px; overflow: visible; }
+    .tabs li { flex: 1; }
+    .tab { width: 100%; padding: 20px 0; }
+    .tab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .fuse { height: 3px; }
+    .all { display: none; }
+  }
+
   @media (prefers-reduced-motion: reduce) { .shot, .slide { transition: none; } .tab[aria-current] .fuse i { animation: none; transform: none; } }
 </style>
 <script>
@@ -217,6 +275,11 @@ const n = slides.length;
       setTimeout(tick, 1000 - (now % 1000) + 5);
     };
     tick();
+
+    // the first screen on phones is sized from the announcement bar's real height (it wraps on narrow screens)
+    const bar = document.querySelector<HTMLElement>('.announce');
+    const measure = () => bar && root.style.setProperty('--announce-h', `${bar.offsetHeight}px`);
+    measure(); addEventListener('resize', measure);
 
     // ---- the product picker
     const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];

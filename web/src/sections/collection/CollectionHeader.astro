@@ -111,9 +111,9 @@ for (let r = 150; r < 1500; r += 16 + rand() * 26) {
   .t1 { stroke: var(--smoke-200); }
   .t2 { stroke: var(--magnesium-400); }
 
-  .inner { padding-block: var(--space-6) clamp(var(--space-8), 5vw, var(--space-12)); }
+  .inner { padding-block: var(--space-6) clamp(var(--space-6), 5vh, var(--space-12)); }
 
-  .crumbs ol { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0 0 clamp(var(--space-8), 5vw, var(--space-12)); padding: 0; list-style: none;
+  .crumbs ol { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0 0 clamp(var(--space-4), 5vh, var(--space-12)); padding: 0; list-style: none;
     font: 600 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-400); }
   .crumbs li { display: inline-flex; align-items: center; min-width: 0; }
   .crumbs li + li::before { content: '/'; padding-inline: 10px; color: var(--night-600); }
@@ -123,7 +123,7 @@ for (let r = 150; r < 1500; r += 16 + rand() * 26) {
 
   .head { display: grid; gap: var(--space-8); align-items: end; }
   .copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); min-width: 0; }
-  h1 { font-size: clamp(2.75rem, 9vw, 6.5rem); font-weight: 900; max-width: 16ch; overflow-wrap: anywhere; }
+  h1 { font-size: clamp(2.5rem, min(9vw, 14vh), 6.5rem); font-weight: 900; max-width: 16ch; overflow-wrap: anywhere; }
   .blurb { max-width: 56ch; color: var(--smoke-200); font-size: var(--text-md); }
   .facts { font: 600 var(--text-sm)/1.4 var(--font-body); font-variant-numeric: tabular-nums; color: var(--smoke-400); }
 
@@ -140,4 +140,9 @@ for (let r = 150; r < 1500; r += 16 + rand() * 26) {
   @media (min-width: 1024px) {
     .head.has-note { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); }
   }
+  /* phones: the grid's own live count says the same, and the first row of products should start on the first screen */
+  @media (max-width: 767px) { .facts { display: none; } .head { gap: var(--space-4); } .note :global(.cat-badge) { --s: 44px; } }
+  /* short screens: the category note is on every card's badge anyway; keep the title and the first row of products */
+  @media (max-height: 620px) { .note, .facts { display: none; } .blurb { font-size: var(--text-base); } }
+  @media (orientation: landscape) and (max-height: 560px) { .blurb { display: none; } .crumbs ol { margin-bottom: var(--space-3); } }
 </style>

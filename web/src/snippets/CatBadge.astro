@@ -20,6 +20,6 @@ const label = !category ? 'Categorie necunoscută' : pro ? `Categoria ${category
   .cat-badge.pro::before { background: var(--cat-pro); box-shadow: inset 0 0 0 3px var(--cat-pro), inset 0 0 0 5px var(--night-950); }
   .txt { position: relative; text-align: center; color: var(--on-magnesium); font: 900 calc(var(--s) * .27)/1 var(--font-display); }
   .pro .txt { color: #fff; }
-  small { display: block; font: 700 calc(var(--s) * .085)/1.1 var(--font-body); letter-spacing: .04em; margin-top: 2px; }
-  .sm small { display: none; }
+  small { display: block; font: 700 max(9px, calc(var(--s) * .1))/1.1 var(--font-body); letter-spacing: .02em; margin-top: 2px; }
+  .sm small, .md small { display: none; } /* too small to read below the large size; the label is in aria-label */
 </style>

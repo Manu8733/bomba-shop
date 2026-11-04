@@ -175,4 +175,10 @@ const initialCount = proDefault === 'hide' ? list.length - proCount : list.lengt
       font: 600 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
     .select select { min-width: 220px; }
   }
+  /* phones on their side: the count, filter and sort share one row, so the first products start on the first screen */
+  @media (orientation: landscape) and (max-height: 560px) and (max-width: 1023px) {
+    .catalog { padding-top: var(--space-2); }
+    .toolbar { grid-template-columns: auto 1fr 1fr; margin-bottom: var(--space-3); }
+    .count { grid-column: auto; }
+  }
 </style>

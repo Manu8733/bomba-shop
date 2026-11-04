@@ -1,0 +1,10 @@
+# only the site's source is uploaded; Vercel installs and builds web/ itself
+assets
+research
+tools
+brand/_concepte
+**/node_modules
+web/dist
+web/.astro
+.claude
+*.log

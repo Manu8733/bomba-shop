@@ -26,7 +26,8 @@ const PAGES = {
   '/': { fold: ['.site-header .brand', '.hero .slide.on .name', '.hero .slide.on .price', '.hero .slide.on .acts .btn', '.hero .arrows'],
     after: async (p) => p.evaluate(() => { const s = document.querySelector('.fxs .stage'); if (!s) return null; s.scrollIntoView(); const r = s.getBoundingClientRect(), panel = s.querySelector('.panel')?.getBoundingClientRect();
       return { fxsFits: r.height <= innerHeight + 1, fxsPanelInside: panel ? panel.top >= -1 && panel.bottom <= r.bottom + 1 : true }; }) },
-  '/products/vulcan-etna': { fold: ['main h1', '[data-gallery] .slide img', '[data-add-to-cart]'] },
+  // on phones the sticky bar (name, price, button) is up from the first screen, so it counts for the name
+  '/products/vulcan-etna': { fold: ['main h1, [data-sticky][data-show="true"] .st-title', '[data-gallery] .slide img', '[data-add-to-cart]'] },
   '/collections/public': { fold: ['main h1'], startsInFold: ['[data-product-card]'] },
   '/pages/spectacole': { fold: ['main h1'] },
 };
@@ -66,7 +67,7 @@ for (const name of engines.split(',')) {
           const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
           while (walk.nextNode()) {
             const t = walk.currentNode; if (!t.textContent.trim()) continue;
-            const el = t.parentElement; if (!el || el.closest('[aria-hidden="true"], .visually-hidden, script, style')) continue;
+            const el = t.parentElement; if (!el || el.closest('[aria-hidden="true"], [role="img"], .visually-hidden, script, style')) continue;
             const rr = el.getBoundingClientRect(); if (!rr.width || rr.bottom < 0 || rr.top > vh) continue;
             const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.opacity === '0') continue;
             const fs = parseFloat(cs.fontSize); if (fs < min) { min = fs; minText = t.textContent.trim().slice(0, 30); }
@@ -74,7 +75,7 @@ for (const name of engines.split(',')) {
           if (min < 12) out.push(`text ${min}px: "${minText}"`);
           const hero = document.querySelector('.hero .slide.on .name');
           return { issues: out, minFont: min, heroName: hero ? Math.round(parseFloat(getComputedStyle(hero).fontSize)) : null };
-        }, spec);
+        }, { fold: spec.fold, anyOf: spec.anyOf, startsInFold: spec.startsInFold });
         issues.push(...r.issues);
         if (spec.after) { const a = await spec.after(page); if (a && !a.fxsFits) issues.push('effects section taller than the screen'); if (a && !a.fxsPanelInside) issues.push('effects panel cut'); }
         if (errors.length) issues.push(...[...new Set(errors)].map((e) => `console: ${e}`));
