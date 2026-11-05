@@ -10,6 +10,7 @@ export type Cart = { items: (Line & { product: CatalogItem; line_price: number }
 const KEY = 'bomba-cart-v1';
 let catalog: Map<string, CatalogItem> | null = null;
 let loading: Promise<Map<string, CatalogItem>> | null = null;
+let memoryLines: Line[] | null = null;
 
 export function loadCatalog(): Promise<Map<string, CatalogItem>> {
   if (catalog) return Promise.resolve(catalog);
@@ -18,13 +19,24 @@ export function loadCatalog(): Promise<Map<string, CatalogItem>> {
 }
 
 function readLines(): Line[] {
+  if (memoryLines !== null) return memoryLines;
   try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
 }
 function writeLines(lines: Line[]) {
-  try { localStorage.setItem(KEY, JSON.stringify(lines)); } catch { /* storage blocked: cart lives for this page only */ }
+  try {
+    localStorage.setItem(KEY, JSON.stringify(lines));
+    memoryLines = null;
+  } catch {
+    const wasPersistent = memoryLines === null;
+    memoryLines = lines;
+    if (wasPersistent) window.dispatchEvent(new CustomEvent('toast', {
+      detail: { message: 'Coșul rămâne disponibil doar pe această pagină.', tone: 'warn' },
+    }));
+  }
 }
 
 export async function getCart(): Promise<Cart> {
+  if (readLines().length === 0) return { items: [], item_count: 0, total_price: 0 };
   const cat = await loadCatalog();
   const items = readLines().filter((l) => cat.has(l.handle)).map((l) => {
     const product = cat.get(l.handle)!;
@@ -61,6 +73,10 @@ export async function setQuantity(handle: string, quantity: number) {
 }
 
 export const removeLine = (handle: string) => setQuantity(handle, 0);
+export function clearCart() {
+  writeLines([]);
+  return emit();
+}
 export const openCart = () => window.dispatchEvent(new CustomEvent('cart:open'));
 export const refreshCart = emit;
 

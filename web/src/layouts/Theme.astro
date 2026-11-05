@@ -59,9 +59,8 @@ const ld = [org, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])]
   <meta property="og:image" content={new URL(image, site).href} />
   <meta name="twitter:card" content="summary_large_image" />
   <script is:inline set:html={modeBootScript} />
-  <script is:inline set:html={introBootScript} />
+  {current === 'home' && <script is:inline set:html={introBootScript} />}
   <style is:inline>
-    /* entry intro (scripts/intro.ts): cover the first paint, hide the header logo until the sparks land on it */
     html.intro:not(.intro-live) body::after { content: ''; position: fixed; inset: 0; z-index: 95; background: #07060b; pointer-events: none; }
     html.intro .site-header .brand svg { opacity: 0; }
     html.intro-land .site-header .brand svg { opacity: 1; transition: opacity .35s ease-out; filter: drop-shadow(0 0 14px rgba(255, 182, 72, .55)); }
@@ -82,8 +81,13 @@ const ld = [org, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])]
   <Toast />
   <script>
     import { initCartButtons, refreshCart } from '../scripts/cart';
-    import { runIntro } from '../scripts/intro';
-    runIntro();
+    if (document.documentElement.classList.contains('intro')) {
+      void import('../scripts/intro').then(({ runIntro }) => runIntro()).catch(() => {
+        document.querySelector('.intro-canvas')?.remove();
+        document.documentElement.classList.remove('intro', 'intro-live', 'intro-land');
+        window.dispatchEvent(new Event('intro:done'));
+      });
+    }
     initCartButtons();
     refreshCart();
   </script>

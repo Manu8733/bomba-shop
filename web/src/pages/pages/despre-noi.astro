@@ -4,8 +4,8 @@ import Theme from '../../layouts/Theme.astro';
 import ContentHero from '../../sections/ContentHero.astro';
 import ContentPage from '../../sections/ContentPage.astro';
 import { shop } from '../../config';
-import { products, available, isPublic } from '../../lib/catalog';
-const f1 = products.filter((p) => isPublic(p) && available(p)).length;
+import { products, available, isF1 } from '../../lib/catalog';
+const f1 = products.filter((p) => isF1(p) && available(p)).length;
 // Romanian counting: 1 produs, 2–19 produse, 20+ de produse (101 produse, 120 de produse).
 const f1Text = f1 === 1 ? '1 produs' : `${f1} ${f1 !== 0 && (f1 % 100 === 0 || f1 % 100 >= 20) ? 'de ' : ''}produse`;
 ---

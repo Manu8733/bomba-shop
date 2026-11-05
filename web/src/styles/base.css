@@ -4,21 +4,24 @@
 
 :root { --font-body: 'Figtree Variable', 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
         --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, Consolas, monospace;
-        --gutter: max(16px, env(safe-area-inset-left, 0px)); --header-h: 64px; --maxw: 90rem; }
-@media (min-width: 768px) { :root { --gutter: 24px; --header-h: 72px; } }
+        --gutter: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --header-h: 64px; --maxw: 90rem; }
+/* the gutter never lets text under a phone's camera cut-out or rounded corner (viewport-fit=cover, landscape) */
+@media (min-width: 768px) { :root { --gutter: max(24px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); --header-h: 72px; } }
+/* phones on their side: every pixel of height counts, the header gets slimmer */
+@media (orientation: landscape) and (max-height: 500px) { :root { --header-h: 56px; } }
 /* big screens: the layout grows with the screen from 1680px instead of floating small in the middle (1rem 16px → 20px at 2560px+) */
 @media (min-width: 1680px) { html { font-size: min(125%, calc(100% + (100vw - 1680px) * .00455)); } :root { --gutter: 2rem; } }
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); background: var(--night-950); }
-/* the backdrop of every page: the night after a show, thin smoke lit cool from above and warm from the fires below, under a
-   fine film grain that also keeps the dark gradients free of steps (tools/make_backdrop.py). Fixed: it stays while the
-   page scrolls over it; surfaces with their own colour (hero studio, cards, drawers) sit on top. */
+/* A quiet photographic night keeps the wordmark and the live product effect in focus. */
 html::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: url(/images/bg/grain-160.png) 0 0 / 160px repeat, url(/images/bg/night.webp) 50% 100% / cover no-repeat, var(--night-950); }
+  --night-art: url(/images/bg/night-natural-v2.webp);
+  background: linear-gradient(180deg, rgba(7, 6, 11, .3), transparent 32%),
+    var(--night-art) 50% 100% / cover no-repeat, var(--night-950); }
 @media (orientation: portrait) {
-  html::before { background: url(/images/bg/grain-160.png) 0 0 / 160px repeat, url(/images/bg/night-p.webp) 50% 100% / cover no-repeat, var(--night-950); }
+  html::before { --night-art: url(/images/bg/night-natural-portrait-v2.webp); }
 }
 body { margin: 0; background: transparent; color: var(--white); font: 400 var(--text-base)/var(--leading-body) var(--font-body);
        -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; min-height: 100vh; }
@@ -82,10 +85,12 @@ p { margin: 0; }
 .btn-block { width: 100%; }
 
 /* label system (DESIGN.md §5) */
-.spec-label { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: var(--border-label); border-radius: var(--radius-label); color: var(--white); }
-.spec-label > span { display: flex; gap: 6px; align-items: baseline; padding: 8px 9px; border-right: 2px solid currentColor;
+/* when the cells wrap onto a second row, each row fills the width and the rules between cells and rows stay 2px: every
+   cell draws its right and bottom rule, and the label clips the ones that land on its own edge */
+.spec-label { display: inline-flex; flex-wrap: wrap; max-width: 100%; overflow: hidden; border: var(--border-label); border-radius: var(--radius-label); color: var(--white); }
+.spec-label > span { flex: 1 0 auto; display: flex; gap: 6px; align-items: baseline; padding: 8px 9px; margin: 0 -2px -2px 0;
+                     border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
                      font: 600 13px/1.1 var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.spec-label > span:last-child { border-right: 0; }
 .spec-label small { font: inherit; color: var(--smoke-400); }
 .spec-label .na { color: var(--smoke-400); }
 .spec-label .cat { background: var(--cat-f1); color: var(--on-magnesium); }

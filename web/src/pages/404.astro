@@ -17,7 +17,7 @@ import Theme from '../layouts/Theme.astro';
 </Theme>
 <style>
   .nf { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; gap: var(--space-6); padding-block: var(--space-16); }
-  h1 { font-size: clamp(3.4rem, 12vw, 9rem); line-height: .86; font-weight: 900; }
+  h1 { font-size: clamp(3rem, min(12vw, 19vh), 9rem); line-height: .86; font-weight: 900; } /* by height too: a phone on its side */
   .lede { max-width: 52ch; color: var(--smoke-200); }
   .ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); }
   .fuse { position: relative; width: min(420px, 80%); height: 3px; margin-bottom: var(--space-4); border-radius: 2px; background: var(--smoke-400); }

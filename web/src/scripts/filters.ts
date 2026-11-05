@@ -376,7 +376,7 @@ export function initFilters(root: HTMLElement) {
 
   root.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
-    if (el.closest('[data-reset], [data-reset-soft], [data-reset-head]')) {
+    if (el.closest('[data-reset], [data-reset-soft], [data-reset-head], [data-reset-empty]')) {
       reset();
       // the pressed button may now be hidden or disabled; keep focus inside the sheet while it is modal
       (sheetOpen ? sheet?.querySelector<HTMLElement>('[data-sheet-close]') : countEl)?.focus();

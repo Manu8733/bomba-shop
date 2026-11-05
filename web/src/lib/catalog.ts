@@ -72,7 +72,7 @@ export const collectionByHandle = (h: string) => collections.find((c) => c.handl
 // Virtual collections (Shopify: automated collections by tag/condition)
 export const virtualCollections = {
   all: { title: 'Toate produsele', blurb: 'Tot catalogul Bomba Shop.', filter: (_: Product) => true },
-  public: { title: 'Pentru public · F1', blurb: 'Tot ce poate cumpăra legal orice persoană de peste 16 ani.', filter: (p: Product) => isPublic(p) },
+  public: { title: 'Pentru public · F1', blurb: 'Produse din categoria F1, disponibile pentru public de la 16 ani.', filter: (p: Product) => isF1(p) },
   profesionisti: { title: 'Pentru profesioniști · P1 / T1', blurb: 'Doar pentru firme și persoane autorizate.', filter: (p: Product) => isPro(p) },
   reduceri: { title: 'Reduceri', blurb: 'Produse cu preț redus față de prețul obișnuit.', filter: (p: Product) => !!compareAt(p) },
 } as const;
@@ -83,7 +83,8 @@ export const price = (p: Product) => variant(p).price;
 export const compareAt = (p: Product) => variant(p).compare_at_price;
 export const available = (p: Product) => variant(p).available;
 export const category = (p: Product) => p.metafields.pyro.category;
-export const isPublic = (p: Product) => p.metafields.pyro.category === 'F1' || (p.metafields.pyro.category === null && !/T1|P1/.test(p.title));
+export const isF1 = (p: Product) => category(p) === 'F1';
+export const isPublic = (p: Product) => isF1(p) || (category(p) === null && !/T1|P1/.test(p.title));
 export const isPro = (p: Product) => !!p.metafields.pyro.category && p.metafields.pyro.category !== 'F1';
 export const productUrl = (p: Product) => `/products/${p.handle}`;
 export const collectionUrl = (h: string) => `/collections/${h}`;

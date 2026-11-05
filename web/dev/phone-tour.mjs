@@ -55,7 +55,8 @@ for (const orient of which === 'both' ? ['portrait', 'landscape'] : [which]) {
   const [w, h] = ORIENTS[orient];
   mkdirSync(`${out}/${orient}`, { recursive: true });
   for (const [n, [name, path, o]] of STOPS.entries()) {
-    const page = await browser.newPage();
+    const ctx = await browser.createBrowserContext(); // a fresh browser profile per stop: no storage carried over
+    const page = await ctx.newPage();
     await page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     await page.evaluateOnNewDocument((s) => {
       try {
@@ -85,7 +86,7 @@ for (const orient of which === 'both' ? ['portrait', 'landscape'] : [which]) {
       index.push({ orient, name, url: path, viewport: `${w}x${h}`, files, pageHeight: total, screensShown: files.length, overflow, errors: errs });
     } catch (e) { index.push({ orient, name, url: path, viewport: `${w}x${h}`, files, error: e.message.slice(0, 160), errors: errs }); }
     console.log(orient, name, files.length, errs.length ? `errors ${errs.length}` : '');
-    await page.close();
+    await ctx.close();
   }
 }
 writeFileSync(`${out}/index.json`, JSON.stringify(index, null, 1));

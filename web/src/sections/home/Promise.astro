@@ -2,8 +2,8 @@
 // Liquid: sections/home-promise.liquid. What a buyer should know before ordering, as plain facts, and two notes:
 // safety, and the authorised (P1/T1) route. Real facts only; nothing here is a claim we cannot back.
 import { commerce, law } from '../../config';
-import { products, available, isPublic } from '../../lib/catalog';
-const inStock = products.filter((p) => available(p) && isPublic(p)).length;
+import { products, available, isF1 } from '../../lib/catalog';
+const inStock = products.filter((p) => available(p) && isF1(p)).length;
 const facts = [
   { k: 'Categoria e scrisă pe fiecare produs', d: `F1 se vinde oricui are peste ${law.publicMinAge} ani. P1 și T1 doar clienților cu autorizație.` },
   { k: 'Datele tehnice vin de la producător', d: 'Focuri, calibru, durată. Ce producătorul nu declară apare ca „—”, nu ghicit.' },

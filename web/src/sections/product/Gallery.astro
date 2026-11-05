@@ -96,7 +96,8 @@ const sizes = '(min-width: 1440px) 784px, (min-width: 1024px) 55vw, 100vw';
   @media (min-width: 768px) { .stage { aspect-ratio: 5 / 4; } }
   /* short laptop screens: the photo never runs under the bottom edge */
   @media (min-width: 1024px) { .stage { max-height: calc(100svh - var(--header-h) - 140px); } }
-  @media (max-height: 560px) and (orientation: landscape) { .stage { aspect-ratio: auto; height: calc(100svh - var(--header-h) - 72px); } }
+  /* phones on their side: the whole photo between the breadcrumb and the sticky buy bar */
+  @media (max-height: 560px) and (orientation: landscape) { .stage { aspect-ratio: auto; height: max(170px, calc(100svh - var(--header-h) - 150px)); } }
 
   .track { position: relative; display: flex; height: 100%; margin: 0; padding: 0; list-style: none;
     overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }

@@ -170,6 +170,14 @@ Contul urmează șabloanele Shopify `customers/*`, ca portarea să fie directă:
 - Butoane cu verbul acțiunii: „Adaugă în coș”, „Încarcă autorizația”, „Cere ofertă”.
 - Nu inventăm recenzii, stocuri, urgențe sau cifre.
 
+## 9b. Telefon (vertical și orizontal)
+
+- Marginile laterale (`--gutter`) țin cont de zona sigură a ecranului (`env(safe-area-inset-*)`), ca nimic să nu intre sub decupajul camerei pe orizontal.
+- Pe orizontal (înălțime ≤ 500 px) antetul e mai scund (56 px); titlurile mari se dimensionează și după înălțime (`min(vw, vh)`), nu doar după lățime.
+- Rândurile care se derulează lateral (raftul) se opresc la margine, nu lipite de ecran (`scroll-padding-inline`).
+- Coloanele de grid pentru formulare și liste sunt `minmax(0, 1fr)`: un nume lung sau un câmp nu lățesc pagina (Firefox dă inputurilor o lățime proprie mare).
+- Verificare: `web/dev/phone-tour.mjs` (fiecare pagină și panou, vertical 390×844 și orizontal 844×390), `web/dev/phone.mjs` (hero), `web/dev/matrix.mjs`.
+
 ## 10. Accesibilitate și performanță
 
 - WCAG 2.2 AA: contrast, navigare completă cu tastatura, focus vizibil, ARIA corect.

@@ -99,19 +99,19 @@ function score(e: Entry, tokens: string[], phrase: string): number {
   return total;
 }
 
-/** Public mode (or no mode yet): F1 first, P1/T1 after, whatever their score (Legea 92/2025). */
-export function searchCatalog(entries: Entry[], query: string, publicMode: boolean) {
+/** Public mode (or no mode yet): public products first, then products reserved for authorised buyers. */
+export async function searchCatalog(query: string, publicMode: boolean): Promise<Item[]> {
   const phrase = fold(query);
-  if (phrase.length < 2) return { total: 0, items: [] as Item[] };
+  if (!phrase) return [];
   const tokens = phrase.split(' ');
   const hits: { item: Item; s: number }[] = [];
-  for (const e of entries) {
+  for (const e of await getIndex()) {
     const s = score(e, tokens, phrase);
     if (s) hits.push({ item: e.item, s });
   }
   hits.sort((a, b) =>
     (publicMode ? Number(a.item.pro) - Number(b.item.pro) : 0) || b.s - a.s || a.item.title.length - b.item.title.length);
-  return { total: hits.length, items: hits.slice(0, MAX).map((h) => h.item) };
+  return hits.map((h) => h.item);
 }
 
 // ---------- Overlay UI ----------
@@ -226,10 +226,11 @@ async function update() {
   };
   if (fold(q).length < 2) { idle(); say(q ? 'Scrie cel puțin 2 litere.' : ''); return; }
 
-  let entries: Entry[];
+  let hits: Item[];
+  const publicMode = document.documentElement.dataset.mode !== 'pro';
   if (!index) say('Caut…');
   try {
-    entries = await getIndex();
+    hits = await searchCatalog(q, publicMode);
   } catch {
     if (my !== seq) return;
     idle();
@@ -238,8 +239,8 @@ async function update() {
   }
   if (my !== seq) return;
 
-  const publicMode = document.documentElement.dataset.mode !== 'pro';
-  const { total, items } = searchCatalog(entries, q, publicMode);
+  const total = hits.length;
+  const items = hits.slice(0, MAX);
   listbox.replaceChildren(...items.map((it, i) => option(dialog, it, i, publicMode)));
   listbox.hidden = !items.length;
   input.setAttribute('aria-expanded', String(items.length > 0));

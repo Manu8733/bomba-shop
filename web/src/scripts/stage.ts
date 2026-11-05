@@ -92,11 +92,13 @@ export type StageOptions = { floor3d?: boolean; onFrame?: (light: number) => voi
 export const STACKED = '(max-width: 1023px) and (orientation: portrait), (max-width: 599px) and (min-height: 561px)';
 
 export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: StageOptions = {}) {
-  const ctx = canvas.getContext('2d')!;
-  const bloom = document.createElement('canvas'), bctx = bloom.getContext('2d')!;
+  const ctx = canvas.getContext('2d');
+  const bloom = document.createElement('canvas'), bctx = bloom.getContext('2d');
+  if (!ctx || !bctx) throw new Error('Stage canvas unavailable');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const dpr = Math.min(devicePixelRatio || 1, 1.5);
-  let W = 0, H = 0, S = 1, mobile = false;
+  const compact = matchMedia('(max-width: 767px), (pointer: coarse)');
+  const stackedLayout = matchMedia(STACKED);
+  let W = 0, H = 0, S = 1, dpr = 1, mobile = false, stacked = false;
 
   // colour ramps: a spark is born at index 0 and cools towards the last colour
   const ramps: string[][] = [];
@@ -130,10 +132,12 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
   };
   const layout = () => {
     W = root.clientWidth; H = root.clientHeight;
+    mobile = compact.matches; stacked = stackedLayout.matches;
+    dpr = Math.min(devicePixelRatio || 1, mobile ? 1 : 1.5);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     bloom.width = Math.ceil(W / 5); bloom.height = Math.ceil(H / 5);
-    S = clamp(H / 900, .6, 1.25); mobile = W < 768;
+    S = clamp(H / 900, .6, 1.25);
     place();
   };
   layout();
@@ -252,9 +256,9 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
 
   const lightOf = () => shot ? (LIGHT[shot.color] ?? rgb(shot.color).join(' ')) : LIGHT.silver;
 
-  let last = performance.now(), running = true, raf = 0, t = 0, frameN = 0;
+  let last = performance.now(), running = false, raf = 0, t = 0, frameN = 0;
   const step = (now: number) => {
-    const dt = Math.min(.034, (now - last) / 1000) || .016; last = now; t += dt; live += dt;
+    const dt = Math.min(.05, (now - last) / 1000) || .016; last = now; t += dt; live += dt;
     emit(dt);
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, W, H);
@@ -375,7 +379,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
     // on the 3D set's glossy floor the sparks show again, mirrored and dimmed, in a short band below the base line (as far
     // as the set mirrors the product itself; shorter in the stacked layout, where the product's copy sits below)
     if (opts.floor3d && shot && nz.length) {
-      ctx.save(); ctx.beginPath(); ctx.rect(0, ground, W, box.h * (matchMedia(STACKED).matches ? .16 : .32)); ctx.clip();
+      ctx.save(); ctx.beginPath(); ctx.rect(0, ground, W, box.h * (stacked ? .16 : .32)); ctx.clip();
       strokeAll(true);
       ctx.restore();
     }
@@ -391,16 +395,24 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
 
-    if (running) raf = requestAnimationFrame(step);
   };
 
-  const io = new IntersectionObserver(([en]) => setRunning(en.isIntersecting && !document.hidden));
+  let visible = false;
+  const frame = (now: number) => {
+    if (!running) return;
+    if (now - last >= 1000 / (mobile ? 30 : 60) - 1) step(now);
+    if (running) raf = requestAnimationFrame(frame);
+  };
+  const io = new IntersectionObserver(([en]) => {
+    visible = en.isIntersecting;
+    setRunning(visible && !document.hidden);
+  });
   const setRunning = (on: boolean) => {
     const was = running; running = on && !reduce;
-    if (running && !was) { last = performance.now(); raf = requestAnimationFrame(step); }
+    if (running && !was) { last = performance.now(); raf = requestAnimationFrame(frame); }
     if (!running) cancelAnimationFrame(raf);
   };
-  const onVis = () => setRunning(!document.hidden && root.getBoundingClientRect().bottom > 0);
+  const onVis = () => setRunning(visible && !document.hidden);
   document.addEventListener('visibilitychange', onVis);
 
   const still = () => { // reduced motion: let the effect run 1.6 s invisibly, then show that one frame
@@ -408,8 +420,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
     for (let i = 0; i < 100; i++) { now += 16; step(now); }
   };
 
-  if (reduce) running = false;
-  else { io.observe(root); raf = requestAnimationFrame(step); }
+  if (!reduce) io.observe(root);
 
   return {
     fire(next: Shot) {

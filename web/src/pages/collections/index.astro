@@ -3,13 +3,13 @@
 import Theme from '../../layouts/Theme.astro';
 import CollectionHeader from '../../sections/collection/CollectionHeader.astro';
 import Img from '../../snippets/Img.astro';
-import { collections, groups, products, virtualCollections, available, isPublic, imagesOf, collectionUrl } from '../../lib/catalog';
+import { collections, groups, products, virtualCollections, available, imagesOf, collectionUrl } from '../../lib/catalog';
 import { productsPhrase } from '../../scripts/filters';
 const order = ['petrecere', 'cer', 'fum', 'pro', 'altele'] as const;
 const pick = (c: (typeof collections)[number]) =>
   c.products.find((p) => available(p) && imagesOf(p)[0]?.kind === 'cutout') ?? c.products.find((p) => imagesOf(p)[0]);
 const listed = collections.filter((c) => c.products.length);
-const publicCount = products.filter(isPublic).length;
+const publicCount = products.filter(virtualCollections.public.filter).length;
 const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Colecții' }];
 const ld = {
   '@context': 'https://schema.org', '@type': 'BreadcrumbList',

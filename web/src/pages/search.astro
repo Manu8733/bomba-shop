@@ -10,7 +10,7 @@ const cats = [...new Set(products.map(category).filter(Boolean))] as string[];
 const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Căutare' }];
 ---
 <Theme title="Căutare" description="Caută în catalogul Bomba Shop." noindex>
-  <CollectionHeader title="Căutare" crumbs={crumbs} seed="cautare" blurb="Caută după nume, efect sau producător.">
+  <CollectionHeader title="Căutare" crumbs={crumbs} seed="cautare" blurb="Caută după nume, efect, categorie sau producător.">
     <form class="bar" action="/search" role="search">
       <label class="visually-hidden" for="sq">Caută produse</label>
       <input class="input" id="sq" name="q" type="search" placeholder="vulcan, tort, fum roz…" autocomplete="off" />
@@ -21,6 +21,9 @@ const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Căutare' }];
     <h2 id="results-h" class="visually-hidden">Rezultate</h2>
     <p class="status" aria-live="polite" data-status>Se încarcă…</p>
     <ul class="grid-products list" data-results role="list"></ul>
+    <div class="more" data-more hidden>
+      <button class="btn btn-secondary" type="button">Arată mai multe rezultate</button>
+    </div>
     <div class="empty" data-empty hidden>
       <p>Încearcă un cuvânt mai scurt sau deschide una dintre colecții:</p>
       <p class="links"><a href="/collections/public">Produse F1</a><a href="/collections/vulcani-artificii">Vulcani</a><a href="/collections/artificii-de-tort">Artificii de tort</a><a href="/collections/fumigene-colorate">Fumigene</a></p>
@@ -36,6 +39,7 @@ const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Căutare' }];
   .status { margin-bottom: var(--space-6); font: 600 var(--text-sm)/1.2 var(--font-body); font-variant-numeric: tabular-nums; color: var(--smoke-200); }
   .list { margin: 0; padding: 0; list-style: none; }
   .list > :global(li) { display: flex; min-width: 0; }
+  .more { display: flex; justify-content: center; margin-top: var(--space-8); }
   .empty p { color: var(--smoke-200); }
   .links { display: flex; flex-wrap: wrap; gap: 0 var(--space-6); margin-top: var(--space-2); }
   .links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
@@ -80,8 +84,8 @@ const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Căutare' }];
   }
 </style>
 <script>
-  import { loadCatalog, money, type CatalogItem } from '../scripts/cart';
-  import { fold } from '../scripts/search';
+  import { money, type CatalogItem } from '../scripts/cart';
+  import { searchCatalog } from '../scripts/search';
   import { plural } from '../scripts/filters';
   type Hit = CatalogItem & { vendor?: string | null; effect?: string | null };
   const root = document.querySelector<HTMLElement>('[data-search-page]')!;
@@ -89,20 +93,12 @@ const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Căutare' }];
   const input = document.querySelector<HTMLInputElement>('#sq')!;
   input.value = q;
   const status = root.querySelector<HTMLElement>('[data-status]')!, out = root.querySelector<HTMLElement>('[data-results]')!;
+  const more = root.querySelector<HTMLElement>('[data-more]')!;
   const badge = (c: string) => root.querySelector<HTMLTemplateElement>(`template[data-badge="${c}"]`)?.content.firstElementChild?.cloneNode(true) ?? null;
   const plus = root.querySelector<HTMLTemplateElement>('template[data-plus]')!.content.firstElementChild!;
   const el = (tag: string, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
-  loadCatalog().then((cat) => {
-    const words = fold(q).split(/\s+/).filter(Boolean);
-    const pub = document.documentElement.dataset.mode !== 'pro';
-    const hits = ([...cat.values()] as Hit[]).filter((p) => {
-      const hay = fold(`${p.title} ${p.vendor ?? ''} ${p.effect ?? ''}`);
-      return words.length && words.every((w) => hay.includes(w));
-    }).sort((a, b) => (Number(b.available) - Number(a.available)) || (pub ? Number(a.pro) - Number(b.pro) : 0));
-    status.textContent = !q ? 'Scrie ce cauți.' : hits.length ? `${plural(hits.length, 'rezultat', 'rezultate')} pentru „${q}”` : `Niciun rezultat pentru „${q}”`;
-    root.querySelector<HTMLElement>('[data-empty]')!.hidden = !(q && !hits.length);
-    // same rules as snippets/ProductCard.astro: stock line, sale flag, and the action button
-    for (const p of hits.slice(0, 96)) {
+  // same rules as snippets/ProductCard.astro: stock line, sale flag, and the action button
+  function resultCard(p: Hit) {
       const pct = p.compare && p.price ? Math.round((1 - p.price / p.compare) * 100) : 0;
       const card = el('article', `sc${p.available ? '' : ' out'}`);
       const media = el('a', 'm') as HTMLAnchorElement;
@@ -137,7 +133,27 @@ const crumbs = [{ label: 'Acasă', href: '/' }, { label: 'Căutare' }];
       }
       info.append(buy);
       card.append(media, info);
-      const li = el('li'); li.append(card); out.append(li);
+      const li = el('li'); li.append(card); return li;
+  }
+  const publicMode = document.documentElement.dataset.mode !== 'pro';
+  searchCatalog(q, publicMode).then((hits) => {
+    if (!hits.length) {
+      status.textContent = q ? `Niciun rezultat pentru „${q}”` : 'Scrie ce cauți.';
+      root.querySelector<HTMLElement>('[data-empty]')!.hidden = !q;
+      return;
     }
+    const pageSize = 48;
+    const appendPage = (focus = false) => {
+      const start = out.childElementCount;
+      const cards = hits.slice(start, start + pageSize).map(resultCard);
+      out.append(...cards);
+      const shown = out.childElementCount;
+      const total = `${plural(hits.length, 'rezultat', 'rezultate')} pentru „${q}”`;
+      status.textContent = shown < hits.length ? `${total}. Afișate ${shown} din ${hits.length}.` : total;
+      more.hidden = shown >= hits.length;
+      if (focus) cards[0]?.querySelector<HTMLAnchorElement>('.t a')?.focus();
+    };
+    more.querySelector('button')!.addEventListener('click', () => appendPage(true));
+    appendPage();
   }).catch(() => { status.textContent = 'Căutarea nu a putut fi încărcată. Reîncarcă pagina.'; });
 </script>

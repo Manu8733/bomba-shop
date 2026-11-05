@@ -68,5 +68,10 @@ export function initPasswordToggles(root: ParentNode = document) {
 export const nextUrl = () => {
   const n = new URLSearchParams(location.search).get('next');
   if (!n) return '/account';
-  try { const u = new URL(n, location.origin); return u.origin === location.origin ? u.pathname + u.search + u.hash : '/account'; } catch { return '/account'; }
+  try {
+    const url = new URL(n, location.origin);
+    // A same-origin URL can still have a path that would become an external URL if returned on its own.
+    if (url.origin !== location.origin || url.protocol !== location.protocol || url.pathname.startsWith('//')) return '/account';
+    return url.pathname + url.search + url.hash;
+  } catch { return '/account'; }
 };

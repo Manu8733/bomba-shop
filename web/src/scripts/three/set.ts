@@ -1,21 +1,11 @@
-// Hero set (Liquid: assets/hero-set.js): the product as a real 3D model in a dark studio. The model is built from the
-// product's own photo: round products (a fountain cone, a smoke canister) are lathed from their silhouette row by row,
-// bundles (roman candles, bengal sticks, cake fountains) are a row of tubes; the photo is projected onto the front, so
-// the model looks exactly like the product from the front (it does not turn: no photo shows its sides or back).
-// It stands on a black glossy floor that mirrors it, under the effect's own light (a point light at the nozzle) and
-// two rim lights; the floor runs off into the dark and, above it, the site's own night backdrop shows through (the canvas is transparent there). The camera is solved from the invisible DOM image of the slide, so the
-// model lands where the layout puts it, verticals kept vertical (shifted lens, no tilt). Rendered on the stage's frame.
+// The hero's Blender models keep the original product photography. The DOM photo stays visible until the
+// selected model has rendered successfully. The camera is aligned to the photo so the layout stays fixed.
 import * as THREE from 'three';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { STACKED } from '../stage';
 
-/** 'lathe' = a round product; a number = that many tubes side by side */
-export type Model = 'lathe' | number;
-/** glb: a model made in Blender (tools/blender/make_models.py); without one the model is built here from the photo */
-export type SetShot = { img: HTMLImageElement; obj: number[]; nozzle: number[]; color: string; model: Model; glb?: string };
-type Prod = { group: THREE.Group; fade: number; dir: 1 | -1; aspect: number; mats: THREE.Material[] };
-let turnTo = 0; // radians the current model is turned to (0 = facing the camera); eased in frame()
+type SetShot = { img: HTMLImageElement; obj: number[]; nozzle: number[]; color: string; glb: string };
 
 const EYE = .9;                // camera height above the floor, in product heights
 const LIGHTS: Record<string, string> = { silver: '#e8e6ff', gold: '#ffc06a' };
@@ -33,51 +23,44 @@ function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D)
   return t;
 }
 
-/** The product's outline, row by row, inside its body box (the baked 2D shadow below the base is left out). */
-function outline(img: HTMLImageElement, obj: number[], rows = 96) {
-  const s = Math.min(1, 700 / img.naturalHeight), W = Math.round(img.naturalWidth * s), H = Math.round(img.naturalHeight * s);
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const g = c.getContext('2d', { willReadFrequently: true })!; g.drawImage(img, 0, 0, W, H);
-  const a = g.getImageData(0, 0, W, H).data;
-  const X0 = Math.round(obj[0] * W), X1 = Math.round(obj[2] * W), Y0 = Math.round(obj[1] * H), Y1 = Math.round(obj[3] * H);
-  const span: [number, number][] = [];
-  for (let k = 0; k <= rows; k++) {
-    const y = Math.min(Y1 - 1, Math.round(Y0 + ((Y1 - Y0) * k) / rows));
-    let l = -1, r = -1;
-    for (let x = X0; x < X1; x++) if (a[(y * W + x) * 4 + 3] > 140) { if (l < 0) l = x; r = x; }
-    span.push([l, r]);
-  }
-  const top = (x0: number, x1: number) => { // first opaque row across the middle of a column band
-    for (let y = Y0; y < Y1; y++) { let n = 0; for (let x = x0; x < x1; x++) if (a[(y * W + x) * 4 + 3] > 140) n++; if (n > (x1 - x0) * .5) return y; }
-    return Y0;
-  };
-  return { W, H, X0, X1, Y0, Y1, span, top, rows };
-}
-
-export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setClearColor(0x000000, 0); // nothing behind the set: the page's backdrop (base.css) is the sky
-  const dpr = Math.min(devicePixelRatio || 1, 1.5);
-  renderer.setPixelRatio(dpr);
+export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: WebGL2RenderingContext) {
+  const compact = matchMedia('(max-width: 767px), (pointer: coarse)');
+  const stacked = matchMedia(STACKED);
+  const renderer = new THREE.WebGLRenderer({ canvas, context, alpha: true });
+  renderer.setClearColor(0x000000, 0); // the page's night backdrop shows through
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog('#050407', 4, 13);
   const camera = new THREE.PerspectiveCamera(40, 1, .05, 60);
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
-  // ---- studio: a black glossy floor that mirrors the product and runs off to the horizon
-  const mirror = new Reflector(new THREE.PlaneGeometry(120, 120), { color: 0x4a4a52, textureWidth: 512, textureHeight: 512, clipBias: .002 });
+  // Reflect only the product into a small, softly fading patch. Empty reflection pixels stay transparent,
+  // so loading a model never paints a different sky or an opaque floor over the page's photograph.
+  // The bundled Reflector exposes this shader, but its type declarations omit the static property.
+  const builtInShader = (Reflector as typeof Reflector & { ReflectorShader: {
+    uniforms: Record<string, THREE.IUniform>; vertexShader: string; fragmentShader: string;
+  } }).ReflectorShader;
+  const reflectionShader = {
+    ...builtInShader,
+    vertexShader: builtInShader.vertexShader
+      .replace('varying vec4 vUv;', 'varying vec4 vUv; varying vec2 floorUv;')
+      .replace('vUv = textureMatrix', 'floorUv = uv * 2.0 - 1.0; vUv = textureMatrix'),
+    fragmentShader: builtInShader.fragmentShader
+      .replace('varying vec4 vUv;', 'varying vec4 vUv; varying vec2 floorUv;')
+      .replace('gl_FragColor = vec4( blendOverlay( base.rgb, color ), 1.0 );', `
+        float footprint = 1.0 - smoothstep(0.15, 1.0, length(floorUv));
+        float alpha = base.a * footprint * 0.32;
+        if (alpha < 0.003) discard;
+        vec3 reflected = base.rgb / max(base.a, 0.0001);
+        gl_FragColor = vec4(blendOverlay(reflected, color), alpha);
+      `),
+  };
+  const mirror = new Reflector(new THREE.PlaneGeometry(2, 2), { color: 0x4a4a52, shader: reflectionShader,
+    textureWidth: 512, textureHeight: 512, multisample: compact.matches ? 0 : 4, clipBias: .002 });
+  const mirrorMaterial = mirror.material as THREE.ShaderMaterial;
+  mirrorMaterial.transparent = true;
+  mirrorMaterial.depthWrite = false;
   mirror.rotation.x = -Math.PI / 2; scene.add(mirror);
-  // clear at the product's base, opaque black further out: only the foot of the product is mirrored, then the floor
-  // goes dark. The gradient reaches opaque at 40% of the texture's radius; layout() zooms it to the camera distance.
-  const fadeTex = canvasTexture(256, 256, (g) => {
-    const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    gr.addColorStop(0, '#000'); gr.addColorStop(.08, '#000'); gr.addColorStop(.2, '#8a8a8a'); gr.addColorStop(.4, '#fff'); gr.addColorStop(1, '#fff');
-    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
-  }, false);
-  const finish = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshBasicMaterial({ color: '#050407', alphaMap: fadeTex, transparent: true, depthWrite: false }));
-  finish.rotation.x = -Math.PI / 2; finish.position.y = .0008; finish.renderOrder = 1; scene.add(finish);
   const aoTex = canvasTexture(256, 256, (g) => {
     const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
     gr.addColorStop(0, 'rgba(0,0,0,.95)'); gr.addColorStop(.4, 'rgba(0,0,0,.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
@@ -93,102 +76,54 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
   const key = new THREE.DirectionalLight('#d8dcf2', .55); key.position.set(-1.2, 1.8, 3); scene.add(key);
   scene.add(new THREE.HemisphereLight('#22283a', '#030305', .25));
 
-  let W = 0, H = 0, cur: Prod | null = null, shot: SetShot | null = null;
-  const leaving: Prod[] = [];
-  const fxColor = new THREE.Color('#ffffff');
-  const loader = new THREE.TextureLoader();
+  let W = 0, H = 0, dpr = 0, productWidth = .5, cur: THREE.Group | null = null, shot: SetShot | null = null;
+  let turnTo = 0, pending: AbortController | null = null;
   const gltf = new GLTFLoader();
 
-  /** a Blender model: 1 unit tall, base at 0, facing the camera; it fades in once loaded */
-  const fromGlb = (s: SetShot): Prod => {
-    const group = new THREE.Group(), prod: Prod = { group, fade: 0, dir: 1, aspect: .5, mats: [] };
-    scene.add(group);
-    gltf.load(s.glb!, (g) => {
-      g.scene.traverse((o) => {
-        const mesh = o as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        for (const m of ([] as THREE.Material[]).concat(mesh.material)) {
-          m.transparent = true; m.opacity = 0; prod.mats.push(m);
-          const sm = m as THREE.MeshStandardMaterial, map = sm.map;
-          if (map) {
-            // the photo already carries its studio light: show it in its own colours (self-lit), and let the scene's
-            // lights only add form (rims, the flame's warmth) instead of re-lighting and muddying it
-            map.anisotropy = aniso;
-            sm.emissive.set('#ffffff'); sm.emissiveMap = map; sm.emissiveIntensity = .72; sm.color.setScalar(.38); sm.roughness = .45;
-          }
-        }
-      });
-      const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());
-      prod.aspect = size.x;
-      const ao = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 1.5, Math.max(.25, size.z * 1.6)), new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false, opacity: 0 }));
-      ao.rotation.x = -Math.PI / 2; ao.position.y = .002; ao.renderOrder = 3;
-      group.add(g.scene, ao); prod.mats.push(ao.material as THREE.Material);
-      if (prod === cur) layout();
-    }, undefined, () => { // no model file: fall back to the one built from the photo
-      const p = build({ ...s, glb: undefined }); scene.remove(group);
-      Object.assign(prod, p, { fade: prod.fade, dir: prod.dir });
+  const disposeProduct = (product: THREE.Object3D) => {
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
+    const textures = new Set<THREE.Texture>();
+    const bitmaps = new Set<ImageBitmap>();
+    product.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      geometries.add(mesh.geometry);
+      for (const material of ([] as THREE.Material[]).concat(mesh.material)) materials.add(material);
     });
-    return prod;
-  };
-
-  const build = (s: SetShot): Prod => {
-    if (s.glb) return fromGlb(s);
-    const o = outline(s.img, s.obj);
-    const Hb = o.Y1 - o.Y0, cx = (o.X0 + o.X1) / 2;
-    const tex = loader.load(s.img.currentSrc || s.img.src, () => render());
-    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = aniso;
-    // projected mapping: a point at world (x, y) shows the photo pixel in front of it, so the front reads like the photo
-    const project = (geo: THREE.BufferGeometry, dx = 0) => {
-      const p = geo.attributes.position, uv = geo.attributes.uv;
-      for (let i = 0; i < p.count; i++) {
-        const u = (cx + (p.getX(i) + dx) * Hb) / o.W, v = 1 - (o.Y0 + (1 - p.getY(i)) * Hb) / o.H;
-        uv.setXY(i, Math.min(1, Math.max(0, u)), Math.min(1, Math.max(0, v)));
-      }
-      uv.needsUpdate = true;
-    };
-    const skin = new THREE.MeshStandardMaterial({ map: tex, roughness: .5, metalness: 0, transparent: true, opacity: 0 });
-    const cap = new THREE.MeshStandardMaterial({ color: '#2a2630', roughness: .8, transparent: true, opacity: 0 });
-    const group = new THREE.Group();
-    let aspect = (o.X1 - o.X0) / Hb;
-    if (s.model === 'lathe') {
-      // radius per row, lightly smoothed, from the base (y = 0) to the top (y = 1), closed at both ends
-      const rad = o.span.map(([l, r]) => (l < 0 ? 0 : (r - l + 1) / 2 / Hb * .985));
-      const sm = rad.map((v, i) => (rad[Math.max(0, i - 1)] + v * 2 + rad[Math.min(rad.length - 1, i + 1)]) / 4);
-      const pts = [new THREE.Vector2(0, 0)];
-      for (let k = o.rows; k >= 0; k--) pts.push(new THREE.Vector2(Math.max(.001, sm[k]), 1 - k / o.rows));
-      pts.push(new THREE.Vector2(0, 1));
-      const geo = new THREE.LatheGeometry(pts, 96);
-      geo.rotateY(Math.PI / 2); // lathe starts on +x; turn so the seam sits at the back
-      project(geo);
-      const mesh = new THREE.Mesh(geo, skin); group.add(mesh);
-      aspect = Math.max(...sm) * 2;
-    } else {
-      const n = s.model, pw = (o.X1 - o.X0) / n;
-      for (let k = 0; k < n; k++) {
-        const x0 = o.X0 + pw * k, x1 = x0 + pw, r = pw / 2 / Hb * .97;
-        const h = (o.Y1 - o.top(Math.round(x0 + pw * .3), Math.round(x1 - pw * .3))) / Hb;
-        const geo = new THREE.CylinderGeometry(r, r, h, 40, 1, false);
-        geo.translate(0, h / 2, 0);
-        const xc = ((x0 + x1) / 2 - cx) / Hb;
-        project(geo, xc);
-        const mesh = new THREE.Mesh(geo, [skin, cap, cap]); mesh.position.x = xc; mesh.position.z = (k % 2) * -r * .35;
-        group.add(mesh);
-      }
+    for (const material of materials) {
+      for (const value of Object.values(material)) if (value?.isTexture && value !== aoTex) textures.add(value);
+      material.dispose();
     }
-    const ao = new THREE.Mesh(new THREE.PlaneGeometry(aspect * 1.5, Math.max(.25, aspect * .7)), new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false, opacity: 0 }));
-    ao.rotation.x = -Math.PI / 2; ao.position.y = .002; ao.renderOrder = 3; group.add(ao);
-    scene.add(group);
-    return { group, fade: 0, dir: 1, aspect, mats: [skin, cap, ao.material as THREE.Material] };
+    for (const texture of textures) {
+      const image = texture.source.data;
+      if (typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap) bitmaps.add(image);
+      texture.dispose();
+    }
+    for (const geometry of geometries) geometry.dispose();
+    for (const image of bitmaps) image.close();
+  };
+  const clear = () => {
+    pending?.abort(); pending = null;
+    if (cur) { scene.remove(cur); disposeProduct(cur); cur = null; }
+    shot = null;
   };
 
   /** solve the camera so the model (1 unit tall, base on the floor) projects onto the DOM image's body box */
   const layout = () => {
-    W = root.clientWidth; H = root.clientHeight;
-    renderer.setSize(W, H, false);
-    mirror.getRenderTarget().setSize(Math.round(W * dpr * .5), Math.round(H * dpr * .5));
+    const w = root.clientWidth, height = root.clientHeight;
+    const ratio = Math.min(devicePixelRatio || 1, compact.matches ? 1 : 1.5);
+    if (!w || !height) return;
+    if (w !== W || height !== H || ratio !== dpr) {
+      W = w; H = height; dpr = ratio;
+      renderer.setDrawingBufferSize(W, H, dpr);
+      const reflectionScale = compact.matches ? .35 : .5;
+      mirror.getRenderTarget().setSize(Math.max(1, Math.round(W * dpr * reflectionScale)), Math.max(1, Math.round(H * dpr * reflectionScale)));
+    }
     if (!shot) return;
     const r = rectIn(shot.img, root), [x0, , x1, y1] = shot.obj;
     const h = r.h * y1, cx = r.x + r.w * (x0 + x1) / 2, yBase = r.y + h;
+    if (h <= 0) return;
     const f = H / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
     const D = f / h;
     camera.aspect = W / H;
@@ -196,52 +131,79 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
     camera.lookAt(0, EYE, 0);
     camera.setViewOffset(W, H, W / 2 - cx, H / 2 - (yBase - h * EYE), W, H);
     camera.updateProjectionMatrix();
-    // the horizon (eye height) on screen: the page lays a soft dusk band there, behind the canvas (Hero.astro .dusk)
-    root.style.setProperty('--horizon', `${Math.round(yBase - h * EYE)}px`);
-    // the reflection of a point at height y lands on the floor D·y/(EYE+y) in front of the product: fade the floor out
-    // where the mirrored image reaches REFL of the product's height (less in the stacked layout, where the copy sits right below)
-    const phone = matchMedia(STACKED).matches, REFL = phone ? .22 : .42;
-    const reach = D * REFL / (EYE + REFL), R = reach / .4, rep = 60 / R; // R: the gradient's radius in floor units (the plane is 120)
-    fadeTex.repeat.set(rep, rep); fadeTex.offset.set(.5 - rep / 2, .5 - rep / 2);
-    (mirror.material as THREE.ShaderMaterial).uniforms.color.value.set(phone ? 0x2a2a30 : 0x4a4a52);
-    const aspect = cur?.aspect ?? .5;
-    fx.position.set((shot.nozzle[0] - .5) * aspect, 1 - shot.nozzle[1] + .14, .42);
+    // A point at height y reflects onto the floor D*y/(EYE+y) in front of the product. End the local patch
+    // after a short part of the product's reflection, before the copy in the stacked layout.
+    const phone = stacked.matches, REFL = phone ? .22 : .42;
+    const reach = D * REFL / (EYE + REFL);
+    mirror.scale.set(Math.max(.14, productWidth * .95), reach, 1);
   };
 
-  const render = () => renderer.render(scene, camera);
-  let lastT = performance.now();
+  const show = async (next: SetShot) => {
+    clear(); turnTo = 0;
+    const load = new AbortController(); pending = load;
+    const url = new URL(next.glb, location.href);
+    let model: THREE.Group | null = null;
+    try {
+      const response = await fetch(url, { signal: load.signal });
+      if (!response.ok) return;
+      const bytes = await response.arrayBuffer();
+      if (load.signal.aborted) return;
+      model = (await gltf.parseAsync(bytes, new URL('.', url).href)).scene;
+      if (load.signal.aborted || context.isContextLost()) return;
 
-  const api = {
-    /** turn the model round (only products with a real photo of their back offer it) */
+      model.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        for (const m of ([] as THREE.Material[]).concat(mesh.material)) {
+          const skin = m as THREE.MeshStandardMaterial, map = skin.map;
+          if (!skin.isMeshStandardMaterial || !map) continue;
+          // The exported skin can have cut-out pixels even when its GLB material is marked opaque.
+          skin.transparent = true;
+          // The photograph already carries its own studio light. Scene lights only add form.
+          map.anisotropy = aniso;
+          skin.emissive.set('#ffffff'); skin.emissiveMap = map; skin.emissiveIntensity = .72; skin.color.setScalar(.38); skin.roughness = .45;
+        }
+      });
+      const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+      if (!(size.x > 0 && size.y > 0)) return;
+      productWidth = size.x;
+      const ao = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 1.5, Math.max(.25, size.z * 1.6)), new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false }));
+      ao.rotation.x = -Math.PI / 2; ao.position.y = .002; ao.renderOrder = 3;
+      cur = new THREE.Group(); cur.add(model, ao); scene.add(cur); model = null;
+      shot = next;
+      fx.color.set(LIGHTS[shot.color] ?? shot.color);
+      fx.position.set((shot.nozzle[0] - .5) * size.x, 1 - shot.nozzle[1] + .14, .42);
+      layout();
+    } catch {
+      // Keep the real photo when the request or decoding fails. An aborted request belongs to a previous slide.
+      if (pending === load) clear();
+    } finally {
+      if (model) disposeProduct(model);
+      if (pending === load) pending = null;
+    }
+  };
+
+  const resize = new ResizeObserver(layout);
+  resize.observe(root);
+  const stage = root.querySelector<HTMLElement>('[data-stage]');
+  if (stage) resize.observe(stage);
+  let lastT = performance.now();
+  return {
     turn(rad: number) { turnTo = rad; },
-    show(s: SetShot) {
-      shot = s; turnTo = 0;
-      if (cur) { cur.dir = -1; leaving.push(cur); }
-      cur = build(s);
-      fxColor.set(LIGHTS[s.color] ?? s.color); fx.color.copy(fxColor);
-      layout(); render();
-    },
-    /** called by the stage engine every frame with the effect's light level (0 = off, ~1 = full flame) */
+    show,
     frame(heat: number) {
+      if (!cur || !W || !H || context.isContextLost()) return false;
       const now = performance.now(), dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
       fx.intensity = Math.max(0, heat) * 3.2;
-      if (cur && cur.fade < 1) cur.fade = Math.min(1, cur.fade + dt / .5);
-      for (const p of [cur, ...leaving]) {
-        if (!p) continue;
-        if (p.dir < 0) p.fade = Math.max(0, p.fade - dt / .35);
-        p.mats.forEach((m) => { m.opacity = p.fade; });
-      }
-      if (cur) cur.group.rotation.y += (turnTo - cur.group.rotation.y) * Math.min(1, dt * 7);
-      for (let i = leaving.length - 1; i >= 0; i--) if (leaving[i].fade <= 0) {
-        const p = leaving[i]; scene.remove(p.group);
-        p.group.traverse((m) => { const mesh = m as THREE.Mesh; if (mesh.geometry) mesh.geometry.dispose(); });
-        p.mats.forEach((m) => { (m as THREE.MeshStandardMaterial).map?.dispose(); m.dispose(); }); leaving.splice(i, 1);
-      }
-      render();
+      cur.rotation.y += (turnTo - cur.rotation.y) * Math.min(1, dt * 7);
+      renderer.render(scene, camera);
+      return true;
     },
-    relayout() { layout(); render(); },
-    destroy() { renderer.dispose(); },
+    destroy() {
+      resize.disconnect(); clear();
+      mirror.geometry.dispose(); mirror.dispose();
+      aoTex.dispose();
+      renderer.dispose();
+    },
   };
-  new ResizeObserver(() => api.relayout()).observe(root);
-  return api;
 }

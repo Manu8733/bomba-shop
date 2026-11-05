@@ -55,7 +55,7 @@ import { counties } from '../lib/ro';
           <p class="muted small">Demonstrativ: nu se trimite nimic și nu se face nicio plată.</p>
         </div>
       </form>
-      <aside class="sum" aria-labelledby="co-sum"><h2 id="co-sum">Comanda ta</h2><ul data-sum></ul><p class="tot"><span>Subtotal</span><b class="mono" data-total>—</b></p><p class="muted small">TVA inclus. {commerce.shipping.confirmed ? 'Costul livrării apare înainte de plasare.' : 'Livrarea nu e inclusă în această demonstrație.'}</p></aside>
+      <aside class="sum" aria-labelledby="co-sum"><h2 id="co-sum">Comanda ta</h2><ul data-sum></ul><p class="tot" aria-live="polite"><span>Subtotal</span><b class="mono" data-total>—</b></p><p class="muted small">TVA inclus. {commerce.shipping.confirmed ? 'Costul livrării apare înainte de plasare.' : 'Livrarea nu e inclusă în această demonstrație.'}</p></aside>
     </div>
   </div>
 </Theme>
@@ -105,6 +105,8 @@ import { counties } from '../lib/ro';
   .pro-note { color: var(--strontium-500); font-size: var(--text-sm); }
   /* summary: a flat surface, no outline */
   .sum { position: sticky; top: calc(var(--header-h) + 16px); padding: var(--space-6); border-radius: var(--radius-card); background: var(--night-900); display: grid; gap: var(--space-3); }
+  /* one column: what is being ordered comes first, not after the button that places it */
+  @media (max-width: 1023px) { .sum { order: -1; position: static; } }
   .sum h2 { font: 600 var(--text-lg)/1.3 var(--font-body); text-transform: none; letter-spacing: 0; }
   .sum ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: var(--text-sm); }
   .sum :global(li) { display: flex; justify-content: space-between; gap: 12px; }
@@ -113,22 +115,30 @@ import { counties } from '../lib/ro';
   .tot { display: flex; justify-content: space-between; padding-top: var(--space-3); border-top: var(--border); font-variant-numeric: tabular-nums; }
 </style>
 <script>
-  import { getCart, money, removeLine } from '../scripts/cart';
+  import { clearCart, getCart, money, type Cart } from '../scripts/cart';
   import { getAccount, getAddresses, saveAddress, addOrder } from '../scripts/account';
   import { validate, errorTexts } from '../scripts/auth-forms';
   import { getProAuth } from '../scripts/mode';
-  void getCart().then((cart) => {
-    const ul = document.querySelector('[data-sum]')!;
+  const ul = document.querySelector('[data-sum]')!;
+  const renderSummary = (cart: Cart) => {
+    ul.replaceChildren();
     if (!cart.items.length) ul.innerHTML = '<li><span>Coșul e gol.</span><a href="/collections/public">Produse F1</a></li>';
     cart.items.forEach((it) => { const li = document.createElement('li'); li.innerHTML = '<span></span><b class="mono"></b>'; li.firstElementChild!.textContent = `${it.quantity} × ${it.product.title}`; li.lastElementChild!.textContent = money(it.line_price); ul.append(li); });
     document.querySelector('[data-total]')!.textContent = money(cart.total_price);
-    if (cart.items.some((i) => i.product.pro)) {
-      const a = getProAuth(), note = document.querySelector<HTMLElement>('[data-pro-note]')!;
-      note.hidden = false;
-      note.textContent = a.status === 'verified' ? 'Autorizație verificată pentru produsele P1/T1.' : 'Coșul conține produse P1/T1: încarcă autorizația pe pagina Profesioniști; comanda se confirmă după verificare.';
-    }
+    const note = document.querySelector<HTMLElement>('[data-pro-note]')!;
+    note.hidden = !cart.items.some((i) => i.product.pro);
+    if (!note.hidden) note.textContent = getProAuth().status === 'verified' ? 'Autorizație verificată pentru produsele P1/T1.' : 'Coșul conține produse P1/T1: încarcă autorizația pe pagina Profesioniști; comanda se confirmă după verificare.';
+  };
+  window.addEventListener('cart:change', (e) => renderSummary((e as CustomEvent<Cart>).detail));
+  void getCart().then(renderSummary).catch(() => {
+    const item = document.createElement('li');
+    item.textContent = 'Coșul nu a putut fi încărcat. Reîncarcă pagina.';
+    ul.replaceChildren(item);
   });
   const form = document.querySelector<HTMLFormElement>('[data-checkout]')!;
+  const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+  const layout = document.querySelector<HTMLElement>('[data-layout]')!;
+  const box = form.querySelector<HTMLElement>('[data-errors]')!;
   const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
   const F = { firstName: 'c-fn', lastName: 'c-ln', address1: 'c-addr', address2: 'c-addr2', city: 'c-city', county: 'c-county', zip: 'c-zip', phone: 'c-phone' } as const;
   // a signed-in customer starts from their account: email and default address filled in
@@ -140,36 +150,52 @@ import { counties } from '../lib/ro';
     else { $('c-fn').value = acc.firstName; $('c-ln').value = acc.lastName; }
     form.querySelector<HTMLElement>('[data-save]')!.hidden = false; $('c-save').checked = !def;
   }
+  function showProblems(problems: string[], focus: boolean) {
+    box.hidden = problems.length === 0;
+    if (!problems.length) return;
+    const list = document.createElement('ul');
+    for (const problem of problems) {
+      const item = document.createElement('li');
+      item.textContent = problem;
+      list.append(item);
+    }
+    box.replaceChildren(list);
+    if (focus) box.focus();
+  }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    // each message sits under its field (validate); the box by the button sums them up, and says when the cart is empty
-    const ok = validate(form), box = form.querySelector<HTMLElement>('[data-errors]')!;
-    const cart = await getCart();
-    const problems = errorTexts(form);
-    if (!cart.items.length) problems.unshift('Coșul e gol: adaugă întâi produse.');
-    box.hidden = !problems.length;
-    if (problems.length) {
-      box.innerHTML = '<b>Mai sunt de completat:</b><ul></ul>';
-      problems.forEach((t) => { const li = document.createElement('li'); li.textContent = t; box.querySelector('ul')!.append(li); });
-      if (ok) box.focus(); return; // otherwise validate() already moved focus to the first field to fix
+    if (submit.disabled) return;
+    submit.disabled = true;
+    try {
+      const ok = validate(form);
+      const problems = errorTexts(form);
+      const cart = await getCart();
+      if (!cart.items.length) problems.unshift('Coșul e gol: adaugă întâi produse.');
+      showProblems(problems, ok);
+      if (!ok || problems.length) return;
+
+      const address = { company: '', ...Object.fromEntries(Object.entries(F).map(([k, id]) => [k, $(id).value.trim()])) } as Parameters<typeof addOrder>[0]['address'];
+      const email = $('c-email').value.trim().toLowerCase();
+      const order = addOrder({ email, address, total: cart.total_price, payment: form.querySelector<HTMLInputElement>('input[name="pay"]:checked')?.value ?? '',
+        lines: cart.items.map((it) => ({ handle: it.handle, title: it.product.title, quantity: it.quantity, price: it.product.price ?? 0 })) });
+      if (acc && $('c-save').checked) saveAddress({ ...address, id: `a${Date.now().toString(36)}`, isDefault: !getAddresses().length });
+      await clearCart();
+
+      const mine = acc?.email === email, link = document.querySelector<HTMLAnchorElement>('[data-placed-link]')!;
+      const what = `${cart.item_count} ${cart.item_count === 1 ? 'produs' : 'produse'}, ${money(cart.total_price)}.`;
+      document.querySelector('[data-placed-title]')!.textContent = `Comanda #${order.number} e primită`;
+      document.querySelector('[data-placed-text]')!.textContent = mine
+        ? `${what} O găsești în cont, cu produsele și adresa de livrare.`
+        : `${what} Creează un cont cu ${email} și o vezi oricând, cu produsele și adresa.`;
+      link.href = mine ? `/account/order?n=${order.number}` : `/account/register?next=${encodeURIComponent(`/account/order?n=${order.number}`)}`;
+      link.textContent = mine ? 'Vezi comanda' : 'Creează cont';
+      layout.hidden = true;
+      const placed = document.querySelector<HTMLElement>('[data-placed]')!; placed.hidden = false; placed.focus();
+      scrollTo({ top: 0 });
+    } catch {
+      showProblems(['Comanda demonstrativă nu a putut fi salvată în acest browser. Încearcă din nou.'], true);
+    } finally {
+      submit.disabled = layout.hidden;
     }
-    const address = { company: '', ...Object.fromEntries(Object.entries(F).map(([k, id]) => [k, $(id).value.trim()])) } as Parameters<typeof addOrder>[0]['address'];
-    const email = $('c-email').value.trim().toLowerCase();
-    const order = addOrder({ email, address, total: cart.total_price, payment: form.querySelector<HTMLInputElement>('input[name="pay"]:checked')?.value ?? '',
-      lines: cart.items.map((it) => ({ handle: it.handle, title: it.product.title, quantity: it.quantity, price: it.product.price ?? 0 })) });
-    if (acc && $('c-save').checked) saveAddress({ ...address, id: `a${Date.now().toString(36)}`, isDefault: !getAddresses().length });
-    for (const it of cart.items) await removeLine(it.handle);
-    // the confirmation: the order page when this email has an account here, otherwise an invitation to create one
-    const mine = acc?.email === email, link = document.querySelector<HTMLAnchorElement>('[data-placed-link]')!;
-    const what = `${cart.item_count} ${cart.item_count === 1 ? 'produs' : 'produse'}, ${money(cart.total_price)}.`;
-    document.querySelector('[data-placed-title]')!.textContent = `Comanda #${order.number} e primită`;
-    document.querySelector('[data-placed-text]')!.textContent = mine
-      ? `${what} O găsești în cont, cu produsele și adresa de livrare.`
-      : `${what} Creează un cont cu ${email} și o vezi oricând, cu produsele și adresa.`;
-    link.href = mine ? `/account/order?n=${order.number}` : `/account/register?next=${encodeURIComponent(`/account/order?n=${order.number}`)}`;
-    link.textContent = mine ? 'Vezi comanda' : 'Creează cont';
-    document.querySelector<HTMLElement>('[data-layout]')!.hidden = true;
-    const placed = document.querySelector<HTMLElement>('[data-placed]')!; placed.hidden = false; placed.focus();
-    scrollTo({ top: 0 });
   });
 </script>

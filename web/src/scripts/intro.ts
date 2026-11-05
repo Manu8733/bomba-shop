@@ -13,7 +13,12 @@ const VIEW = { w: 522, h: 148, pad: 24 }; // the wordmark SVG's viewBox and its 
 const T = { rise: 620, form: 1050, hold: 640, fly: 980, end: 260 };
 
 /** Inline in <head>: decides before first paint whether the intro will play (so the header logo starts hidden). */
-export const introBootScript = `try{if(!sessionStorage.getItem('${KEY}')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('intro')}catch(e){}`;
+export const introBootScript = `try{if(!sessionStorage.getItem('${KEY}')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  const root=document.documentElement;root.classList.add('intro');
+  setTimeout(()=>{if(root.classList.contains('intro')&&!root.classList.contains('intro-live')){
+    root.classList.remove('intro');window.dispatchEvent(new Event('intro:done'));
+  }},900);
+}}catch(e){}`;
 
 function sample(n: number) {
   // draw the wordmark at 4× into an offscreen canvas and pick n opaque pixels (letters white, burst rays coloured)
@@ -35,16 +40,22 @@ function sample(n: number) {
   }
   g.fillStyle = '#0f0'; g.beginPath(); g.arc(130, 50, 8, 0, Math.PI * 2); g.fill();
   const d = g.getImageData(0, 0, c.width, c.height).data;
-  const px: number[] = [];
+  const px: number[] = [], edges: number[] = [];
   for (let y = 0; y < c.height; y += 2) for (let x = 0; x < c.width; x += 2) {
     const k = (y * c.width + x) * 4;
-    if (d[k + 3] > 140) px.push(x, y, d[k] > 200 && d[k + 1] > 200 ? 0 : d[k] > 200 ? 2 : 1); // 0 letter, 1 long ray, 2 short ray
+    if (d[k + 3] <= 140) continue;
+    const kind = d[k] > 200 && d[k + 1] > 200 ? 0 : d[k] > 200 ? 2 : 1;
+    px.push(x, y, kind); // 0 letter, 1 long ray, 2 short ray
+    const reach = S * 4;
+    if (d[k - reach + 3] <= 140 || d[k + reach + 3] <= 140 ||
+        d[k - reach * c.width + 3] <= 140 || d[k + reach * c.width + 3] <= 140) edges.push(x, y, kind);
   }
-  const out: { u: number; v: number; kind: number }[] = [];
-  const total = px.length / 3;
+  const out: { u: number; v: number; kind: number; edge: boolean }[] = [];
   for (let i = 0; i < n; i++) {
-    const j = Math.floor(Math.random() * total) * 3;
-    out.push({ u: (px[j] - 4) / S + Math.random() * .5, v: (px[j + 1] - 4) / S + Math.random() * .5, kind: px[j + 2] });
+    const edge = i % 4 === 0 && edges.length > 0;
+    const pool = edge ? edges : px;
+    const j = Math.floor(Math.random() * pool.length / 3) * 3;
+    out.push({ u: (pool[j] - 4) / S, v: (pool[j + 1] - 4) / S, kind: pool[j + 2], edge });
   }
   return out;
 }
@@ -73,10 +84,14 @@ const FS = `precision mediump float;
 varying vec2 vP; varying float vLen; varying float vHw; varying vec4 vCol;
 void main() {
   float dx = max(0., max(-vP.x, vP.x - vLen));
-  float k = 1. - smoothstep(0., 1., length(vec2(dx, vP.y)) / vHw); k *= k;
+  float r = length(vec2(dx, vP.y)) / vHw;
+  float core = exp2(-r * r * 15.);
+  float shoulder = .17 * exp2(-r * r * 3.2);
+  float k = (core + shoulder) * (1. - smoothstep(.82, 1., r));
   float head = vLen > .5 ? mix(.3, 1., clamp(vP.x / vLen, 0., 1.)) : 1.;
   float a = vCol.a * k * head;
-  gl_FragColor = vec4(vCol.rgb * a, a);
+  vec3 light = mix(vCol.rgb, vec3(1.), core * .12);
+  gl_FragColor = vec4(light * a, a);
 }`;
 const VS_FILL = `attribute vec2 corner; void main() { gl_Position = vec4(corner.x * 2. - 1., corner.y, 0., 1.); }`;
 const FS_FILL = `precision mediump float; uniform vec4 fill; void main() { gl_FragColor = fill; }`;
@@ -99,7 +114,7 @@ export function runIntro() {
     setTimeout(() => root.classList.remove('intro-land'), 700);
     window.dispatchEvent(new CustomEvent('intro:done'));
   };
-  const logo = document.querySelector<SVGElement>('.site-header .brand svg');
+  const logo = document.querySelector<SVGSVGElement>('.site-header .brand svg');
   if (!logo) { finish(); return; }
 
   const canvas = document.createElement('canvas');
@@ -117,6 +132,7 @@ export function runIntro() {
   canvas.style.width = `${W}px`; canvas.style.height = `${H}px`;
   canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
   gl.viewport(0, 0, canvas.width, canvas.height);
+  const canvasBox = canvas.getBoundingClientRect();
 
   // one unit quad (corner.x 0..1 along, corner.y -1..1 across) shared by every instance
   const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -157,7 +173,7 @@ export function runIntro() {
   };
 
   const mobile = W < 768;
-  const pts = sample(mobile ? 2400 : 4600);
+  const pts = sample(mobile ? 3000 : 5600);
   // colour index: 0 letter, 1 long ray, 2 short ray, 3 white-hot (in flight), 4 pure white (light sweep)
   const COL = ['#f6f1ea', '#ffb648', '#ff3d6e', '#fff8e6', '#ffffff'].map(hex);
   const WARM = hex('#ffecbe'), ORANGE = hex('#ff963c'), RING = hex('#ffdcaa'), HEAD = hex('#fffae6'), SPARK = hex('#ffd28c');
@@ -166,24 +182,26 @@ export function runIntro() {
   // where the header logo draws its letters (the SVG keeps its aspect ratio and centres the drawing in its box)
   const target = () => {
     const r = logo.getBoundingClientRect(), k = Math.min(r.width / VIEW.w, r.height / VIEW.h);
-    return { k, x: r.left + (r.width - VIEW.w * k) / 2 + VIEW.pad * k, y: r.top + (r.height - VIEW.h * k) / 2 + VIEW.pad * k };
+    return { k,
+      x: r.left - canvasBox.left + (r.width - VIEW.w * k) / 2 + VIEW.pad * k,
+      y: r.top - canvasBox.top + (r.height - VIEW.h * k) / 2 + VIEW.pad * k };
   };
-  const { k: sk, x: sx, y: sy } = target();
   const R = Math.max(W, H) * .55;
   const P = pts.map((p) => {
     const a = Math.random() * Math.PI * 2, reach = R * (.35 + Math.pow(Math.random(), .6) * .65);
     return {
       ox: cx + Math.cos(a) * reach, oy: cy + Math.sin(a) * reach * .8,   // where the burst throws it
       bx: bx + p.u * bk, by: by + p.v * bk,                               // its place in the big wordmark
-      tx: sx + p.u * sk, ty: sy + p.v * sk,                               // its place in the header logo
-      c: p.kind, s: .9 + Math.random() * 1.5, d: Math.random(),
+      u: p.u, v: p.v,                                                     // its point in the wordmark artwork
+      c: p.kind, s: p.edge ? 1.05 + Math.random() * .65 : .75 + Math.random() * 1.45, d: Math.random(),
+      edge: p.edge, glint: Math.random() < .018,
       fly: clamp01(p.u / 474 * .55 + Math.random() * .2),                // left letters leave first
       x: cx, y: cy,
     };
   });
-  const tail: { x: number; y: number; vx: number; vy: number; a: number }[] = [];
+  const tail: { x: number; y: number; vx: number; vy: number; a: number; width: number }[] = [];
 
-  let t0 = 0, raf = 0, done = false, prev = 0, clock = 0, aimed = false;
+  let t0 = 0, raf = 0, done = false, prev = 0, clock = 0;
   const tR = T.rise, tF = tR + T.form, tH = tF + T.hold, tL = tH + T.fly, total = tL + T.end;
   const end = () => {
     if (done) return;
@@ -193,8 +211,12 @@ export function runIntro() {
     finish();
     setTimeout(() => { canvas.remove(); gl.getExtension('WEBGL_lose_context')?.loseContext(); }, 350);
     removeEventListener('keydown', end); removeEventListener('wheel', end); canvas.removeEventListener('pointerdown', end);
+    removeEventListener('resize', endOnResize);
+    canvas.removeEventListener('webglcontextlost', end);
   };
+  const endOnResize = () => { if (root.clientWidth !== W || root.clientHeight !== H) end(); };
   addEventListener('keydown', end, { once: true }); addEventListener('wheel', end, { once: true, passive: true }); canvas.addEventListener('pointerdown', end, { once: true });
+  canvas.addEventListener('webglcontextlost', end, { once: true });
 
   const NIGHT = [7 / 255, 6 / 255, 11 / 255];
   gl.clearColor(NIGHT[0], NIGHT[1], NIGHT[2], 1); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -222,13 +244,18 @@ export function runIntro() {
       // 1 launch: the shell climbs from the bottom with a falling tail
       const k = easeOut(t / tR);
       const hx = cx + Math.sin(k * 5) * 6, hy = mix(H + 40, cy, k);
-      for (let i = Math.max(1, Math.round(6 * dt * 60)); i--;) tail.push({ x: hx + (Math.random() - .5) * 4, y: hy + 6, vx: (Math.random() - .5) * 40, vy: 30 + Math.random() * 80, a: 1 });
-      put(hx, hy, hx, hy, 64, HEAD, 1); put(hx, hy, hx, hy, 14, COL[4], 1);
+      for (let i = Math.max(1, Math.round(6 * dt * 60)); i--;) tail.push({
+        x: hx + (Math.random() - .5) * 4, y: hy + 6,
+        vx: (Math.random() - .5) * 40, vy: 30 + Math.random() * 80, a: 1, width: 2 + Math.random() * 3,
+      });
+      put(hx, hy, hx, hy, 64, HEAD, .32);
+      put(hx, hy, hx, hy, 22, WARM, .72); put(hx, hy, hx, hy, 7, COL[4], 1);
     }
     for (let i = tail.length - 1; i >= 0; i--) {
-      const s = tail[i]; s.vy += 220 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.a -= dt * 1.6;
+      const s = tail[i], lastX = s.x, lastY = s.y;
+      s.vy += 220 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.a -= dt * 1.6;
       if (s.a <= 0) { tail[i] = tail[tail.length - 1]; tail.pop(); continue; }
-      put(s.x, s.y, s.x, s.y, 7, SPARK, s.a);
+      put(lastX, lastY, s.x, s.y, s.width, s.a > .65 ? HEAD : SPARK, s.a * s.a);
     }
 
     if (t >= tR) {
@@ -244,11 +271,7 @@ export function runIntro() {
         }
       }
       const sweepX = t > tF ? mix(bx - 80, bx + bigW + 80, easeInOut(clamp01((t - tF - 120) / 520))) : -1e9;
-      if (t >= tH && !aimed) { // measure the header logo again right before landing, in case the page moved under the cover
-        aimed = true;
-        const g = target();
-        for (const p of P) { p.tx = g.x + (p.tx - sx) / sk * g.k; p.ty = g.y + (p.ty - sy) / sk * g.k; }
-      }
+      const landing = t >= tH ? target() : null;
       for (const p of P) {
         let x: number, y: number, a = 1, s = p.s, col: number = p.c;
         if (t < tF) {
@@ -257,18 +280,26 @@ export function runIntro() {
           const e = easeOutBack(k), q = 1 - e;
           x = q * q * cx + 2 * q * e * p.ox + e * e * p.bx; y = q * q * cy + 2 * q * e * p.oy + e * e * p.by + 60 * Math.sin(Math.PI * k) * (k < .6 ? k : .6);
           col = k < .35 ? 3 : p.c; s = p.s * (1.4 - .5 * k);
-        } else if (t < tH) {
+        } else if (!landing) {
           // 3 ignite: glitter + light sweep
           x = p.bx + Math.sin(t * .02 + p.d * 40) * .5; y = p.by + Math.cos(t * .018 + p.d * 30) * .5;
-          const tw = .75 + .25 * Math.sin(t * .03 + p.d * 90);
+          const tw = .78 + .14 * Math.sin(t * .016 + p.d * 90) + (p.edge ? .12 : 0);
           const band = Math.max(0, 1 - Math.abs(x - sweepX) / 60);
-          a = tw + band; s = p.s * (1 + band * .8); if (band > .4) col = 4;
+          a = tw + band * .65; s = p.s * (1 + band * .65); if (band > .4) col = 4;
+          if (p.glint && band > .32) {
+            const shine = Math.sin(Math.PI * band) * .7;
+            put(x - 5, y, x + 5, y, .9, COL[p.c], shine);
+            put(x, y - 3, x, y + 3, .8, COL[4], shine * .8);
+          }
         } else {
           // 4 land: stream into the header logo, left letters first
           const k = easeInOut(clamp01(((t - tH) / T.fly - p.fly * .35) / .65));
-          const mx = mix(p.bx, p.tx, .5) + (p.by - H / 2) * .25, my = Math.min(p.by, p.ty) - 80 - p.d * 60;
+          // The shader applies the camera push afterwards. Put the SVG destination in camera space first.
+          const tx = (landing.x + p.u * landing.k - ox) / push;
+          const ty = (landing.y + p.v * landing.k - oy) / push;
+          const mx = mix(p.bx, tx, .5) + (p.by - H / 2) * .25, my = Math.min(p.by, ty) - 80 - p.d * 60;
           const q = 1 - k;
-          x = q * q * p.bx + 2 * q * k * mx + k * k * p.tx; y = q * q * p.by + 2 * q * k * my + k * k * p.ty;
+          x = q * q * p.bx + 2 * q * k * mx + k * k * tx; y = q * q * p.by + 2 * q * k * my + k * k * ty;
           s = p.s * mix(1.1, .5, k); a = k > .97 ? 1 - (k - .97) / .03 : 1;
         }
         // a moving spark is a streak from its previous position (long exposure), a resting one a soft dot
@@ -285,5 +316,5 @@ export function runIntro() {
   };
   // skip the first frame after load (style, layout and image decode land there), then roll
   raf = requestAnimationFrame(() => { raf = requestAnimationFrame(frame); });
-  addEventListener('resize', end, { once: true });
+  addEventListener('resize', endOnResize);
 }

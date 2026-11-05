@@ -78,7 +78,7 @@ const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
             </div>
             <p class="nl-error" id="footer-nl-consent-error"></p>
           </div>
-          <p class="nl-done" tabindex="-1" data-nl-done hidden><Icon name="check" size={24} />Mulțumim! Te-ai abonat.</p>
+          <p class="nl-done" tabindex="-1" data-nl-done hidden><Icon name="check" size={24} />Adresă validată. Abonarea se activează la lansare.</p>
         </form>
       </section>
 
@@ -259,7 +259,9 @@ const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
 </style>
 
 <script>
-  // Newsletter, UI only. In the Shopify theme the customer form posts to /contact and re-renders with
+  import { setNewsletter } from '../scripts/account';
+
+  // The demo updates existing local profiles. In the Shopify theme the customer form posts to /contact and re-renders with
   // form.posted_successfully?, so this handler is dropped there.
   const form = document.querySelector<HTMLFormElement>('[data-newsletter]');
   if (form) {
@@ -285,6 +287,7 @@ const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
       const okEmail = report(email, emailMessage());
       const okConsent = report(consent, consentMessage);
       if (!okEmail || !okConsent) { (okEmail ? consent : email).focus(); return; }
+      setNewsletter(email.value.toLowerCase(), true);
       fields.hidden = true;
       done.hidden = false;
       done.focus();

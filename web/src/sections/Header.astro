@@ -35,7 +35,7 @@ const popular = [
 <header class:list={['site-header', { home }]} data-header>
   <div class="container bar">
     <button class="icon-btn menu-btn" type="button" aria-label="Deschide meniul" data-menu-open><Icon name="menu" size={24} /></button>
-    <a class="brand" href="/" aria-label="Bomba Shop, pagina principală"><Logo height={26} /></a>
+    <a class="brand" href="/" aria-label="Bomba Shop, pagina principală"><Logo height={28} /></a>
     <nav class="primary" aria-label="Principal">
       <ul>
         {nav.map((g) => (
@@ -230,14 +230,14 @@ const popular = [
   .search { width: 100%; height: 100%; background: rgba(7, 6, 11, .96); }
   .search[open] { display: block; animation: fade var(--dur-ui) ease-out; }
   @keyframes fade { from { opacity: 0; } }
-  .search-in { padding-block: calc(env(safe-area-inset-top, 0px) + 20px) 40px; display: grid; gap: var(--space-4); max-width: 960px; }
+  .search-in { padding-block: calc(env(safe-area-inset-top, 0px) + 20px) 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); max-width: 960px; }
   .search-form { display: flex; align-items: center; gap: var(--space-3); border-bottom: 2px solid var(--white); padding-bottom: var(--space-3); }
   .search-form input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--white); outline: none;
     font: 800 clamp(1.6rem, 4vw, 2.6rem)/1.1 var(--font-display); text-transform: uppercase; }
   .search-form input::placeholder { color: var(--night-600); }
   .search-form input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; } /* our own clear button replaces it */
   .results { display: grid; gap: 2px; }
-  .results :global(.sr-item) { display: grid; grid-template-columns: 64px 1fr auto; gap: var(--space-4); align-items: center; padding: 10px; border-radius: var(--radius-label); text-decoration: none; }
+  .results :global(.sr-item) { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; /* a long name ellipses, it never widens the row */ gap: var(--space-4); align-items: center; padding: 10px; border-radius: var(--radius-label); text-decoration: none; }
   .results :global(.sr-item[aria-selected='true']), .results :global(.sr-item:hover) { background: var(--night-800); color: var(--white); }
   .results :global(.sr-thumb) { position: relative; width: 64px; height: 64px; border-radius: var(--radius-label); background: var(--night-800); display: grid; place-items: center; overflow: hidden; }
   .results :global(.sr-thumb img) { width: 100%; height: 100%; object-fit: contain; }

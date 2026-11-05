@@ -1,29 +1,28 @@
 ---
 // Liquid: sections/home-hero.liquid (blocks: featured product × n, each with effect, colour and nozzle points).
 // The stage: one real product at a time stands on the ground and is fired live above its nozzle (scripts/stage.ts).
-// Left/right and the fuse tabs pick the product; the fuse under the active tab is the autoplay timer. Countdown to
-// Revelion in the corner. No scroll hijacking.
+// Two arrows beside the product, touch swipes and keyboard arrows change the product manually.
+// Countdown to Revelion in the corner. No scroll hijacking.
 import Img from '../../snippets/Img.astro';
 import Icon from '../../snippets/Icon.astro';
 import { byHandle, available, isPro, imagesOf, price, money, productUrl, variant } from '../../lib/catalog';
 import { law } from '../../config';
 import type { Effect } from '../../scripts/stage';
 
-// model: how the 3D set builds the product (three/set.ts): 'lathe' for a round one, a number for that many tubes in a row
 // turn: the model has a real photo of its back (tools/blender/make_models.py), so it can be turned round
-type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number; model: 'lathe' | number; turn?: boolean };
+type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number; turn?: boolean };
 const defs: Def[] = [
   // the owner's pick for the first screen: the smoke canister
   { handle: 'fumigena-portocalie-cu-inel', name: 'Fumigenă portocalie', kind: 'Fumigenă cu inel', unit: 'pentru o bucată',
-    line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff6a14', nozzles: [[.42, .01]], model: 'lathe' },
+    line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff6a14', nozzles: [[.42, .01]] },
   { handle: 'vulcan-etna', name: 'Vulcan Etna', kind: 'Vulcan', unit: 'pentru o bucată',
-    line: 'Jerbă de scântei argintii. Distanța minimă de siguranță: 1 m.', effect: 'fountain', color: 'silver', nozzles: [[.55, .015]], k: .78, model: 'lathe' },
+    line: 'Jerbă de scântei argintii. Distanța minimă de siguranță: 1 m.', effect: 'fountain', color: 'silver', nozzles: [[.55, .015]], k: .78 },
   { handle: 'candele-romane-30-foc', name: 'Candele romane', kind: 'Candelă romană', unit: 'pentru pachetul de 12', img: 2,
-    line: 'Câte 30 de bile colorate, trase pe rând spre cer.', effect: 'candle', color: 'gold', nozzles: [[.14, .005], [.62, .005], [.38, .005], [.86, .005]], k: .74, model: 6, turn: true },
+    line: 'Câte 30 de bile colorate, trase pe rând spre cer.', effect: 'candle', color: 'gold', nozzles: [[.14, .005], [.62, .005], [.38, .005], [.86, .005]], k: .74, turn: true },
   { handle: 'bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc', name: 'Bengală verde', kind: 'Bengală crackling', unit: 'pentru setul de 6',
-    line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]], model: 6 },
+    line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]] },
   { handle: 'artificii-tort-30cm-set-4-bucati-ardere-120-secunde', name: 'Artificii de tort', kind: 'Artificii de tort', unit: 'pentru setul de 4',
-    line: 'Scântei aurii de 30 cm, care ard 120 de secunde.', effect: 'ice', color: 'gold', nozzles: [[.16, .01], [.39, .01], [.61, .01], [.84, .01]], k: .82, model: 4 },
+    line: 'Scântei aurii de 30 cm, care ard 120 de secunde.', effect: 'ice', color: 'gold', nozzles: [[.16, .01], [.39, .01], [.61, .01], [.84, .01]], k: .82 },
 ];
 const slides = defs.flatMap((d) => {
   const p = byHandle(d.handle);
@@ -38,7 +37,6 @@ const slides = defs.flatMap((d) => {
 const n = slides.length;
 ---
 <section class="hero" data-hero aria-labelledby="hero-h">
-  <div class="dusk" aria-hidden="true"></div>
   <canvas class="set" aria-hidden="true" data-set-canvas></canvas>
   <canvas class="fx" aria-hidden="true" data-stage-canvas></canvas>
   <div class="container in">
@@ -53,22 +51,27 @@ const n = slides.length;
           <span><b data-u="s">––</b><small>sec</small></span>
         </p>
       </div>
+      <a class="all" href="/collections/public">Toate produsele F1 <Icon name="arrow" size={16} /></a>
     </div>
 
     <div class="first">
-    <div class="stage" data-stage aria-hidden="true">
+    <div class="stage" data-stage role="group" aria-label="Alege produsul de pe scenă">
       {slides.map((s, i) => (
-        <a class:list={['shot', { on: i === 0 }]} href={s.url} tabindex="-1" data-shot data-obj={JSON.stringify(s.img.obj ?? [0, 0, 1, 1])}
+        <a class:list={['shot', { on: i === 0 }]} href={s.url} tabindex="-1" aria-hidden="true" hidden={i !== 0} data-shot data-obj={JSON.stringify(s.img.obj ?? [0, 0, 1, 1])}
           style={`--k:${s.k ?? 1};--mask:url(${s.img.files[0].src})`}>
           <Img image={s.img} alt="" sizes="(min-width: 1024px) 18vw, 40vw" eager={i === 0} />
         </a>
       ))}
+      <div class="arrows">
+        <button class="arw prev" type="button" data-prev aria-controls="hero-slides" aria-label="Produsul anterior"><Icon name="arrow" size={20} /></button>
+        <button class="arw" type="button" data-next aria-controls="hero-slides" aria-label="Produsul următor"><Icon name="arrow" size={20} /></button>
+      </div>
     </div>
 
-    <div class="slides" id="hero-slides" data-slides aria-roledescription="carusel" aria-label="Produse aprinse pe scenă">
+    <div class="slides" id="hero-slides" data-slides aria-live="polite" aria-roledescription="carusel" aria-label="Produse aprinse pe scenă">
       {slides.map((s, i) => (
         <article class:list={['slide', { on: i === 0 }]} data-slide aria-roledescription="slide" aria-label={`${i + 1} din ${n}: ${s.name}`}
-          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} data-model={String(s.model)} data-glb={`/models/${s.p.handle}.glb`} inert={i > 0}>
+          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} data-glb={`/models/${s.p.handle}.glb`} inert={i > 0}>
           <p class="kind">{s.kind} <span class:list={['who', { pro: s.pro }]}>{s.who}</span></p>
           <h2 class="name"><a href={s.url}>{s.name}</a></h2>
           <p class="line">{s.line}</p>
@@ -89,24 +92,6 @@ const n = slides.length;
       ))}
     </div>
 
-    <div class="picker">
-      <div class="arrows">
-        <button class="arw prev" type="button" data-prev aria-controls="hero-slides" aria-label="Produsul anterior"><Icon name="arrow" size={20} /></button>
-        <button class="arw" type="button" data-next aria-controls="hero-slides" aria-label="Produsul următor"><Icon name="arrow" size={20} /></button>
-        <button class="arw pause" type="button" data-pause aria-pressed="false" aria-label="Oprește schimbarea automată">
-          <svg class="i-pause" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
-          <svg class="i-play" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor" /></svg>
-        </button>
-      </div>
-      <ol class="tabs">
-        {slides.map((s, i) => (
-          <li><button type="button" class="tab" data-go={i} aria-controls="hero-slides" aria-current={i === 0 ? 'true' : undefined}>
-            <span>{s.name}</span><i class="fuse" aria-hidden="true"><i></i></i>
-          </button></li>
-        ))}
-      </ol>
-      <a class="all" href="/collections/public">Toate produsele F1 <Icon name="arrow" size={16} /></a>
-    </div>
     </div>
   </div>
 </section>
@@ -114,30 +99,21 @@ const n = slides.length;
   .hero { position: relative; isolation: isolate; overflow: hidden; margin-top: calc(-1 * var(--header-h));
     min-height: calc(100vh - var(--announce-h)); min-height: calc(100svh - var(--announce-h)); display: flex; --announce-h: 36px; /* measured by the script */ padding-block: calc(var(--header-h) + 28px) 28px;
     background: transparent; } /* the site's night backdrop (base.css) is the sky behind the stage */
-  /* the ground the product stands on; its top edge is placed by the stage script at the product's base */
-  .hero::after { content: ''; position: absolute; inset: var(--ground, 82%) 0 0; z-index: -2;
-    background: linear-gradient(180deg, #16121e 0%, #0c0a12 38%, #07060b 100%); box-shadow: 0 -1px 0 rgba(246, 241, 234, .06); }
   .fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
   /* the studio's front edge dissolves into the site's backdrop instead of ending in a line */
   .fx, .set { -webkit-mask-image: linear-gradient(#000 calc(100% - 96px), transparent); mask-image: linear-gradient(#000 calc(100% - 96px), transparent); }
-  /* the 3D set (scripts/three/set.ts) under the sparks; once it runs, it draws the floor and the product, and the DOM
+  /* the 3D set (scripts/three/set.ts) under the sparks; once it runs, it draws the product and its local reflection, and the DOM
      images stay only for layout, links and screen readers */
-  .set { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; opacity: 0; transition: opacity .6s ease-out; }
-  .hero.has-set .set { opacity: 1; }
-  /* behind the transparent sky of the set: the night darkens towards the horizon, where the floor begins, so the floor
-     does not end in a line (--horizon is set by three/set.ts) */
-  .dusk { position: absolute; left: 0; right: 0; top: calc(var(--horizon, 60%) - 260px); height: 300px; z-index: -3; pointer-events: none; opacity: 0;
-    background: linear-gradient(180deg, rgba(5, 4, 7, 0), rgba(5, 4, 7, .55) 45%, rgba(5, 4, 7, .92) 78%, #050407 87%); transition: opacity .6s ease-out; }
-  .hero.has-set .dusk { opacity: 1; }
-  .hero.has-set::after { display: none; }
+  .set { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; opacity: 0; }
+  .hero.has-set .set { opacity: 1; transition: opacity .6s ease-out; }
   .hero.has-set .shot.on { opacity: 0; }
   .in { flex: 1; display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "top" "stage" "info" "pick"; grid-template-rows: auto minmax(300px, 1fr) auto auto; }
-  .first { display: contents; } /* stage, product copy and picker: one box on phones (the first screen), grid items otherwise */
+    grid-template-areas: "top" "stage" "info"; grid-template-rows: auto minmax(300px, 1fr) auto; }
+  .first { display: contents; } /* stage and product copy share the first screen on phones */
   /* two columns on desktop, and on any landscape screen wide enough (phones on their side, small windows) */
   @media (min-width: 1024px), (orientation: landscape) and (min-width: 600px) {
     .in { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-12);
-      grid-template-areas: "top stage" "info stage" "pick pick"; grid-template-rows: auto 1fr auto; }
+      grid-template-areas: "top stage" "info stage"; grid-template-rows: auto 1fr; }
   }
   .top { grid-area: top; display: grid; justify-items: start; gap: var(--space-8); }
   h1 { max-width: 26ch; font: 500 clamp(1.05rem, 1.35vw, 1.25rem)/1.4 var(--font-body); text-transform: none; color: var(--smoke-200); letter-spacing: 0; }
@@ -149,14 +125,14 @@ const n = slides.length;
   .c-n span:first-child b { color: var(--magnesium-400); }
   .c-n small { font: 500 var(--text-xs)/1 var(--font-body); color: var(--smoke-400); }
 
-  .stage { grid-area: stage; position: relative; min-height: 300px; touch-action: pan-y; }
-  .shot { position: absolute; left: 0; right: 0; bottom: 0; margin-inline: auto; width: fit-content; height: min(calc(var(--ph) * var(--k, 1)), 88%);
-    --ph: clamp(200px, 46vh, 460px); opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
+  .stage { grid-area: stage; position: relative; min-height: 300px; touch-action: pan-y; --ph: clamp(220px, 48vh, 500px); --product-bottom: 16px; }
+  .shot { position: absolute; left: 0; right: 0; bottom: var(--product-bottom); margin-inline: auto; width: fit-content; max-width: calc(100% - 120px); height: min(calc(var(--ph) * var(--k, 1)), 88%);
+    opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
     transition: opacity .5s var(--ease-out-expo), transform .7s var(--ease-out-expo), visibility 0s .7s; }
   .shot.on { opacity: 1; transform: none; visibility: visible; transition-delay: .12s, .12s, 0s; }
   /* the product is in the dark and lit only by its own effect: dimmed, then a light from above painted through its own
      silhouette (the image is its own mask), flickering with the flame (--lit, set by the stage script) */
-  .shot :global(img.pimg) { height: 100%; width: auto; filter: brightness(.5) saturate(.9); }
+  .shot :global(img.pimg) { height: 100%; width: auto; max-width: 100%; filter: brightness(.5) saturate(.9); }
   .shot::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: var(--lit, .7); mix-blend-mode: screen;
     background: radial-gradient(90% 46% at 50% 0%, rgb(var(--fx, 236 236 255) / .62), rgb(var(--fx, 236 236 255) / .16) 55%, transparent 80%);
     -webkit-mask: var(--mask) center / 100% 100% no-repeat; mask: var(--mask) center / 100% 100% no-repeat; }
@@ -187,35 +163,23 @@ const n = slides.length;
   .hero.has-set .stage.turnable { cursor: grab; }
   .hero.has-set .stage.turning { cursor: grabbing; }
 
-  .picker { grid-area: pick; display: flex; align-items: center; gap: var(--space-6); padding-top: var(--space-4); }
-  .arrows { display: flex; gap: 8px; flex: none; }
+  .arrows { position: absolute; inset-inline: 0; bottom: calc(var(--product-bottom) + min(var(--ph) / 2, 40%) - 24px);
+    display: flex; justify-content: space-between; pointer-events: none; z-index: 1; }
   .arw { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--night-600);
-    background: rgba(7, 6, 11, .55); color: var(--white); cursor: pointer; transition: border-color var(--dur-ui), background var(--dur-ui); }
+    background: rgba(7, 6, 11, .55); color: var(--white); cursor: pointer; pointer-events: auto;
+    transition: border-color var(--dur-ui), background var(--dur-ui); }
   .arw:hover { border-color: var(--white); background: rgba(246, 241, 234, .06); }
-  .arw:focus-visible, .tab:focus-visible { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
+  .arw:focus-visible { outline: 2px solid var(--magnesium-400); outline-offset: 3px; }
   .prev :global(svg) { transform: rotate(180deg); }
-  .pause .i-play, .hero.stopped .pause .i-pause { display: none; }
-  .hero.stopped .pause .i-play { display: block; }
-  .tabs { position: relative; list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-6); flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-  .tab { display: grid; gap: 10px; padding: 10px 0 8px; background: none; border: 0; color: var(--smoke-400); font: 600 var(--text-sm)/1 var(--font-body);
-    white-space: nowrap; cursor: pointer; transition: color var(--dur-ui); }
-  .tab:hover, .tab[aria-current] { color: var(--white); }
-  /* the fuse burns down the time left on this product */
-  .fuse { display: block; height: 2px; background: var(--night-700); overflow: hidden; }
-  .fuse i { display: block; height: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, #ff7a26, #ffd23f); }
-  .tab[aria-current] .fuse i { animation: burn var(--slide-ms, 9000ms) linear forwards; }
-  .hero.paused .tab[aria-current] .fuse i { animation-play-state: paused; }
-  .hero.stopped .tab[aria-current] .fuse i { animation: none; transform: none; }
-  @keyframes burn { to { transform: none; } }
   .all { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
   .all:hover { color: var(--magnesium-400); }
 
   /* phones and tablets held upright, one column: a slim countdown strip under the header, then the first screen is
-     exactly stage + product + picker whatever the height (the stage takes what is left); the title follows it */
+     exactly stage + product whatever the height (the stage takes what is left); the title follows it */
   @media (max-width: 1023px) and (orientation: portrait), (max-width: 599px) and (min-height: 561px) { /* = STACKED in scripts/stage.ts */
     .hero { --announce-h: 54px; --count-h: 44px; min-height: 0; padding: var(--header-h) 0 0; }
     .in { display: flex; flex-direction: column; gap: 0; }
-    .top { display: contents; } /* its two children become rows of their own: the countdown first, the title last */
+    .top { display: contents; } /* countdown first, title below the product */
     .count { order: 0; position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 12px;
       min-height: var(--count-h); margin-inline: calc(-1 * var(--gutter)); padding: 6px var(--gutter);
       background: rgba(7, 6, 11, .9); border-bottom: 1px solid rgba(246, 241, 234, .07); } /* nearly opaque: the sparks pass behind it */
@@ -231,10 +195,12 @@ const n = slides.length;
     .c-n span:not(:first-child) small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .first { order: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) 0 var(--space-4);
       height: calc(100svh - var(--announce-h) - var(--header-h) - var(--count-h)); min-height: 400px; }
-    .stage { flex: 1 1 0; min-height: 120px; }
+    .stage { flex: 1 1 0; min-height: 120px; --ph: clamp(180px, 36svh, 360px); --product-bottom: clamp(8px, 1.5svh, 16px); }
+    /* The product and its reflection end before the copy, including while the 3D floor is active. */
+    .set, .fx { -webkit-mask-image: linear-gradient(#000 calc(var(--scene-end, 100%) - 24px), transparent var(--scene-end, 100%));
+      mask-image: linear-gradient(#000 calc(var(--scene-end, 100%) - 24px), transparent var(--scene-end, 100%)); }
     /* the product stands a little above the stage's bottom edge: its short reflection stays on the floor, off the text */
-    .shot { --ph: clamp(150px, 30svh, 320px); bottom: clamp(16px, 3.6svh, 36px); }
-    .slides, .picker { flex: none; }
+    .slides { flex: none; }
     .slides { align-self: stretch; } /* the desktop grid's align-self: end would push it right in this column */
     h1 { order: 2; max-width: 34ch; padding: var(--space-6) 0 var(--space-8); border-top: var(--border); font-size: 1rem; }
     .line { display: none; } /* the description lives on the product page; here the name, price and button carry it */
@@ -247,14 +213,6 @@ const n = slides.length;
     /* turning the model: the icon alone on phones, so the button, Detalii and it fit one row down to 320px */
     .turn { width: 44px; justify-content: center; padding: 0; text-decoration: none; border: 1px solid var(--night-600); border-radius: 50%; }
     .turn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    /* the picker becomes one row: arrows, then the five fuses as segments (names stay for screen readers) */
-    .picker { gap: var(--space-3); padding-top: 0; }
-    .arw { width: 44px; height: 44px; }
-    .tabs { gap: 6px; overflow: visible; }
-    .tabs li { flex: 1; }
-    .tab { width: 100%; padding: 20px 0; }
-    .tab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .fuse { height: 3px; }
     .all { display: none; }
   }
   /* very short phones (iPhone SE class): a slimmer strip */
@@ -266,13 +224,12 @@ const n = slides.length;
     .name { font-size: clamp(1.7rem, 9vw, 2.3rem); }
     .c-n b, .c-n span:nth-child(3)::before, .c-n span:nth-child(4)::before { font-size: 1.1rem; }
   }
-  /* short screens (laptops at 650–760 px, browsers with toolbars): tighter rhythm so the picker stays on screen */
+  /* short screens (laptops at 650–760 px, browsers with toolbars): tighter rhythm keeps the product and its controls on screen */
   @media (orientation: landscape) and (max-height: 780px) and (min-width: 600px), (orientation: landscape) and (max-height: 560px) {
     .hero { padding-block: calc(var(--header-h) + 12px) 16px; }
     .in { row-gap: var(--space-4); }
     .top { gap: var(--space-4); }
     .c-n b { font-size: clamp(1.6rem, 5vh, 3rem); }
-    .picker { padding-top: 0; }
     .buy { margin-top: 0; }
   }
   /* phones on their side: the title and countdown go under the first screen, the product and its buy box stay */
@@ -281,26 +238,19 @@ const n = slides.length;
     .in { display: flex; flex-direction: column; }
     .top { order: 2; }
     .first { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-8); row-gap: var(--space-2);
-      grid-template-areas: "info stage" "pick pick"; grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-areas: "info stage"; grid-template-rows: minmax(0, 1fr);
       height: calc(100svh - var(--announce-h) - var(--header-h) - 8px); min-height: 200px; }
     .top { margin-top: var(--space-8); padding-top: var(--space-6); border-top: var(--border); }
     .line, .kind { display: none; }
     .name { font-size: clamp(1.9rem, 9vh, 3.2rem); }
     .price b { font-size: 1.4rem; }
     .slide { gap: var(--space-2); }
-    .stage { min-height: 0; } /* inside its grid row, or the product would stand below the picker */
-    .shot { --ph: clamp(140px, 60vh, 300px); }
-    .picker { gap: var(--space-3); }
-    .arw { width: 44px; height: 44px; }
-    .tabs { gap: 6px; overflow: visible; }
-    .tabs li { flex: 1; }
-    .tab { width: 100%; padding: 20px 0; }
-    .tab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .fuse { height: 3px; }
+    .stage { min-height: 0; --ph: clamp(140px, 60vh, 300px); --product-bottom: 8px; }
+    .shot { max-width: calc(100% - 112px); }
     .all { display: none; }
   }
 
-  @media (prefers-reduced-motion: reduce) { .shot, .slide { transition: none; } .tab[aria-current] .fuse i { animation: none; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .shot, .slide { transition: none; } }
 </style>
 <script>
   import type { Effect } from '../../scripts/stage';
@@ -326,28 +276,37 @@ const n = slides.length;
 
     // the first screen on phones is sized from the announcement bar's real height (it wraps on narrow screens)
     const bar = document.querySelector<HTMLElement>('.announce');
-    const measure = () => bar && root.style.setProperty('--announce-h', `${bar.offsetHeight}px`);
+    const topInHero = (el: HTMLElement) => {
+      let top = 0, node: HTMLElement | null = el;
+      while (node && node !== root) { top += node.offsetTop; node = node.offsetParent as HTMLElement | null; }
+      return top;
+    };
+    const measureScene = () => {
+      const shot = root.querySelector<HTMLElement>('[data-shot].on');
+      const image = shot?.querySelector('img');
+      if (shot && image) {
+        const obj = JSON.parse(shot.dataset.obj!) as number[];
+        root.style.setProperty('--ground', `${Math.round(topInHero(image) + image.offsetHeight * obj[3])}px`);
+      }
+      root.style.setProperty('--scene-end', `${topInHero(root.querySelector<HTMLElement>('[data-slides]')!)}px`);
+    };
+    const measure = () => {
+      if (bar) root.style.setProperty('--announce-h', `${bar.offsetHeight}px`);
+      measureScene();
+    };
     measure(); addEventListener('resize', measure);
+    const sceneSize = new ResizeObserver(measureScene);
+    [root, root.querySelector<HTMLElement>('[data-stage]')!, root.querySelector<HTMLElement>('[data-slides]')!].forEach((el) => sceneSize.observe(el));
+    root.querySelectorAll('[data-shot] img').forEach((image) => image.addEventListener('load', measureScene));
 
     // ---- the product picker
     const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];
     const shots = [...root.querySelectorAll<HTMLElement>('[data-shot]')];
-    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-go]')];
-    const pauseBtn = root.querySelector<HTMLButtonElement>('[data-pause]')!;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let i = 0, stage: ReturnType<typeof import('../../scripts/stage').startStage> | null = null;
     let set: ReturnType<typeof import('../../scripts/three/set').startSet> | null = null;
     const setShotOf = (k: number) => ({ img: shots[k].querySelector('img')!, obj: JSON.parse(shots[k].dataset.obj!),
-      nozzle: JSON.parse(slides[k].dataset.nozzles!)[0], color: slides[k].dataset.color!,
-      model: slides[k].dataset.model === 'lathe' ? 'lathe' as const : Number(slides[k].dataset.model), glb: slides[k].dataset.glb });
-    /** the set needs the image's real size, so it waits for a slide image that is still loading */
-    const showSet = (k: number) => {
-      if (!set) return;
-      const img = shots[k].querySelector('img');
-      if (!img) return;
-      const go3d = () => { if (k === i) set!.show(setShotOf(k)); };
-      img.complete && img.naturalWidth ? go3d() : img.addEventListener('load', go3d, { once: true });
-    };
+      nozzle: JSON.parse(slides[k].dataset.nozzles!)[0], color: slides[k].dataset.color!, glb: slides[k].dataset.glb! });
     const shotOf = (k: number) => {
       const s = slides[k];
       return { effect: s.dataset.effect as Effect, color: s.dataset.color!, nozzles: JSON.parse(s.dataset.nozzles!), obj: JSON.parse(shots[k].dataset.obj!),
@@ -356,44 +315,35 @@ const n = slides.length;
     const go = (k: number) => {
       k = (k + slides.length) % slides.length;
       if (k === i && stage) return;
-      slides[i].classList.remove('on'); slides[i].inert = true; shots[i].classList.remove('on'); tabs[i].removeAttribute('aria-current');
+      slides[i].classList.remove('on'); slides[i].inert = true;
+      shots[i].classList.remove('on'); shots[i].hidden = true;
       i = k;
-      slides[i].classList.add('on'); slides[i].inert = false; shots[i].classList.add('on'); tabs[i].setAttribute('aria-current', 'true');
-      // bring the active tab into the row's own scroll box (never scroll the page: autoplay runs while you read below)
-      const row = tabs[i].closest('ol')!, tb = tabs[i].parentElement!;
-      if (tb.offsetLeft < row.scrollLeft || tb.offsetLeft + tb.offsetWidth > row.scrollLeft + row.clientWidth)
-        row.scrollTo({ left: tb.offsetLeft - 16, behavior: reduce ? 'auto' : 'smooth' });
+      slides[i].classList.add('on'); slides[i].inert = false;
+      shots[i].hidden = false; shots[i].classList.add('on');
+      measureScene();
       stage?.fire(shotOf(i));
-      showSet(i);
+      revealSet(false);
       dispatchEvent(new Event('hero:slide'));
     };
-    // autoplay: the active tab's fuse is the timer; any choice by hand stops it (the pause button too)
-    const stop = () => { root.classList.add('stopped'); pauseBtn.setAttribute('aria-pressed', 'true'); pauseBtn.setAttribute('aria-label', 'Pornește schimbarea automată');
-      root.querySelector('[data-slides]')!.setAttribute('aria-live', 'polite'); };
-    const resume = () => { root.classList.remove('stopped'); pauseBtn.setAttribute('aria-pressed', 'false'); pauseBtn.setAttribute('aria-label', 'Oprește schimbarea automată');
-      root.querySelector('[data-slides]')!.setAttribute('aria-live', 'off'); };
-    if (reduce) stop();
-    root.addEventListener('animationend', (e) => { if ((e.target as HTMLElement).closest('.fuse') && !root.classList.contains('stopped')) go(i + 1); });
-    root.querySelector('[data-prev]')!.addEventListener('click', () => { stop(); go(i - 1); });
-    root.querySelector('[data-next]')!.addEventListener('click', () => { stop(); go(i + 1); });
-    pauseBtn.addEventListener('click', () => (root.classList.contains('stopped') ? resume() : stop()));
-    tabs.forEach((t, k) => t.addEventListener('click', () => { stop(); go(k); }));
-    root.querySelector('.picker')!.addEventListener('keydown', (e) => {
-      const ke = e as KeyboardEvent, d = ke.key === 'ArrowRight' ? 1 : ke.key === 'ArrowLeft' ? -1 : 0;
-      if (!d || !(ke.target as HTMLElement).closest('[data-go]')) return;
-      ke.preventDefault(); stop(); go(i + d); tabs[i].focus();
+    root.querySelector('[data-prev]')!.addEventListener('click', () => go(i - 1));
+    root.querySelector('[data-next]')!.addEventListener('click', () => go(i + 1));
+    root.querySelector('[data-stage]')!.addEventListener('keydown', (e) => {
+      const key = (e as KeyboardEvent).key;
+      if (key !== 'ArrowRight' && key !== 'ArrowLeft') return;
+      e.preventDefault(); go(i + (key === 'ArrowRight' ? 1 : -1));
     });
-    // hover or keyboard focus inside the hero holds the fuse
-    const hold = (on: boolean) => root.classList.toggle('paused', on);
-    root.addEventListener('pointerenter', (e) => { if ((e as PointerEvent).pointerType === 'mouse') hold(true); });
-    root.addEventListener('pointerleave', () => hold(root.contains(document.activeElement)));
-    root.addEventListener('focusin', () => hold(true));
-    root.addEventListener('focusout', (e) => { if (!root.contains((e as FocusEvent).relatedTarget as Node)) hold(false); });
     // swipe on the stage (touch; a mouse drag turns the model instead)
     const st = root.querySelector<HTMLElement>('[data-stage]')!;
-    let x0 = 0;
-    st.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
-    st.addEventListener('pointerup', (e) => { if (e.pointerType === 'mouse') return; const dx = e.clientX - x0; if (Math.abs(dx) > 48) { stop(); go(i + (dx < 0 ? 1 : -1)); } });
+    let x0: number | null = null;
+    st.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse' && !(e.target as HTMLElement).closest('button')) x0 = e.clientX;
+    });
+    st.addEventListener('pointerup', (e) => {
+      if (x0 === null) return;
+      const dx = e.clientX - x0; x0 = null;
+      if (Math.abs(dx) > 48) go(i + (dx < 0 ? 1 : -1));
+    });
+    st.addEventListener('pointercancel', () => { x0 = null; });
 
     // ---- the live effect starts once the entry intro has landed, so both never fight for frames
     const canvas = root.querySelector<HTMLCanvasElement>('[data-stage-canvas]')!;
@@ -403,28 +353,85 @@ const n = slides.length;
       set?.turn(rad); stage?.hold(Math.abs(rad) > .2);
       turnBtns.forEach((b) => { const back = Math.abs(rad) > 1.5; b.dataset.back = String(back); b.querySelector('[data-turn-label]')!.textContent = back ? 'Vezi fața' : 'Vezi spatele'; });
     };
-    turnBtns.forEach((b) => b.addEventListener('click', () => { stop(); setTurn(b.dataset.back === 'true' ? 0 : Math.PI); }));
-    const turnable = () => !!set && !!slides[i].querySelector('[data-turn]');
+    turnBtns.forEach((b) => b.addEventListener('click', () => { setTurn(b.dataset.back === 'true' ? 0 : Math.PI); }));
+    const turnable = () => optics.floor3d && !!slides[i].querySelector('[data-turn]');
     const stageEl = root.querySelector<HTMLElement>('[data-stage]')!;
     let dragX: number | null = null;
-    stageEl.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' && turnable()) { dragX = e.clientX; stageEl.classList.add('turning'); stageEl.setPointerCapture(e.pointerId); stop(); } });
+    stageEl.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' && turnable() && !(e.target as HTMLElement).closest('button')) { dragX = e.clientX; stageEl.classList.add('turning'); stageEl.setPointerCapture(e.pointerId); } });
     stageEl.addEventListener('pointermove', (e) => { if (dragX !== null) setTurn((e.clientX - dragX) * .012); });
     const release = () => { if (dragX === null) return; dragX = null; stageEl.classList.remove('turning'); setTurn(0); };
     stageEl.addEventListener('pointerup', release); stageEl.addEventListener('pointercancel', release);
-    addEventListener('hero:slide', () => { setTurn(0); stageEl.classList.toggle('turnable', turnable()); turnBtns.forEach((b) => { b.hidden = !set; }); });
+    addEventListener('hero:slide', () => setTurn(0));
 
     const setCanvas = root.querySelector<HTMLCanvasElement>('[data-set-canvas]')!;
-    const start = () => Promise.all([import('../../scripts/stage'), import('../../scripts/three/set').catch(() => null)]).then(([{ startStage }, mod]) => {
-      try { set = mod ? mod.startSet(setCanvas, root) : null; } catch { set = null; } // no WebGL: the flat stage stays
-      if (set) root.classList.add('has-set');
-      stage = startStage(canvas, root, set ? { floor3d: true, onFrame: (l) => set!.frame(l) } : {});
-      const img = shots[i].querySelector('img');
-      const fire = () => { stage!.fire(shotOf(i)); showSet(i); dispatchEvent(new Event('hero:slide')); };
-      img && !img.complete ? img.addEventListener('load', fire, { once: true }) : fire();
-    }).catch(() => {});
-    root.classList.add('paused'); // hold the first fuse until the stage is lit
-    const lit = () => { start(); hold(root.matches(':hover') || root.contains(document.activeElement)); };
-    if (document.documentElement.classList.contains('intro')) addEventListener('intro:done', lit, { once: true });
-    else ('requestIdleCallback' in window ? requestIdleCallback(lit, { timeout: 600 }) : setTimeout(lit, 150));
+    let modelIndex = -1;
+    const revealSet = (ready: boolean) => {
+      if (ready === optics.floor3d) return;
+      optics.floor3d = ready;
+      root.classList.toggle('has-set', ready);
+      stageEl.classList.toggle('turnable', turnable());
+      turnBtns.forEach((b) => { b.hidden = !ready; });
+    };
+    const disableSet = () => {
+      const old = set; set = null;
+      revealSet(false);
+      old?.destroy();
+    };
+    const optics = {
+      floor3d: false,
+      onFrame(light: number) {
+        if (!set) return;
+        try {
+          if (modelIndex !== i) {
+            modelIndex = i;
+            void set.show(setShotOf(i));
+          }
+          revealSet(set.frame(light));
+        } catch { disableSet(); }
+      },
+    };
+
+    // Start with the real product photo. The animation can wait while the intro, the access gate,
+    // or another tab covers the hero. Reduced motion keeps the same photo and manual product picker.
+    if (!reduce) {
+      const html = document.documentElement;
+      let visible = false, scheduled = false;
+      const canStart = () => visible && !document.hidden && !html.classList.contains('intro') && html.dataset.mode !== 'unset';
+      const start = async () => {
+        if (!canStart()) { scheduled = false; return; }
+        const mod = await import('../../scripts/stage').catch(() => null);
+        if (!canStart()) { scheduled = false; return; }
+        observer.disconnect();
+        removeEventListener('intro:done', schedule);
+        removeEventListener('mode:change', schedule);
+        document.removeEventListener('visibilitychange', schedule);
+        if (!mod) return;
+        try {
+          stage = mod.startStage(canvas, root, optics);
+          stage.fire(shotOf(i));
+        } catch { return; }
+
+        try {
+          // Use the same context for detection and rendering. Browsers without a suitable GPU keep the 2D stage.
+          const gl = setCanvas.getContext('webgl2', { alpha: true, antialias: true, failIfMajorPerformanceCaveat: true });
+          if (!gl) return;
+          const { startSet } = await import('../../scripts/three/set');
+          if (gl.isContextLost()) return;
+          set = startSet(setCanvas, root, gl);
+          setCanvas.addEventListener('webglcontextlost', disableSet, { once: true });
+        } catch { disableSet(); }
+      };
+      const schedule = () => {
+        if (scheduled || !canStart()) return;
+        scheduled = true;
+        if ('requestIdleCallback' in window) requestIdleCallback(() => void start(), { timeout: 1000 });
+        else setTimeout(() => void start(), 150);
+      };
+      const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; schedule(); });
+      observer.observe(root);
+      addEventListener('intro:done', schedule);
+      addEventListener('mode:change', schedule);
+      document.addEventListener('visibilitychange', schedule);
+    }
   }
 </script>

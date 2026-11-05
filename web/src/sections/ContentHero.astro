@@ -53,8 +53,7 @@ const breadcrumbLd = {
   .crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2);
     font: 500 var(--text-sm)/1 var(--font-body); color: var(--smoke-400); }
   .crumbs li { display: inline-flex; align-items: center; min-height: 44px; }
-  .crumbs li + li::before { content: ''; width: 6px; height: 6px; margin-right: var(--space-2); border-top: 1px solid var(--night-600);
-    border-right: 1px solid var(--night-600); transform: rotate(45deg); }
+  .crumbs li + li::before { content: '/'; content: '/' / ''; margin-right: var(--space-2); color: var(--night-600); } /* the same separator as the shop pages */
   .crumbs a { display: inline-flex; align-items: center; min-height: 44px; color: var(--smoke-200); text-decoration: none; }
   .crumbs a:hover { color: var(--magnesium-400); text-decoration: underline; text-underline-offset: 4px; }
   @media (min-width: 768px) { .crumbs li, .crumbs a { min-height: 32px; } }

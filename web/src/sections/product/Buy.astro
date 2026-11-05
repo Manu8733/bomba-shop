@@ -75,7 +75,7 @@ const stockText = !inStock ? 'Epuizat momentan' : v.inventory_quantity && v.inve
     <form class="notify" id="anunta" data-notify novalidate>
       <div data-fields>
         <p class="nt">Anunță-mă când revine</p>
-        <p class="muted">Îți scriem o singură dată, când produsul e din nou în stoc.</p>
+        <p class="muted">Formular demonstrativ. Alertele de stoc se activează la lansare.</p>
         <div class="row">
           <label class="visually-hidden" for="notify-email">Adresa ta de email</label>
           <input class="input" id="notify-email" type="email" required placeholder="nume@exemplu.ro" autocomplete="email" aria-describedby="notify-err" />
@@ -83,7 +83,7 @@ const stockText = !inStock ? 'Epuizat momentan' : v.inventory_quantity && v.inve
         </div>
         <p class="err" id="notify-err" data-error hidden>Scrie o adresă de email validă, de forma nume@exemplu.ro.</p>
       </div>
-      <p class="done" data-done hidden role="status"><Icon name="check" size={20} /> Gata. Te anunțăm când revine.</p>
+      <p class="done" data-done hidden role="status"><Icon name="check" size={20} /> Adresă validată. Alertele se activează la lansare.</p>
     </form>
   )}
 

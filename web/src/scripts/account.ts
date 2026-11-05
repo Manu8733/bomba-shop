@@ -58,7 +58,7 @@ export const getOrders = () => { const e = getAccount()?.email; return e ? allOr
 export function addOrder(o: Omit<Order, 'number' | 'date'>) {
   const list = allOrders();
   const order: Order = { ...o, number: (list[0]?.number ?? 1000) + 1, date: new Date().toISOString() };
-  write(K.orders, [order, ...list]);
+  localStorage.setItem(K.orders, JSON.stringify([order, ...list]));
   return order;
 }
 
