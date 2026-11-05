@@ -56,6 +56,10 @@ def ground(im: Image.Image):
     contact_img = Image.fromarray(contact.clip(0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(max(1.5, pad_y * .2)))
 
     shadow_a = np.maximum(np.asarray(pool, np.float32), np.asarray(contact_img, np.float32))
+    # the pool is wider than the canvas for wide products: fade it out towards the left/right edges, or the image
+    # box shows as a dark rectangle on a lighter floor
+    ramp = np.clip(np.minimum(np.arange(CW), np.arange(CW)[::-1]) / max(1, pad_x), 0, 1)
+    shadow_a *= (ramp * ramp * (3 - 2 * ramp))[None, :]
     shadow = np.zeros((CH, CW, 4), np.uint8)
     shadow[:, :, 3] = shadow_a.clip(0, 255).astype(np.uint8)       # black, alpha = shadow density
     out = Image.fromarray(shadow, "RGBA")

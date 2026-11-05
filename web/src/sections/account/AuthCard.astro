@@ -1,0 +1,65 @@
+---
+// Liquid: the shared frame of templates/customers/login, register, reset_password and activate_account. The form sits
+// in one quiet column; beside it, on wide screens, three real products stand on the felt mat.
+import Img from '../../snippets/Img.astro';
+import { byHandle, imagesOf } from '../../lib/catalog';
+interface Props { title: string; lede?: string; id?: string }
+const { title, lede, id = 'auth-title' } = Astro.props;
+const shelf = ['vulcan-etna', 'candele-romane-30-foc', 'bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc']
+  .map((h) => byHandle(h)).flatMap((p) => { const im = p && imagesOf(p).find((x) => x.kind === 'cutout'); return im ? [im] : []; });
+---
+<section class="auth" aria-labelledby={id}>
+  <div class="container in">
+    <div class="card">
+      <h1 id={id}>{title}</h1>
+      {lede && <p class="lede">{lede}</p>}
+      <slot />
+    </div>
+    <div class="aside" aria-hidden="true">
+      {shelf.map((im) => <span class="stand mat"><Img image={im} alt="" sizes="12vw" /></span>)}
+    </div>
+  </div>
+</section>
+<style>
+  .auth { padding-block: clamp(32px, 6vw, 88px) clamp(56px, 8vw, 112px); }
+  .in { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-12); align-items: center; }
+  @media (min-width: 1024px) { .in { grid-template-columns: minmax(0, 30rem) minmax(0, 1fr); column-gap: clamp(48px, 8vw, 128px); } }
+  .card { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); min-width: 0; }
+  .card :global(.input) { width: 100%; min-width: 0; } /* Firefox gives inputs a wide intrinsic size: never let it widen the page */
+  h1 { font-size: clamp(2.6rem, 5vw, 4.2rem); line-height: .92; }
+  .lede { max-width: 42ch; color: var(--smoke-200); }
+  .aside { display: none; }
+  @media (min-width: 1024px) {
+    .aside { display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; gap: var(--space-6); height: min(62vh, 520px); }
+    .stand { display: flex; align-items: flex-end; justify-content: center; height: 100%; padding: 10% 8% 7%; overflow: hidden; border-radius: var(--radius-card); }
+    .stand:nth-child(2) { height: 88%; }
+    .stand :global(img.pimg) { max-height: 100%; width: auto; max-width: 100%; height: auto; }
+  }
+  /* the auth forms share one look: stacked fields, the error under its field, the main action full width */
+  .card :global(.form) { display: grid; gap: var(--space-5, 20px); }
+  .card :global(.err) { color: var(--danger); font-size: var(--text-sm); }
+  .card :global(.input[aria-invalid='true']) { border-color: var(--danger); }
+  .card :global(.pw) { position: relative; display: grid; }
+  .card :global(.pw .input) { padding-right: 76px; }
+  .card :global(.pw button) { position: absolute; right: 2px; top: 2px; bottom: 2px; padding: 0 12px; border: 0; border-radius: var(--radius-label);
+    background: transparent; color: var(--smoke-200); font: 600 var(--text-sm)/1 var(--font-body); cursor: pointer; }
+  .card :global(.pw button:hover) { color: var(--white); background: var(--night-800); }
+  .card :global(.hint) { font-size: var(--text-sm); color: var(--smoke-400); }
+  .card :global(.check) { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: var(--text-sm); color: var(--smoke-200); }
+  .card :global(.check input) { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--magnesium-400); flex: none; }
+  .card :global(.alt) { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; color: var(--smoke-200); font-size: var(--text-sm); }
+  .card :global(.alt a), .card :global(.link) { display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600;
+    text-decoration: underline; text-underline-offset: 4px; background: none; border: 0; padding: 0; font-size: inherit; cursor: pointer; }
+  .card :global(.alt a:hover), .card :global(.link:hover) { color: var(--magnesium-400); }
+  .card :global(.done) { display: grid; gap: var(--space-3); padding-left: var(--space-4); border-left: 2px solid var(--ok); }
+  .card :global(.done h2) { font-size: var(--text-2xl); }
+  .card :global(.done p) { color: var(--smoke-200); }
+  .card :global(.demo) { font-size: var(--text-sm); color: var(--smoke-400); }
+  /* phones on their side: the form starts right under the header, the title smaller, the intro left out */
+  @media (orientation: landscape) and (max-height: 560px) {
+    .auth { padding-block: 16px 48px; }
+    h1 { font-size: 2rem; }
+    .lede { display: none; }
+    .card { gap: var(--space-4); }
+  }
+</style>

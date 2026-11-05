@@ -88,6 +88,8 @@ function rectIn(el: HTMLElement, root: HTMLElement) {
 /** floor3d: a WebGL set (three/set.ts) draws the floor and its light, so the 2D floor glow is skipped and sparks land at
  *  different depths on the mat instead of on one line; onFrame hands it the effect's light level every frame. */
 export type StageOptions = { floor3d?: boolean; onFrame?: (light: number) => void };
+/** the hero's one-column layout (Hero.astro), where the product's copy sits right under the stage: reflections stay short */
+export const STACKED = '(max-width: 1023px) and (orientation: portrait), (max-width: 599px) and (min-height: 561px)';
 
 export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: StageOptions = {}) {
   const ctx = canvas.getContext('2d')!;
@@ -293,7 +295,8 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
       if (e !== 'show' && !opts.floor3d) { ctx.globalAlpha = .5 * heat; ctx.drawImage(L, n0.x - 330 * S, ground - 46 * S, 660 * S, 92 * S); }
       if (e !== 'smoke' && e !== 'show') { const r = (e === 'ice' ? 260 : 520) * S; ctx.globalAlpha = (opts.floor3d ? .06 : .2) * heat; ctx.drawImage(L, n0.x - r, n0.y - r * .8, r * 2, r * 2); }
       if (live >= 0 && e === 'fountain') {
-        ctx.globalAlpha = opts.floor3d ? .75 : 1; const r = (opts.floor3d ? 20 + rnd() * 6 : 34 + rnd() * 10) * S; // a smaller hot core on the 3D set: the label stays visible ctx.drawImage(glowOf('#ffffff'), n0.x - r, n0.y - r, r * 2, r * 2);
+        // a smaller hot core on the 3D set: the label stays visible
+        ctx.globalAlpha = opts.floor3d ? .75 : 1; const r = (opts.floor3d ? 20 + rnd() * 6 : 34 + rnd() * 10) * S; ctx.drawImage(glowOf('#ffffff'), n0.x - r, n0.y - r, r * 2, r * 2);
         ctx.globalAlpha = .55; ctx.drawImage(L, n0.x - 110 * S, n0.y - 130 * S, 220 * S, 220 * S);
       }
       if (live >= 0 && e === 'ice') for (const p of nz) { ctx.globalAlpha = .9; const r = (12 + rnd() * 4) * S; ctx.drawImage(glowOf('#fff4d6'), p.x - r, p.y - r, r * 2, r * 2); }
@@ -369,12 +372,11 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
       }
     };
     strokeAll(false);
-    // on the 3D set's glossy floor the sparks and the hot core show again, mirrored and dimmed, below the base line
+    // on the 3D set's glossy floor the sparks show again, mirrored and dimmed, in a short band below the base line (as far
+    // as the set mirrors the product itself; shorter in the stacked layout, where the product's copy sits below)
     if (opts.floor3d && shot && nz.length) {
-      ctx.save(); ctx.beginPath(); ctx.rect(0, ground, W, H - ground); ctx.clip();
+      ctx.save(); ctx.beginPath(); ctx.rect(0, ground, W, box.h * (matchMedia(STACKED).matches ? .16 : .32)); ctx.clip();
       strokeAll(true);
-      if (live >= 0 && e !== 'smoke') { const n0 = nz[0], r = (e === 'bengal' ? 70 : 40) * S; ctx.globalAlpha = .3 * heat;
-        ctx.drawImage(glowOf(e === 'bengal' ? shot.color : '#fff4dc'), n0.x - r, 2 * ground - n0.y - r, r * 2, r * 2); }
       ctx.restore();
     }
     for (const seg of buckets) if (seg) seg.length = 0;

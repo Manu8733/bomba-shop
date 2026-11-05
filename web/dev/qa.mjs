@@ -3,7 +3,7 @@
 import puppeteer from 'puppeteer-core';
 const PAGES = ['/', '/collections', '/collections/public', '/collections/vulcani-artificii', '/collections/profesionisti', '/collections/all',
   '/products/void-reaper', '/products/vulcani-fidji', '/products/baterie-gold-rain', '/search?q=vulcan', '/cart', '/checkout',
-  '/pages/spectacole', '/pages/profesionisti', '/pages/contact', '/pages/faq', '/pages/ghid', '/pages/siguranta', '/pages/livrare-retur',
+  '/account/login', '/account/register', '/account/reset', '/account', '/account/addresses', '/account/order?n=1', '/pages/dezabonare', '/pages/profesionisti', '/pages/contact', '/pages/faq', '/pages/ghid', '/pages/siguranta', '/pages/livrare-retur',
   '/pages/termeni', '/pages/confidentialitate', '/pages/cookies', '/pages/despre-noi', '/nu-exista'];
 const WIDTHS = [360, 390, 768, 1024, 1440];
 const browser = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new',

@@ -29,10 +29,10 @@ const columns: { id: string; title: string; links: Link[] }[] = [
     { label: 'Siguranță', href: '/pages/siguranta' },
     { label: 'Ghid de alegere', href: '/pages/ghid' },
     { label: 'Contact', href: '/pages/contact' },
+    { label: 'Contul meu', href: '/account' },
   ] },
   { id: 'despre', title: 'Bomba Shop', links: [
     { label: 'Despre noi', href: '/pages/despre-noi' },
-    { label: 'Spectacole pirotehnice', href: '/pages/spectacole' },
     { label: 'Pentru profesioniști', href: '/pages/profesionisti' },
   ] },
   // The EU ODR platform closed in July 2025: no link to it. ANPC SAL stays.
@@ -57,7 +57,7 @@ const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
     <div class="upper">
       <section class="newsletter">
         <h2 class="nl-title" id="footer-nl-title">Află când apar produse noi</h2>
-        <p class="nl-lead">Primești pe e-mail produsele noi, revenirile în stoc și sfaturi de siguranță. Te poți dezabona oricând.</p>
+        <p class="nl-lead">Primești pe e-mail produsele noi, revenirile în stoc și sfaturi de siguranță. Te poți <a href="/pages/dezabonare">dezabona</a> oricând.</p>
         {/* Liquid: form 'customer' (id footer-newsletter) with contact[email] + contact[tags]=newsletter;
             form.posted_successfully? renders .nl-done, form.errors fills the .nl-error lines. */}
         <form class="nl-form" id="footer-newsletter" aria-labelledby="footer-nl-title" method="post" action="/contact#footer-newsletter" accept-charset="UTF-8" data-newsletter>
@@ -84,7 +84,7 @@ const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
 
       <nav class="links" aria-label="Navigare subsol">
         <div class="cols">
-          {columns.map((col, i) => (
+          {columns.map((col) => (
             <div class:list={['col', `col-${col.id}`]}>
               <h2 class="col-title">{col.title}</h2>
               <ul>
@@ -159,7 +159,8 @@ const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
 </footer>
 
 <style>
-  .site-footer { position: relative; border-top: var(--border); background: var(--night-950); color: var(--smoke-200); }
+  /* a veil, not a wall: the backdrop's warm smoke shows through, the embers fall into it */
+  .site-footer { position: relative; border-top: var(--border); background: rgba(5, 4, 8, .55); color: var(--smoke-200); }
 
   .col-title { margin-bottom: var(--space-4); color: var(--white); font: 600 var(--text-sm)/1.2 var(--font-body); text-transform: none; letter-spacing: 0; }
 
@@ -170,6 +171,8 @@ const year = new Date().getFullYear(); // Liquid: {{ 'now' | date: '%Y' }}
   .newsletter { display: flex; flex-direction: column; gap: var(--space-4); max-width: 560px; }
   .nl-title { font-size: clamp(var(--text-2xl), 4.4vw, var(--text-3xl)); color: var(--white); }
   .nl-lead { max-width: 46ch; }
+  .nl-lead a { color: var(--white); text-underline-offset: 3px; }
+  .nl-lead a:hover { color: var(--magnesium-400); }
   .nl-form { margin-top: var(--space-2); }
   .nl-fields { display: flex; flex-direction: column; gap: var(--space-4); }
   .nl-row { display: grid; gap: var(--space-2); }

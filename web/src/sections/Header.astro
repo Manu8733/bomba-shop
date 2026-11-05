@@ -59,7 +59,6 @@ const popular = [
             </div>
           </li>
         ))}
-        <li><a class="nav-link" href="/pages/spectacole" aria-current={current === 'spectacole' ? 'page' : undefined}>Spectacole</a></li>
       </ul>
     </nav>
     <div class="actions">
@@ -75,6 +74,7 @@ const popular = [
           <a href="/pages/profesionisti">Ce înseamnă client autorizat</a>
         </div>
       </div>
+      <a class="icon-btn acct-btn" href="/account" aria-label="Contul meu"><Icon name="user" size={22} /></a>
       <button class="icon-btn cart-btn" type="button" data-cart-toggle aria-label="Coșul tău, 0 produse">
         <Icon name="cart" size={22} /><span class="count mono" data-cart-count hidden>0</span>
       </button>
@@ -98,9 +98,9 @@ const popular = [
         <ul>{g.cols.map((c) => <li><a href={c.href}>{c.title}<small class="mono">{c.stock ? `${c.stock} în stoc` : 'epuizat'}</small></a></li>)}</ul>
       </details>
     ))}
-    <a class="acc-link" href="/pages/spectacole">Spectacole pirotehnice</a>
     <a class="acc-link" href="/pages/profesionisti">Pentru profesioniști</a>
     <a class="acc-link" href="/pages/ghid">Cum alegi artificiile</a>
+    <a class="acc-link" href="/account">Contul meu</a>
   </nav>
   <div class="drawer-foot">
     <p class="drawer-mode">Cumperi ca <b data-mode-label>Alege profilul</b></p>
@@ -142,12 +142,16 @@ const popular = [
     border-bottom: 1px solid transparent; padding-top: env(safe-area-inset-top, 0px); transition: background var(--dur-ui), border-color var(--dur-ui); }
   .site-header.solid, .site-header:not(.home) { border-bottom-color: var(--night-700); }
   .site-header.home:not(.solid) { background: transparent; backdrop-filter: none; }
+  /* phones held upright: the countdown strip closes the top of the stage, so the header stays a solid band above it */
+  @media (max-width: 1023px) and (orientation: portrait), (max-width: 599px) and (min-height: 561px) { .site-header.home:not(.solid) { background: #07060b; } }
   .bar { display: flex; align-items: center; gap: var(--space-4); height: var(--header-h); }
   .brand { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 4px; color: var(--white); flex: none; }
   .icon-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 0; background: transparent; color: var(--white);
     border-radius: var(--radius-label); position: relative; }
   .icon-btn:hover { background: var(--night-800); color: var(--magnesium-400); }
   .menu-btn { margin-left: -10px; }
+  .acct-btn { text-decoration: none; }
+  @media (max-width: 379px) { .acct-btn { display: none; } } /* the narrowest phones reach the account from the menu */
   .primary { display: none; margin-inline: auto; }
   .primary > ul { display: flex; gap: var(--space-1); list-style: none; margin: 0; padding: 0; }
   .nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 0; background: none; color: var(--white);

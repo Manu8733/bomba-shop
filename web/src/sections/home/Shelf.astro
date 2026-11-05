@@ -87,7 +87,8 @@ const shelves = OCC.map((o) => {
   /* below desktop the shelf scrolls sideways, one and a half products in view so the next one says "there is more" */
   @media (max-width: 1023px) {
     .shelf-sec { --stand: clamp(180px, 46vw, 260px); }
-    .row { display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); }
+    .row { display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter);
+      scroll-padding-inline: var(--gutter); } /* snap to the gutter, not to the screen edge */
     .row::-webkit-scrollbar { display: none; }
     .item { flex: 0 0 min(62vw, 260px); scroll-snap-align: start; }
   }

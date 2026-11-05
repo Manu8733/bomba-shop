@@ -1,0 +1,115 @@
+---
+// Liquid: templates/customers/account.json: order history, the default address, the profile (buyer type and the
+// authorisation for P1/T1), and the newsletter choice. Filled in the browser from scripts/account.ts.
+import Theme from '../../layouts/Theme.astro';
+import AccountShell from '../../sections/account/AccountShell.astro';
+import Icon from '../../snippets/Icon.astro';
+---
+<Theme title="Contul meu" description="Comenzile, adresele și profilul tău Bomba Shop." noindex skipGate>
+  <AccountShell current="orders" title="Contul meu">
+    <div class="grid">
+      <section class="orders" aria-labelledby="ord-h">
+        <h2 id="ord-h">Comenzile tale</h2>
+        <div class="empty" data-empty hidden>
+          <p>Nu ai încă nicio comandă.</p>
+          <a class="btn btn-primary" href="/collections/public">Vezi produsele F1 <Icon name="arrow" size={18} /></a>
+        </div>
+        <table class="tbl" data-orders hidden>
+          <caption class="visually-hidden">Comenzile tale, cele mai noi primele</caption>
+          <thead><tr><th scope="col">Comanda</th><th scope="col">Data</th><th scope="col">Produse</th><th scope="col">Stare</th><th scope="col" class="num">Total</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+      <aside class="side">
+        <section aria-labelledby="addr-h">
+          <h2 id="addr-h">Adresa principală</h2>
+          <address data-addr></address>
+          <a class="link" href="/account/addresses" data-addr-link>Gestionează adresele</a>
+        </section>
+        <section aria-labelledby="prof-h">
+          <h2 id="prof-h">Profil</h2>
+          <dl class="kv">
+            <div><dt>Nume</dt><dd data-name></dd></div>
+            <div><dt>Cumpăr ca</dt><dd data-buyer></dd></div>
+            <div><dt>Noutăți pe email</dt><dd><span data-news role="status"></span></dd></div>
+          </dl>
+          <a class="link" href="/pages/profesionisti" data-pro-link>Ce înseamnă client autorizat</a>
+          <a class="link" href="/pages/dezabonare" data-unsub hidden>Dezabonează-te de la noutăți</a>
+          <button class="link" type="button" data-sub hidden>Abonează-te la noutăți</button>
+        </section>
+      </aside>
+    </div>
+  </AccountShell>
+</Theme>
+<style>
+  .grid { display: grid; gap: var(--space-12); }
+  @media (min-width: 1024px) { .grid { grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: var(--space-16); } }
+  h2 { margin-bottom: var(--space-4); font: 700 var(--text-lg)/1.2 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .empty { display: grid; gap: var(--space-4); justify-items: start; color: var(--smoke-200); }
+  .tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .tbl th { padding: 0 12px 10px 0; font: 600 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-400); text-align: left; border-bottom: var(--border); }
+  .tbl :global(td) { padding: 14px 12px 14px 0; border-bottom: var(--border); color: var(--smoke-200); vertical-align: top; }
+  .tbl :global(td a) { color: var(--white); font-weight: 700; text-underline-offset: 4px; display: inline-flex; min-height: 44px; align-items: center; margin-block: -12px; }
+  .tbl :global(.num) { text-align: right; padding-right: 0; color: var(--white); font-weight: 600; }
+  .side { display: grid; gap: var(--space-8); align-content: start; }
+  .side section { display: grid; gap: var(--space-2); justify-items: start; padding-top: var(--space-6); border-top: var(--border); }
+  .side section:first-child { padding-top: 0; border-top: 0; }
+  address { font-style: normal; color: var(--smoke-200); line-height: 1.55; }
+  .kv { display: grid; gap: var(--space-3); margin: 0; }
+  .kv dt { font-size: var(--text-sm); color: var(--smoke-400); }
+  .kv dd { margin: 2px 0 0; color: var(--white); }
+  .link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--white); font: 600 var(--text-sm)/1 var(--font-body);
+    text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+  .link:hover { color: var(--magnesium-400); }
+  /* phones: each order is a block, the column names become labels */
+  @media (max-width: 640px) {
+    .tbl thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } /* still read as column names */
+    .tbl :global(tr) { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 0; border-bottom: var(--border); }
+    .tbl :global(td) { padding: 0; border: 0; }
+    .tbl :global(td:nth-child(2)), .tbl :global(td:nth-child(3)), .tbl :global(td:nth-child(4)) { grid-column: 1; font-size: var(--text-sm); }
+    .tbl :global(.num) { grid-column: 2; grid-row: 1; }
+  }
+</style>
+<script>
+  import { getAccount, getAddresses, getOrders, updateAccount, formatDate, addressLines } from '../../scripts/account';
+  import { getMode, getProAuth } from '../../scripts/mode';
+  import { money } from '../../scripts/cart';
+  const acc = getAccount();
+  if (acc) {
+    if (acc.firstName) document.querySelector('[data-acct-title]')!.textContent = `Salut, ${acc.firstName}`;
+    // orders
+    const orders = getOrders(), tbl = document.querySelector<HTMLTableElement>('[data-orders]')!;
+    document.querySelector<HTMLElement>('[data-empty]')!.hidden = orders.length > 0;
+    tbl.hidden = !orders.length;
+    for (const o of orders) {
+      const tr = document.createElement('tr'), count = o.lines.reduce((n, l) => n + l.quantity, 0);
+      tr.innerHTML = '<td><a></a></td><td></td><td></td><td>Primită</td><td class="num"></td>';
+      const a = tr.querySelector('a')!; a.href = `/account/order?n=${o.number}`; a.textContent = `#${o.number}`; a.setAttribute('aria-label', `Comanda ${o.number}, detalii`);
+      tr.children[1].textContent = formatDate(o.date); tr.children[2].textContent = `${count} ${count === 1 ? 'produs' : 'produse'}`;
+      tr.children[4].textContent = money(o.total);
+      tbl.tBodies[0].append(tr);
+    }
+    // default address
+    const addr = getAddresses().find((x) => x.isDefault), box = document.querySelector<HTMLElement>('[data-addr]')!;
+    if (addr) box.innerText = addressLines(addr).join('\n');
+    else { box.textContent = 'Nu ai salvat încă o adresă de livrare.'; document.querySelector('[data-addr-link]')!.textContent = 'Adaugă o adresă'; }
+    // profile
+    document.querySelector('[data-name]')!.textContent = [acc.firstName, acc.lastName].filter(Boolean).join(' ') || '—';
+    const mode = getMode(), pro = mode === 'pro', auth = getProAuth();
+    // 'pending' without a file means the profile was picked but nothing was uploaded yet
+    const state = auth.status === 'verified' ? 'verified' : auth.status === 'pending' && auth.fileName ? 'pending' : 'none';
+    document.querySelector('[data-buyer]')!.textContent = !mode ? 'Profil neales'
+      : pro ? `Client autorizat · ${state === 'verified' ? 'autorizație verificată' : state === 'pending' ? 'autorizația se verifică' : 'autorizația nu e încărcată'}`
+      : 'Persoană fizică · produse F1';
+    if (pro) { const l = document.querySelector<HTMLAnchorElement>('[data-pro-link]')!; l.textContent = state === 'verified' ? 'Vezi autorizația' : state === 'pending' ? 'Vezi starea autorizației' : 'Încarcă autorizația'; }
+    const news = () => {
+      const on = !!getAccount()?.newsletter;
+      document.querySelector('[data-news]')!.textContent = on ? 'Da, la ' + acc.email : 'Nu';
+      document.querySelector<HTMLElement>('[data-unsub]')!.hidden = !on;
+      document.querySelector<HTMLElement>('[data-sub]')!.hidden = on;
+    };
+    // the button hides itself: focus goes to the link that takes its place
+    document.querySelector('[data-sub]')!.addEventListener('click', () => { updateAccount({ newsletter: true }); news(); document.querySelector<HTMLElement>('[data-unsub]')!.focus(); });
+    news();
+  }
+</script>

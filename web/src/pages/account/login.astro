@@ -1,0 +1,71 @@
+---
+// Liquid: templates/customers/login.json ({% form 'customer_login' %} + {% form 'recover_customer_password' %}).
+import Theme from '../../layouts/Theme.astro';
+import AuthCard from '../../sections/account/AuthCard.astro';
+---
+<Theme title="Intră în cont" description="Intră în contul tău Bomba Shop." noindex skipGate>
+  <AuthCard title="Intră în cont" lede="Vezi comenzile, adresele de livrare și, dacă ești client autorizat, starea autorizației.">
+    <form class="form" data-login novalidate>
+      <div class="field"><label for="li-email">Adresa de email</label>
+        <input class="input" id="li-email" type="email" required autocomplete="email" inputmode="email" /></div>
+      <div class="field"><label for="li-pw">Parola</label>
+        <div class="pw"><input class="input" id="li-pw" type="password" required autocomplete="current-password" /><button type="button" data-pw-toggle>Arată</button></div></div>
+      <button class="btn btn-primary btn-block" type="submit">Intră în cont</button>
+      <div class="alt"><button type="button" class="link" data-show-recover>Ai uitat parola?</button></div>
+      <p class="alt">Nu ai cont? <a href="/account/register" data-keep-next>Creează unul</a></p>
+    </form>
+
+    <form class="form" data-recover hidden novalidate aria-labelledby="rc-title">
+      <div data-fields class="form">
+        <h2 id="rc-title" class="h-sub">Resetează parola</h2>
+        <p class="hint">Scrie adresa contului și îți trimitem pe email un link pentru o parolă nouă.</p>
+        <div class="field"><label for="rc-email">Adresa de email</label>
+          <input class="input" id="rc-email" type="email" required autocomplete="email" inputmode="email" /></div>
+        <button class="btn btn-primary btn-block" type="submit">Trimite linkul</button>
+        <div class="alt"><button type="button" class="link" data-show-login>Înapoi la autentificare</button></div>
+      </div>
+      <div class="done" data-done hidden tabindex="-1">
+        <h2>Verifică-ți emailul</h2>
+        <p>Dacă există un cont pe <b data-rc-email></b>, primești pe email linkul pentru o parolă nouă.</p>
+        <p class="demo">Demonstrativ: până la lansare nu se trimite niciun email.</p>
+        <div class="alt"><button type="button" class="link" data-show-login>Înapoi la autentificare</button></div>
+      </div>
+    </form>
+    <p class="demo">Până la lansarea magazinului pe Shopify, contul se păstrează doar în acest browser.</p>
+  </AuthCard>
+</Theme>
+<style>
+  .h-sub { font-size: var(--text-2xl); }
+</style>
+<script>
+  import { signIn } from '../../scripts/account';
+  import { validate, clearErrors, initPasswordToggles, nextUrl } from '../../scripts/auth-forms';
+  initPasswordToggles();
+  // the way back (?next=) survives the trip to the register page
+  document.querySelectorAll<HTMLAnchorElement>('[data-keep-next]').forEach((a) => { a.search = location.search; });
+  const login = document.querySelector<HTMLFormElement>('[data-login]')!, recover = document.querySelector<HTMLFormElement>('[data-recover]')!;
+  const show = (which: 'login' | 'recover') => {
+    if (which === 'recover') { // always the email field, even after a link was already asked for
+      recover.querySelector<HTMLElement>('[data-fields]')!.hidden = false; recover.querySelector<HTMLElement>('[data-done]')!.hidden = true; clearErrors(recover);
+    }
+    login.hidden = which !== 'login'; recover.hidden = which !== 'recover';
+    (which === 'login' ? login.querySelector('input') : recover.querySelector('input'))?.focus();
+    history.replaceState(null, '', which === 'recover' ? '#recover' : location.pathname + location.search);
+  };
+  document.querySelector('[data-show-recover]')!.addEventListener('click', () => show('recover'));
+  document.querySelectorAll('[data-show-login]').forEach((b) => b.addEventListener('click', () => show('login')));
+  if (location.hash === '#recover') show('recover');
+  login.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!validate(login)) return;
+    signIn({ email: (document.getElementById('li-email') as HTMLInputElement).value.trim().toLowerCase() });
+    location.assign(nextUrl());
+  });
+  recover.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!validate(recover)) return;
+    recover.querySelector<HTMLElement>('[data-rc-email]')!.textContent = (document.getElementById('rc-email') as HTMLInputElement).value.trim();
+    recover.querySelector<HTMLElement>('[data-fields]')!.hidden = true;
+    const done = recover.querySelector<HTMLElement>('[data-done]')!; done.hidden = false; done.focus();
+  });
+</script>

@@ -1,10 +1,9 @@
 ---
-// Liquid: templates/index.json → home-hero, home-shelf, featured-collection, home-shows, home-promise.
+// Liquid: templates/index.json → home-hero, home-shelf, featured-collection, home-promise.
 import Theme from '../layouts/Theme.astro';
 import Hero from '../sections/home/Hero.astro';
 import Shelf from '../sections/home/Shelf.astro';
 import InStock from '../sections/home/InStock.astro';
-import Shows from '../sections/home/Shows.astro';
 import Promise from '../sections/home/Promise.astro';
 const site = Astro.site!;
 const ld = {
@@ -12,11 +11,10 @@ const ld = {
   potentialAction: { '@type': 'SearchAction', target: `${site.href}search?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
 };
 ---
-<Theme title="Bomba Shop · Artificii, petarde și spectacole pirotehnice" current="home" jsonLd={ld}
-  description="Artificii F1 pentru public, artificii de tort, vulcani, bengale și fum colorat, cu categoria și datele tehnice la vedere. Spectacole pirotehnice pentru evenimente.">
+<Theme title="Bomba Shop · Artificii și petarde" current="home" jsonLd={ld}
+  description="Artificii F1 pentru public, artificii de tort, vulcani, bengale și fum colorat, cu categoria și datele tehnice la vedere.">
   <Hero />
   <Shelf />
   <InStock />
-  <Shows />
   <Promise />
 </Theme>

@@ -1,0 +1,47 @@
+---
+// Liquid: the header and navigation shared by templates/customers/account, addresses and order. Signed-out visitors are
+// sent to the login page and come back here afterwards (Shopify does the same redirect server-side).
+interface Props { current: 'orders' | 'addresses'; title: string }
+const { current, title } = Astro.props;
+---
+<section class="acct" data-acct aria-labelledby="acct-title">
+  <div class="container">
+    <header class="head">
+      <div class="who">
+        <p class="email" data-acct-email></p>
+        <h1 id="acct-title" data-acct-title>{title}</h1>
+      </div>
+      <nav class="tabs" aria-label="Contul meu">
+        <a href="/account" aria-current={current === 'orders' ? 'page' : undefined}>Comenzi</a>
+        <a href="/account/addresses" aria-current={current === 'addresses' ? 'page' : undefined}>Adrese</a>
+        <button type="button" data-signout>Ieși din cont</button>
+      </nav>
+    </header>
+    <slot />
+  </div>
+  <noscript><p class="container">Contul are nevoie de JavaScript activat.</p></noscript>
+</section>
+<style>
+  .acct { padding-block: clamp(24px, 5vw, 64px) clamp(64px, 8vw, 112px); }
+  .acct:not([data-ready]) > .container { visibility: hidden; } /* not the noscript line */
+  .head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-6); padding-bottom: var(--space-6);
+    margin-bottom: var(--space-12); border-bottom: var(--border); }
+  .email { margin-bottom: var(--space-3); font-size: var(--text-sm); color: var(--smoke-400); overflow-wrap: anywhere; }
+  h1 { font-size: clamp(2.6rem, 5vw, 4.4rem); line-height: .92; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+  .tabs a, .tabs button { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; border-bottom: 2px solid transparent; background: none;
+    color: var(--smoke-200); font: 600 var(--text-base)/1 var(--font-body); text-decoration: none; cursor: pointer; }
+  .tabs a:hover, .tabs button:hover { color: var(--white); }
+  .tabs [aria-current] { color: var(--white); border-bottom-color: var(--magnesium-400); }
+</style>
+<script>
+  import { getAccount, signOut } from '../../scripts/account';
+  const root = document.querySelector<HTMLElement>('[data-acct]')!;
+  const acc = getAccount();
+  if (!acc) location.replace(`/account/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  else {
+    root.querySelector('[data-acct-email]')!.textContent = acc.email;
+    root.dataset.ready = '';
+    root.querySelector('[data-signout]')!.addEventListener('click', () => { signOut(); location.assign('/'); });
+  }
+</script>

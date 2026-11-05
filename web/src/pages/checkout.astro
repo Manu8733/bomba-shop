@@ -1,54 +1,61 @@
 ---
 // UI reference only: the real checkout is Shopify's. Mirrors its steps so the design can be matched with
-// checkout branding / extensions at the port.
+// checkout branding / extensions at the port. Until then a valid submit stores a demo order in this browser
+// (scripts/account.ts), so the order page and the account can be seen with real lines.
 import Theme from '../layouts/Theme.astro';
 import { commerce, law } from '../config';
-const counties = ['Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsăud', 'Botoșani', 'Brașov', 'Brăila', 'București', 'Buzău', 'Caraș-Severin', 'Călărași', 'Cluj', 'Constanța', 'Covasna', 'Dâmbovița', 'Dolj', 'Galați', 'Giurgiu', 'Gorj', 'Harghita', 'Hunedoara', 'Ialomița', 'Iași', 'Ilfov', 'Maramureș', 'Mehedinți', 'Mureș', 'Neamț', 'Olt', 'Prahova', 'Satu Mare', 'Sălaj', 'Sibiu', 'Suceava', 'Teleorman', 'Timiș', 'Tulcea', 'Vaslui', 'Vâlcea', 'Vrancea'];
+import { counties } from '../lib/ro';
 ---
 <Theme title="Finalizează comanda" description="Finalizarea comenzii Bomba Shop." noindex>
   <div class="container section">
     <div class="head"><h1>Finalizează comanda</h1>
-      <p class="demo" role="note">Pagină demonstrativă: după lansare, comenzile se plasează în checkout-ul securizat Shopify.</p></div>
-    <div class="layout">
+      <p class="demo" role="note">Pagină demonstrativă: comanda rămâne în acest browser și nu plătești nimic. După lansare, comenzile se plasează în checkout-ul securizat Shopify.</p></div>
+    <section class="placed" data-placed hidden tabindex="-1" aria-labelledby="placed-h">
+      <h2 id="placed-h" data-placed-title>Comanda e primită</h2>
+      <p data-placed-text></p>
+      <div class="acts"><a class="btn btn-primary" data-placed-link href="/account">Vezi comanda</a><a class="btn btn-ghost" href="/collections/public">Înapoi la produse</a></div>
+    </section>
+    <div class="layout" data-layout>
       <form class="form" novalidate data-checkout>
         <fieldset><legend>Contact</legend><div class="fs">
           <div class="row2">
-            <div class="field"><label for="c-email">E-mail</label><input class="input" id="c-email" type="email" required autocomplete="email" /></div>
-            <div class="field"><label for="c-phone">Telefon</label><input class="input" id="c-phone" type="tel" required autocomplete="tel" pattern="^(\+40|0)7[0-9]{8}$" placeholder="07xx xxx xxx" /></div>
+            <div class="field"><label for="c-email">E-mail</label><input class="input" id="c-email" data-msg="Scrie o adresă de email validă." type="email" required autocomplete="email" /></div>
+            <div class="field"><label for="c-phone">Telefon</label><input class="input" id="c-phone" data-msg="Scrie un număr de mobil românesc, de forma 07xx xxx xxx." type="tel" required autocomplete="tel" pattern="^(?:[+]40|0)[ ]?7(?:[ ]?[0-9]){8}$" placeholder="07xx xxx xxx" /></div>
           </div>
         </div></fieldset>
         <fieldset><legend>Adresă de livrare</legend><div class="fs">
           <div class="row2">
-            <div class="field"><label for="c-fn">Prenume</label><input class="input" id="c-fn" required autocomplete="given-name" /></div>
-            <div class="field"><label for="c-ln">Nume</label><input class="input" id="c-ln" required autocomplete="family-name" /></div>
+            <div class="field"><label for="c-fn">Prenume</label><input class="input" id="c-fn" data-msg="Completează prenumele." required autocomplete="given-name" /></div>
+            <div class="field"><label for="c-ln">Nume</label><input class="input" id="c-ln" data-msg="Completează numele." required autocomplete="family-name" /></div>
           </div>
-          <div class="field"><label for="c-addr">Stradă și număr</label><input class="input" id="c-addr" required autocomplete="address-line1" /></div>
+          <div class="field"><label for="c-addr">Stradă și număr</label><input class="input" id="c-addr" data-msg="Completează strada și numărul." required autocomplete="address-line1" /></div>
+          <div class="field"><label for="c-addr2">Bloc, scară, apartament (opțional)</label><input class="input" id="c-addr2" autocomplete="address-line2" /></div>
           <div class="row3">
-            <div class="field"><label for="c-city">Localitate</label><input class="input" id="c-city" required autocomplete="address-level2" /></div>
+            <div class="field"><label for="c-city">Localitate</label><input class="input" id="c-city" data-msg="Completează localitatea." required autocomplete="address-level2" /></div>
             <div class="field"><label for="c-county">Județ</label>
-              <select class="input" id="c-county" required autocomplete="address-level1"><option value="">Alege</option>{counties.map((c) => <option>{c}</option>)}</select></div>
-            <div class="field"><label for="c-zip">Cod poștal</label><input class="input" id="c-zip" required inputmode="numeric" pattern="^[0-9]{6}$" autocomplete="postal-code" /></div>
+              <select class="input" id="c-county" data-msg="Alege județul." required autocomplete="address-level1"><option value="">Alege</option>{counties.map((c) => <option>{c}</option>)}</select></div>
+            <div class="field"><label for="c-zip">Cod poștal</label><input class="input" id="c-zip" data-msg="Codul poștal are 6 cifre." required inputmode="numeric" pattern="^[0-9]{6}$" autocomplete="postal-code" /></div>
           </div>
+          <label class="check" data-save hidden><input type="checkbox" id="c-save" /> <span>Salvează adresa în cont</span></label>
         </div></fieldset>
         <fieldset><legend>Livrare</legend><div class="fs opts">
-          <label class="opt"><input type="radio" name="ship" checked /> <span><b>Curier</b><small>{commerce.shipping.courierDays} · tariful se calculează la plasarea comenzii</small></span></label>
+          <label class="opt"><input type="radio" name="ship" checked /> <span><b>Curier</b><small>{commerce.shipping.courierDays} · {commerce.shipping.confirmed ? 'costul apare înainte de plasare' : 'costul nu e inclus în această demonstrație'}</small></span></label>
         </div></fieldset>
         <fieldset><legend>Plată</legend><div class="fs opts">
-          {commerce.payments.methods.map((m, i) => <label class="opt"><input type="radio" name="pay" checked={i === 0} /> <span><b>{m}</b></span></label>)}
+          {commerce.payments.methods.map((m, i) => <label class="opt"><input type="radio" name="pay" value={m} checked={i === 0} /> <span><b>{m}</b></span></label>)}
         </div></fieldset>
         <fieldset class="legal"><legend class="visually-hidden">Confirmări</legend><div class="fs">
-          <label class="check"><input type="checkbox" id="c-age" required /> <span>Confirm că am cel puțin {law.publicMinAge} ani și că produsele F1 sunt pentru uz propriu.</span></label>
-          <label class="check"><input type="checkbox" id="c-terms" required /> <span>Am citit <a href="/pages/termeni">Termenii și condițiile</a> și <a href="/pages/confidentialitate">Politica de confidențialitate</a>.</span></label>
+          <label class="check"><input type="checkbox" id="c-age" required data-msg={`Confirmă că ai cel puțin ${law.publicMinAge} ani.`} /> <span>Confirm că am cel puțin {law.publicMinAge} ani și că produsele F1 sunt pentru uz propriu.</span></label>
+          <label class="check"><input type="checkbox" id="c-terms" data-msg="Acceptă termenii pentru a continua." required /> <span>Am citit <a href="/pages/termeni">Termenii și condițiile</a> și <a href="/pages/confidentialitate">Politica de confidențialitate</a>.</span></label>
           <p class="pro-note" data-pro-note hidden></p>
         </div></fieldset>
         <div class="submit">
-          <div class="errors" role="alert" data-errors hidden></div>
-          <button class="btn btn-primary btn-block" type="submit">Verifică datele</button>
-          <p class="muted small">Butonul de plasare a comenzii se activează după integrarea cu Shopify.</p>
-          <p class="ok" role="status" data-ok hidden>Datele sunt complete. În magazinul live, aici ai continua la plată.</p>
+          <div class="errors" role="alert" data-errors hidden tabindex="-1"></div>
+          <button class="btn btn-primary btn-block" type="submit">Plasează comanda</button>
+          <p class="muted small">Demonstrativ: nu se trimite nimic și nu se face nicio plată.</p>
         </div>
       </form>
-      <aside class="sum" aria-labelledby="co-sum"><h2 id="co-sum">Comanda ta</h2><ul data-sum></ul><p class="tot"><span>Subtotal</span><b class="mono" data-total>—</b></p><p class="muted small">TVA inclus. Livrarea se adaugă la plasare.</p></aside>
+      <aside class="sum" aria-labelledby="co-sum"><h2 id="co-sum">Comanda ta</h2><ul data-sum></ul><p class="tot"><span>Subtotal</span><b class="mono" data-total>—</b></p><p class="muted small">TVA inclus. {commerce.shipping.confirmed ? 'Costul livrării apare înainte de plasare.' : 'Livrarea nu e inclusă în această demonstrație.'}</p></aside>
     </div>
   </div>
 </Theme>
@@ -56,7 +63,7 @@ const counties = ['Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsă
   .head { display: grid; gap: var(--space-3); margin-bottom: var(--space-8); }
   h1 { font-size: clamp(2.4rem, 6vw, 4rem); }
   .demo { font-size: var(--text-sm); color: var(--smoke-200); max-width: 70ch; }
-  .layout { display: grid; gap: var(--space-8); }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
   @media (min-width: 1024px) { .layout { grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-12); align-items: start; } }
   /* sections sit on hairlines; from 1024px the title takes a left column and the fields line up to its right */
   .form { --lg: 0px; display: grid; }
@@ -87,8 +94,13 @@ const counties = ['Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsă
   input[type='checkbox'][aria-invalid='true'] { outline: 2px solid var(--danger); outline-offset: 2px; }
   .submit { display: grid; gap: var(--space-4); padding-top: var(--space-2); }
   .errors { padding: var(--space-4); border: 1px solid var(--danger); border-radius: var(--radius-label); color: var(--white); font-size: var(--text-sm); }
-  .errors ul { margin: 8px 0 0; padding-left: 1.2em; }
-  .ok { color: var(--ok); }
+  .errors :global(ul) { margin: 8px 0 0; padding-left: 1.2em; } /* built by the script: not scoped */
+  .form :global(.err) { color: var(--danger); font-size: var(--text-sm); }
+  .placed { display: grid; gap: var(--space-4); justify-items: start; max-width: 46rem; padding: var(--space-8) 0 var(--space-8) var(--space-6); border-left: 2px solid var(--ok); }
+  .placed:focus { outline: none; }
+  .placed h2 { font-size: clamp(var(--text-2xl), 4vw, 3rem); }
+  .placed p { max-width: 54ch; color: var(--smoke-200); }
+  .acts { display: flex; flex-wrap: wrap; gap: var(--space-3); }
   .small { font-size: var(--text-xs); }
   .pro-note { color: var(--strontium-500); font-size: var(--text-sm); }
   /* summary: a flat surface, no outline */
@@ -101,7 +113,9 @@ const counties = ['Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsă
   .tot { display: flex; justify-content: space-between; padding-top: var(--space-3); border-top: var(--border); font-variant-numeric: tabular-nums; }
 </style>
 <script>
-  import { getCart, money } from '../scripts/cart';
+  import { getCart, money, removeLine } from '../scripts/cart';
+  import { getAccount, getAddresses, saveAddress, addOrder } from '../scripts/account';
+  import { validate, errorTexts } from '../scripts/auth-forms';
   import { getProAuth } from '../scripts/mode';
   void getCart().then((cart) => {
     const ul = document.querySelector('[data-sum]')!;
@@ -115,14 +129,47 @@ const counties = ['Alba', 'Arad', 'Argeș', 'Bacău', 'Bihor', 'Bistrița-Năsă
     }
   });
   const form = document.querySelector<HTMLFormElement>('[data-checkout]')!;
-  const msg: Record<string, string> = { 'c-email': 'Scrie o adresă de email validă.', 'c-phone': 'Scrie un număr de mobil românesc, de forma 07xx xxx xxx.', 'c-fn': 'Completează prenumele.', 'c-ln': 'Completează numele.',
-    'c-addr': 'Completează strada și numărul.', 'c-city': 'Completează localitatea.', 'c-county': 'Alege județul.', 'c-zip': 'Codul poștal are 6 cifre.', 'c-age': 'Confirmă că ai cel puțin 16 ani.', 'c-terms': 'Acceptă termenii pentru a continua.' };
-  form.addEventListener('submit', (e) => {
+  const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
+  const F = { firstName: 'c-fn', lastName: 'c-ln', address1: 'c-addr', address2: 'c-addr2', city: 'c-city', county: 'c-county', zip: 'c-zip', phone: 'c-phone' } as const;
+  // a signed-in customer starts from their account: email and default address filled in
+  const acc = getAccount();
+  if (acc) {
+    $('c-email').value = acc.email;
+    const def = getAddresses().find((a) => a.isDefault);
+    if (def) for (const [k, id] of Object.entries(F)) $(id).value = def[k as keyof typeof F];
+    else { $('c-fn').value = acc.firstName; $('c-ln').value = acc.lastName; }
+    form.querySelector<HTMLElement>('[data-save]')!.hidden = false; $('c-save').checked = !def;
+  }
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const bad = [...form.querySelectorAll<HTMLInputElement>('[required]')].filter((el) => { const ok = el.checkValidity(); el.setAttribute('aria-invalid', String(!ok)); return !ok; });
-    const box = form.querySelector<HTMLElement>('[data-errors]')!;
-    form.querySelector<HTMLElement>('[data-ok]')!.hidden = bad.length > 0;
-    box.hidden = !bad.length;
-    if (bad.length) { box.innerHTML = '<b>Mai sunt de completat:</b><ul></ul>'; bad.forEach((el) => { const li = document.createElement('li'); li.textContent = msg[el.id] ?? 'Câmp obligatoriu.'; box.querySelector('ul')!.append(li); }); bad[0].focus(); }
+    // each message sits under its field (validate); the box by the button sums them up, and says when the cart is empty
+    const ok = validate(form), box = form.querySelector<HTMLElement>('[data-errors]')!;
+    const cart = await getCart();
+    const problems = errorTexts(form);
+    if (!cart.items.length) problems.unshift('Coșul e gol: adaugă întâi produse.');
+    box.hidden = !problems.length;
+    if (problems.length) {
+      box.innerHTML = '<b>Mai sunt de completat:</b><ul></ul>';
+      problems.forEach((t) => { const li = document.createElement('li'); li.textContent = t; box.querySelector('ul')!.append(li); });
+      if (ok) box.focus(); return; // otherwise validate() already moved focus to the first field to fix
+    }
+    const address = { company: '', ...Object.fromEntries(Object.entries(F).map(([k, id]) => [k, $(id).value.trim()])) } as Parameters<typeof addOrder>[0]['address'];
+    const email = $('c-email').value.trim().toLowerCase();
+    const order = addOrder({ email, address, total: cart.total_price, payment: form.querySelector<HTMLInputElement>('input[name="pay"]:checked')?.value ?? '',
+      lines: cart.items.map((it) => ({ handle: it.handle, title: it.product.title, quantity: it.quantity, price: it.product.price ?? 0 })) });
+    if (acc && $('c-save').checked) saveAddress({ ...address, id: `a${Date.now().toString(36)}`, isDefault: !getAddresses().length });
+    for (const it of cart.items) await removeLine(it.handle);
+    // the confirmation: the order page when this email has an account here, otherwise an invitation to create one
+    const mine = acc?.email === email, link = document.querySelector<HTMLAnchorElement>('[data-placed-link]')!;
+    const what = `${cart.item_count} ${cart.item_count === 1 ? 'produs' : 'produse'}, ${money(cart.total_price)}.`;
+    document.querySelector('[data-placed-title]')!.textContent = `Comanda #${order.number} e primită`;
+    document.querySelector('[data-placed-text]')!.textContent = mine
+      ? `${what} O găsești în cont, cu produsele și adresa de livrare.`
+      : `${what} Creează un cont cu ${email} și o vezi oricând, cu produsele și adresa.`;
+    link.href = mine ? `/account/order?n=${order.number}` : `/account/register?next=${encodeURIComponent(`/account/order?n=${order.number}`)}`;
+    link.textContent = mine ? 'Vezi comanda' : 'Creează cont';
+    document.querySelector<HTMLElement>('[data-layout]')!.hidden = true;
+    const placed = document.querySelector<HTMLElement>('[data-placed]')!; placed.hidden = false; placed.focus();
+    scrollTo({ top: 0 });
   });
 </script>

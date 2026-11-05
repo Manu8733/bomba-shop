@@ -1,0 +1,45 @@
+---
+// Liquid: templates/customers/reset_password.json ({% form 'reset_customer_password' %}), reached from the emailed link.
+// ?activate=1 shows the same form as templates/customers/activate_account (a new customer sets a first password).
+import Theme from '../../layouts/Theme.astro';
+import AuthCard from '../../sections/account/AuthCard.astro';
+---
+<Theme title="Parolă nouă" description="Alege o parolă nouă pentru contul Bomba Shop." noindex skipGate>
+  <AuthCard title="Parolă nouă" lede="Alege parola cu care intri de acum în cont.">
+    <form class="form" data-reset novalidate>
+      <div data-fields class="form">
+        <div class="field"><label for="rs-pw">Parola nouă</label>
+          <div class="pw"><input class="input" id="rs-pw" type="password" required autocomplete="new-password" data-rule="password" aria-describedby="rs-pw-hint" /><button type="button" data-pw-toggle>Arată</button></div>
+          <p class="hint" id="rs-pw-hint">Cel puțin 8 caractere, cu o literă și o cifră.</p></div>
+        <div class="field"><label for="rs-pw2">Scrie parola încă o dată</label>
+          <div class="pw"><input class="input" id="rs-pw2" type="password" required autocomplete="new-password" data-rule="confirm" /><button type="button" data-pw-toggle>Arată</button></div></div>
+        <button class="btn btn-primary btn-block" type="submit" data-submit>Salvează parola</button>
+      </div>
+      <div class="done" data-done hidden tabindex="-1">
+        <h2 data-done-title>Parola a fost schimbată</h2>
+        <p>De acum intri în cont cu parola nouă.</p>
+        <div class="alt"><a href="/account/login">Intră în cont</a></div>
+      </div>
+    </form>
+    <p class="demo">Până la lansarea magazinului pe Shopify, contul se păstrează doar în acest browser.</p>
+  </AuthCard>
+</Theme>
+<script>
+  import { validate, initPasswordToggles } from '../../scripts/auth-forms';
+  initPasswordToggles();
+  const activate = new URLSearchParams(location.search).has('activate');
+  if (activate) { // same form, the words of account activation
+    document.title = document.title.replace('Parolă nouă', 'Activează contul');
+    document.getElementById('auth-title')!.textContent = 'Activează contul';
+    document.querySelector('.lede')!.textContent = 'Alege o parolă și contul tău e gata.';
+    document.querySelector('[data-submit]')!.textContent = 'Activează contul';
+    document.querySelector('[data-done-title]')!.textContent = 'Contul e activ';
+  }
+  const form = document.querySelector<HTMLFormElement>('[data-reset]')!;
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!validate(form)) return;
+    form.querySelector<HTMLElement>('[data-fields]')!.hidden = true;
+    const done = form.querySelector<HTMLElement>('[data-done]')!; done.hidden = false; done.focus();
+  });
+</script>

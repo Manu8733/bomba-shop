@@ -3,11 +3,12 @@
 // bundles (roman candles, bengal sticks, cake fountains) are a row of tubes; the photo is projected onto the front, so
 // the model looks exactly like the product from the front (it does not turn: no photo shows its sides or back).
 // It stands on a black glossy floor that mirrors it, under the effect's own light (a point light at the nozzle) and
-// two rim lights; the floor runs off into a seamless dark backdrop. The camera is solved from the invisible DOM image of the slide, so the
+// two rim lights; the floor runs off into the dark and, above it, the site's own night backdrop shows through (the canvas is transparent there). The camera is solved from the invisible DOM image of the slide, so the
 // model lands where the layout puts it, verticals kept vertical (shifted lens, no tilt). Rendered on the stage's frame.
 import * as THREE from 'three';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { STACKED } from '../stage';
 
 /** 'lathe' = a round product; a number = that many tubes side by side */
 export type Model = 'lathe' | number;
@@ -54,40 +55,34 @@ function outline(img: HTMLImageElement, obj: number[], rows = 96) {
 }
 
 export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+  renderer.setClearColor(0x000000, 0); // nothing behind the set: the page's backdrop (base.css) is the sky
   const dpr = Math.min(devicePixelRatio || 1, 1.5);
   renderer.setPixelRatio(dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#050407');
   scene.fog = new THREE.Fog('#050407', 4, 13);
   const camera = new THREE.PerspectiveCamera(40, 1, .05, 60);
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
-  // ---- studio: a black glossy floor that mirrors the product, darkening into a seamless backdrop
-  const mirror = new Reflector(new THREE.PlaneGeometry(30, 30), { color: 0x4a4a52, textureWidth: 512, textureHeight: 512, clipBias: .002 });
+  // ---- studio: a black glossy floor that mirrors the product and runs off to the horizon
+  const mirror = new Reflector(new THREE.PlaneGeometry(120, 120), { color: 0x4a4a52, textureWidth: 512, textureHeight: 512, clipBias: .002 });
   mirror.rotation.x = -Math.PI / 2; scene.add(mirror);
-  const fadeTex = canvasTexture(256, 256, (g) => { // clear near the product, opaque black far away: the reflection fades out
+  // clear at the product's base, opaque black further out: only the foot of the product is mirrored, then the floor
+  // goes dark. The gradient reaches opaque at 40% of the texture's radius; layout() zooms it to the camera distance.
+  const fadeTex = canvasTexture(256, 256, (g) => {
     const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    gr.addColorStop(0, '#000'); gr.addColorStop(.12, '#1e1e1e'); gr.addColorStop(.45, '#bdbdbd'); gr.addColorStop(1, '#fff');
+    gr.addColorStop(0, '#000'); gr.addColorStop(.08, '#000'); gr.addColorStop(.2, '#8a8a8a'); gr.addColorStop(.4, '#fff'); gr.addColorStop(1, '#fff');
     g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
   }, false);
-  const finish = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshBasicMaterial({ color: '#050407', alphaMap: fadeTex, transparent: true, depthWrite: false }));
+  const finish = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshBasicMaterial({ color: '#050407', alphaMap: fadeTex, transparent: true, depthWrite: false }));
   finish.rotation.x = -Math.PI / 2; finish.position.y = .0008; finish.renderOrder = 1; scene.add(finish);
   const aoTex = canvasTexture(256, 256, (g) => {
     const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
     gr.addColorStop(0, 'rgba(0,0,0,.95)'); gr.addColorStop(.4, 'rgba(0,0,0,.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
   });
-  // a soft pool of light on the backdrop behind the product gives the studio its depth
-  const halo = new THREE.Mesh(new THREE.PlaneGeometry(14, 8), new THREE.MeshBasicMaterial({ fog: false, transparent: true, depthWrite: false,
-    map: canvasTexture(512, 256, (g) => {
-      const gr = g.createRadialGradient(256, 110, 0, 256, 110, 240);
-      gr.addColorStop(0, 'rgba(26,23,34,1)'); gr.addColorStop(.55, 'rgba(14,12,19,.55)'); gr.addColorStop(1, 'rgba(5,4,7,0)');
-      g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
-    }) }));
-  halo.position.set(0, 3.2, -7); scene.add(halo);
 
   // ---- light: the effect's point light, a cool rim from behind-left, a warm one from behind-right, a soft key from the
   // front so every product stays readable, and almost no ambient. (A point light's shadow would cost six renders a frame
@@ -201,6 +196,14 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement) {
     camera.lookAt(0, EYE, 0);
     camera.setViewOffset(W, H, W / 2 - cx, H / 2 - (yBase - h * EYE), W, H);
     camera.updateProjectionMatrix();
+    // the horizon (eye height) on screen: the page lays a soft dusk band there, behind the canvas (Hero.astro .dusk)
+    root.style.setProperty('--horizon', `${Math.round(yBase - h * EYE)}px`);
+    // the reflection of a point at height y lands on the floor D·y/(EYE+y) in front of the product: fade the floor out
+    // where the mirrored image reaches REFL of the product's height (less in the stacked layout, where the copy sits right below)
+    const phone = matchMedia(STACKED).matches, REFL = phone ? .22 : .42;
+    const reach = D * REFL / (EYE + REFL), R = reach / .4, rep = 60 / R; // R: the gradient's radius in floor units (the plane is 120)
+    fadeTex.repeat.set(rep, rep); fadeTex.offset.set(.5 - rep / 2, .5 - rep / 2);
+    (mirror.material as THREE.ShaderMaterial).uniforms.color.value.set(phone ? 0x2a2a30 : 0x4a4a52);
     const aspect = cur?.aspect ?? .5;
     fx.position.set((shot.nozzle[0] - .5) * aspect, 1 - shot.nozzle[1] + .14, .42);
   };

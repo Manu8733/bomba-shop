@@ -101,6 +101,7 @@ Elementul specific brandului. Orice produs își arată datele tehnice prin etic
 | Gate de intrare | public / profesionist | Întrebarea „Cine cumpără?”; F1 cere confirmarea de 16+; P1/T1 cer autorizație |
 | Mini-cart | drawer dreapta | Fitil spre livrare gratuită, upsell discret |
 | Filtre | chip-uri + sheet pe mobil | Categorie, efect (culorile sărurilor), focuri, calibru, durată, preț, stoc |
+| Formulare | cont, adrese, checkout, contact, dezabonare | Mesajul de eroare stă sub câmp și e legat cu `aria-describedby` (`scripts/auth-forms.ts`); parola are buton Arată/Ascunde; starea de succes ia focusul |
 
 Stări obligatorii pentru orice componentă interactivă: default, hover, focus-visible, active, disabled, loading, eroare.
 
@@ -113,9 +114,8 @@ Stări obligatorii pentru orice componentă interactivă: default, hover, focus-
 | Pagină | Scenă | Ce face |
 |---|---|---|
 | Intrare pe site | **Intro** | O bombă urcă, explodează, scânteile formează logo-ul, apoi zboară exact în logo-ul din header (o dată pe sesiune). WebGL, un singur apel de desen pe cadru |
-| Home, hero | **Scena** | Un decor 3D real (WebGL): mochetă de pâslă pe asfalt umed, orizont cu cer înstelat. 5 produse reale, alese cu săgeți sau taburi, stau pe mochetă și sunt „aprinse” cu efectul lor (vulcan argintiu, candele romane, bengală, artificii de tort, fumigenă). Lumina efectului e o lumină reală în scenă: luminează mocheta și produsul. Fitilul de sub tab e cronometrul. Countdown până la Revelion. Fără scroll forțat |
+| Home, hero | **Scena** | Un studio 3D (WebGL): podea lucioasă care reflectă produsul și efectul, fundal închis care se stinge în ceață. 5 produse reale, modelate în Blender din fotografiile lor (`tools/blender/make_models.py`, GLB cu textura pozei), alese cu săgeți sau taburi și „aprinse” cu efectul lor (vulcan argintiu, candele romane, bengală, artificii de tort, fumigenă). Lumina efectului e o lumină reală în scenă. Candelele au și spatele fotografiat: butonul „Vezi spatele” sau tragerea cu mouse-ul întoarce cutia. Fitilul de sub tab e cronometrul. Countdown până la Revelion. Primul produs e fumigena (alegerea proprietarului). Reflexia arată doar baza produsului și se stinge repede (mai slabă pe telefon). Pe telefon: countdown-ul e o bandă subțire sub header („57 zile 00:29:02”), scânteile trec pe sub ea, descrierea produsului lipsește, titlul paginii vine după primul ecran. Fără scroll forțat |
 | Home, raft | **Ce aprinzi la…** | Titlul e comutatorul (Revelion, Nuntă, Aniversare, Petrecere, Gender reveal); cinci produse reale pe un raft, cu preț și coș |
-| Home, spectacole | **Spectacol live** | Bombe aeriene trase dintr-un șir de tuburi: bujori, inele, sălcii aurii. Același motor ca hero-ul. Tot el e bannerul paginii Spectacole |
 | Colecție | Cer de fundal | Stele și scântei rare, cu parallax la scroll. Foarte ușor |
 | Produs | Fără WebGL | Doar galeria. Scântei 2D la add-to-cart |
 | Footer | **Jarul** | Scântei care cad încet și se sting |
@@ -141,12 +141,27 @@ Reguli tehnice pentru 3D:
 
 ## 8. Imagini
 
-- Toate produsele: decupate, pe fundal transparent, **așezate pe podea**: fiecare decupaj are coaptă sub bază o umbră de contact calculată din forma bazei (`tools/ground_shadow.py`), iar în pagină stă pe mocheta de pâslă (`.mat`, aceeași textură ca în scena 3D). Nicio umbră „sub” produs care să-l ridice de pe sol.
-- Fără poze generate cu AI ca decor: ocaziile, efectele și spectacolele se arată cu produse reale și cu efecte randate live.
+- **Fundalul site-ului** (`tools/make_backdrop.py`, `html::before`, fix): noaptea de după foc. Fuioare subțiri de fum care stau în aer, reci sus și calde jos, unde ard focurile, sub o granulație fină de film care ascunde treptele de culoare. Contrast foarte mic, ca textul să rămână curat. Studioul din hero se topește în el pe ultimii 96 px, iar subsolul e un văl peste el, nu un perete.
+
+- Toate produsele: decupate, pe fundal transparent, **așezate pe podea**: fiecare decupaj are coaptă sub bază o umbră de contact calculată din forma bazei (`tools/ground_shadow.py`), iar în pagină stă pe podeaua de studio (`.mat`: podea închisă, lucioasă, cu lumina caldă sub produs, ca în scena 3D din hero). Nicio umbră „sub” produs care să-l ridice de pe sol.
+- Fără poze generate cu AI ca decor: ocaziile și efectele se arată cu produse reale și cu efecte randate live.
 - Watermark-urile se elimină prin inpainting; originalele se păstrează.
 - Formate WebP/AVIF, `srcset` cu 3–4 lățimi, `width`/`height` declarate.
 - Alt text în română, descriptiv: „Baterie de artificii Void Reaper, cutie neagră cu 12 jerbe”.
 - Produsele cu personaje licențiate pe ambalaj se arată ca atare, dar personajele nu se folosesc în materialele de brand.
+
+## 8b. Cont și pagini de serviciu
+
+Contul urmează șabloanele Shopify `customers/*`, ca portarea să fie directă: `/account/login` (cu recuperarea parolei), `/account/register`,
+`/account/reset` (și activarea contului, `?activate=1`), `/account` (comenzi, adresa principală, profil, noutăți), `/account/addresses`,
+`/account/order?n=`. Până la portare, contul, adresele și comenzile demonstrative plasate din `/checkout` stau în `localStorage`
+(`scripts/account.ts`); parola se verifică doar ca formă și nu se salvează nicăieri. O comandă aparține emailului cu care a fost plasată.
+
+- **Contact** (`/pages/contact`) e doar pentru întrebări despre o comandă: subiectul (unde e comanda, modificare sau anulare, retur, altceva),
+  numărul comenzii, emailul folosit. Se precompletează din cont și din pagina comenzii (`?comanda=`).
+- **Dezabonare** (`/pages/dezabonare`): emailul (precompletat din `?email=` sau din cont), motivul opțional, confirmare și „abonează-mă la loc”.
+  Campaniile Shopify Email au și linkul lor de dezabonare; pagina asta e cea din subsol și din cont.
+- Nu mai avem pagină de spectacole sau ofertă pentru evenimente.
 
 ## 9. Ton și text
 

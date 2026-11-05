@@ -1,0 +1,57 @@
+---
+// Liquid: templates/page.dezabonare.json. Every Shopify Email campaign carries its own unsubscribe link (hosted by
+// Shopify); this page is the one people reach from the footer or the account, and posts {% form 'customer' %} with
+// contact[accepts_marketing]=false at the port.
+import Theme from '../../layouts/Theme.astro';
+import AuthCard from '../../sections/account/AuthCard.astro';
+const reasons = ['Primesc prea multe e-mailuri', 'Nu mă mai interesează', 'Nu m-am abonat eu', 'Alt motiv'];
+---
+<Theme title="Dezabonare" description="Dezabonează-te de la e-mailurile cu noutăți Bomba Shop." noindex skipGate>
+  <AuthCard title="Dezabonare" lede="Nu mai vrei e-mailuri cu noutăți? Scrie adresa și o scoatem din listă.">
+    <form class="form" data-unsub novalidate>
+      <div class="form" data-fields>
+        <div class="field"><label for="un-email">Adresa de email</label>
+          <input class="input" id="un-email" type="email" required autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" /></div>
+        <fieldset class="why">
+          <legend>De ce pleci? <span>(opțional)</span></legend>
+          {reasons.map((r, i) => <label class="check"><input type="radio" name="reason" value={r} id={`un-r${i}`} /> <span>{r}</span></label>)}
+        </fieldset>
+        <button class="btn btn-primary btn-block" type="submit">Dezabonează-mă</button>
+        <p class="hint">E-mailurile despre comenzile tale vin în continuare, pentru că țin de comandă, nu de noutăți.</p>
+      </div>
+      <div class="done" data-done hidden tabindex="-1">
+        <h2 data-done-title>Te-am dezabonat</h2>
+        <p data-done-text></p>
+        <div class="alt"><button class="link" type="button" data-undo>M-am răzgândit, abonează-mă la loc</button><a href="/">Înapoi la magazin</a></div>
+      </div>
+    </form>
+    <p class="demo">Demonstrativ: până la lansare alegerea se păstrează doar în acest browser.</p>
+  </AuthCard>
+</Theme>
+<style>
+  .why { display: grid; gap: 2px; margin: 0; padding: 0; border: 0; }
+  .why legend { margin-bottom: var(--space-2); padding: 0; font-weight: 600; color: var(--white); }
+  .why legend span { font-weight: 400; color: var(--smoke-400); }
+  .why .check { align-items: center; min-height: 44px; }
+  .hint { font-size: var(--text-sm); color: var(--smoke-400); }
+</style>
+<script>
+  import { getAccount, setNewsletter } from '../../scripts/account';
+  import { validate } from '../../scripts/auth-forms';
+  const form = document.querySelector<HTMLFormElement>('[data-unsub]')!, email = document.getElementById('un-email') as HTMLInputElement;
+  email.value = new URLSearchParams(location.search).get('email') ?? getAccount()?.email ?? '';
+  const done = form.querySelector<HTMLElement>('[data-done]')!, title = done.querySelector('[data-done-title]')!, text = done.querySelector('[data-done-text]')!;
+  const undo = done.querySelector<HTMLButtonElement>('[data-undo]')!;
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    email.value = email.value.trim().toLowerCase();
+    if (!validate(form)) return;
+    setNewsletter(email.value, false); // the account page (signed in or later) shows the change
+    text.textContent = `Nu mai trimitem noutăți la ${email.value}.`;
+    form.querySelector<HTMLElement>('[data-fields]')!.hidden = true; done.hidden = false; done.focus();
+  });
+  undo.addEventListener('click', () => {
+    setNewsletter(email.value, true);
+    title.textContent = 'Te-ai abonat din nou'; text.textContent = `Primești iar noutățile la ${email.value}.`; undo.hidden = true; done.focus();
+  });
+</script>

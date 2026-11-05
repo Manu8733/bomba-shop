@@ -12,7 +12,15 @@
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); background: var(--night-950); }
-body { margin: 0; background: var(--night-950); color: var(--white); font: 400 var(--text-base)/var(--leading-body) var(--font-body);
+/* the backdrop of every page: the night after a show, thin smoke lit cool from above and warm from the fires below, under a
+   fine film grain that also keeps the dark gradients free of steps (tools/make_backdrop.py). Fixed: it stays while the
+   page scrolls over it; surfaces with their own colour (hero studio, cards, drawers) sit on top. */
+html::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: url(/images/bg/grain-160.png) 0 0 / 160px repeat, url(/images/bg/night.webp) 50% 100% / cover no-repeat, var(--night-950); }
+@media (orientation: portrait) {
+  html::before { background: url(/images/bg/grain-160.png) 0 0 / 160px repeat, url(/images/bg/night-p.webp) 50% 100% / cover no-repeat, var(--night-950); }
+}
+body { margin: 0; background: transparent; color: var(--white); font: 400 var(--text-base)/var(--leading-body) var(--font-body);
        -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; min-height: 100vh; }
 img, svg, video, canvas { display: block; max-width: 100%; }
 img { height: auto; }
@@ -31,13 +39,8 @@ p { margin: 0; }
 :root { --floor: radial-gradient(44% 15% at 50% 88%, rgba(255, 206, 150, .2), transparent 72%),
   linear-gradient(180deg, #0d0b12 0%, #14111b 57%, #221d2b 63%, #1b1722 84%, #121018 100%); }
 
-/* the felt mat a product stands on (the same felt as the hero's 3D set), laid in perspective under the product and
-   fading into the wall behind it; a warm pool of light sits where the product stands. Put .mat on the product's box. */
-.mat { position: relative; isolation: isolate; }
-.mat::before { content: ''; position: absolute; left: -35%; right: -35%; bottom: -4%; height: 50%; z-index: -1; pointer-events: none;
-  background: radial-gradient(34% 42% at 50% 78%, rgba(255, 214, 170, .5), transparent 72%), url(/images/floor/carpet-256.webp) 50% 100% / 72px repeat;
-  transform: perspective(340px) rotateX(60deg); transform-origin: 50% 100%; filter: brightness(.34) saturate(.85);
-  -webkit-mask-image: linear-gradient(to top, #000 50%, transparent 100%); mask-image: linear-gradient(to top, #000 50%, transparent 100%); }
+/* a box whose product stands on that studio floor (the shelf, the account pages): the same floor as the product cards */
+.mat { position: relative; isolation: isolate; background: var(--floor); }
 
 /* layout */
 .container { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: var(--gutter); }
@@ -92,7 +95,7 @@ p { margin: 0; }
 /* form controls */
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font: 600 var(--text-sm)/1.2 var(--font-body); color: var(--smoke-200); }
-.input { min-height: 48px; padding: 0 14px; background: var(--night-900); border: 1px solid var(--night-600); border-radius: var(--radius-label); color: var(--white); }
+.input { min-height: 48px; min-width: 0; padding: 0 14px; background: var(--night-900); border: 1px solid var(--night-600); border-radius: var(--radius-label); color: var(--white); }
 .input:focus { outline: 2px solid var(--magnesium-400); outline-offset: 0; border-color: transparent; }
 textarea.input { padding: 12px 14px; min-height: 140px; resize: vertical; }
 

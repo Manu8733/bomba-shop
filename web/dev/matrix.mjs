@@ -29,7 +29,8 @@ const PAGES = {
   // on phones the sticky bar (name, price, button) is up from the first screen, so it counts for the name
   '/products/vulcan-etna': { fold: ['main h1, [data-sticky][data-show="true"] .st-title', '[data-gallery] .slide img', '[data-add-to-cart]'] },
   '/collections/public': { fold: ['main h1'], startsInFold: ['[data-product-card]'] },
-  '/pages/spectacole': { fold: ['main h1'] },
+  '/account/login': { fold: ['main h1', '#li-email', '#li-pw'] },
+  '/pages/contact': { fold: ['main h1'] },
 };
 const pageList = pagesArg === 'all' ? Object.keys(PAGES) : pagesArg.split(',');
 
@@ -82,6 +83,7 @@ for (const name of engines.split(',')) {
         const shot = SHOTS === 'all' || (SHOTS === 'fail' && issues.length);
         if (shot) { await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(250); await page.screenshot({ path: `${out}/${name}-${w}x${h}-${path.replace(/[^a-z0-9]+/gi, '_') || 'home'}.jpg`, type: 'jpeg', quality: 55 }); }
         report.push({ engine: name, vp: `${w}x${h}`, kind, path, issues, minFont: r.minFont, heroName: r.heroName });
+        process.stderr.write(`${name} ${w}x${h} ${path} ${issues.length ? 'ISSUES' : 'ok'}\n`); // progress
       } catch (e) { report.push({ engine: name, vp: `${w}x${h}`, kind, path, issues: [`load failed: ${e.message.slice(0, 120)}`] }); }
       await page.close();
     }

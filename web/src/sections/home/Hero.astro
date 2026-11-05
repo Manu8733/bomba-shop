@@ -13,6 +13,9 @@ import type { Effect } from '../../scripts/stage';
 // turn: the model has a real photo of its back (tools/blender/make_models.py), so it can be turned round
 type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number; model: 'lathe' | number; turn?: boolean };
 const defs: Def[] = [
+  // the owner's pick for the first screen: the smoke canister
+  { handle: 'fumigena-portocalie-cu-inel', name: 'Fumigenă portocalie', kind: 'Fumigenă cu inel', unit: 'pentru o bucată',
+    line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff6a14', nozzles: [[.42, .01]], model: 'lathe' },
   { handle: 'vulcan-etna', name: 'Vulcan Etna', kind: 'Vulcan', unit: 'pentru o bucată',
     line: 'Jerbă de scântei argintii. Distanța minimă de siguranță: 1 m.', effect: 'fountain', color: 'silver', nozzles: [[.55, .015]], k: .78, model: 'lathe' },
   { handle: 'candele-romane-30-foc', name: 'Candele romane', kind: 'Candelă romană', unit: 'pentru pachetul de 12', img: 2,
@@ -21,8 +24,6 @@ const defs: Def[] = [
     line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]], model: 6 },
   { handle: 'artificii-tort-30cm-set-4-bucati-ardere-120-secunde', name: 'Artificii de tort', kind: 'Artificii de tort', unit: 'pentru setul de 4',
     line: 'Scântei aurii de 30 cm, care ard 120 de secunde.', effect: 'ice', color: 'gold', nozzles: [[.16, .01], [.39, .01], [.61, .01], [.84, .01]], k: .82, model: 4 },
-  { handle: 'fumigena-portocalie-cu-inel', name: 'Fumigenă portocalie', kind: 'Fumigenă cu inel', unit: 'pentru o bucată',
-    line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff6a14', nozzles: [[.42, .01]], model: 'lathe' },
 ];
 const slides = defs.flatMap((d) => {
   const p = byHandle(d.handle);
@@ -32,11 +33,12 @@ const slides = defs.flatMap((d) => {
   const inStock = available(p), pro = isPro(p);
   return [{ ...d, p, img, inStock, pro, url: productUrl(p), price: money(price(p)),
     stock: !inStock ? 'Revine în curând' : qty && qty <= 5 ? `Ultimele ${qty} în stoc` : 'În stoc',
-    who: pro ? `${p.metafields.pyro.category}, doar pentru persoane autorizate` : `F1, de la ${law.publicMinAge} ani` }];
+    who: pro ? `${p.metafields.pyro.category}, doar pentru autorizați` : `F1, de la ${law.publicMinAge} ani` }];
 });
 const n = slides.length;
 ---
 <section class="hero" data-hero aria-labelledby="hero-h">
+  <div class="dusk" aria-hidden="true"></div>
   <canvas class="set" aria-hidden="true" data-set-canvas></canvas>
   <canvas class="fx" aria-hidden="true" data-stage-canvas></canvas>
   <div class="container in">
@@ -80,7 +82,7 @@ const n = slides.length;
                   ? <button class="btn btn-primary" type="button" data-add-to-cart data-handle={s.p.handle} aria-label={`Adaugă ${s.p.title} în coș`}><Icon name="plus" size={18} />Adaugă în coș</button>
                   : <a class="btn btn-secondary" href={`${s.url}#anunta`}>Anunță-mă când revine</a>}
               <a class="more" href={s.url}>Detalii</a>
-              {s.turn && <button class="more turn" type="button" data-turn aria-pressed="false" hidden>Vezi spatele</button>}
+              {s.turn && <button class="more turn" type="button" data-turn hidden><Icon name="return" size={18} /><span data-turn-label>Vezi spatele</span></button>}
             </div>
           </div>
         </article>
@@ -111,15 +113,22 @@ const n = slides.length;
 <style>
   .hero { position: relative; isolation: isolate; overflow: hidden; margin-top: calc(-1 * var(--header-h));
     min-height: calc(100vh - var(--announce-h)); min-height: calc(100svh - var(--announce-h)); display: flex; --announce-h: 36px; /* measured by the script */ padding-block: calc(var(--header-h) + 28px) 28px;
-    background: linear-gradient(180deg, #07060b 0%, #0b0911 55%, #110d18 100%); }
+    background: transparent; } /* the site's night backdrop (base.css) is the sky behind the stage */
   /* the ground the product stands on; its top edge is placed by the stage script at the product's base */
   .hero::after { content: ''; position: absolute; inset: var(--ground, 82%) 0 0; z-index: -2;
     background: linear-gradient(180deg, #16121e 0%, #0c0a12 38%, #07060b 100%); box-shadow: 0 -1px 0 rgba(246, 241, 234, .06); }
   .fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+  /* the studio's front edge dissolves into the site's backdrop instead of ending in a line */
+  .fx, .set { -webkit-mask-image: linear-gradient(#000 calc(100% - 96px), transparent); mask-image: linear-gradient(#000 calc(100% - 96px), transparent); }
   /* the 3D set (scripts/three/set.ts) under the sparks; once it runs, it draws the floor and the product, and the DOM
      images stay only for layout, links and screen readers */
   .set { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; opacity: 0; transition: opacity .6s ease-out; }
   .hero.has-set .set { opacity: 1; }
+  /* behind the transparent sky of the set: the night darkens towards the horizon, where the floor begins, so the floor
+     does not end in a line (--horizon is set by three/set.ts) */
+  .dusk { position: absolute; left: 0; right: 0; top: calc(var(--horizon, 60%) - 260px); height: 300px; z-index: -3; pointer-events: none; opacity: 0;
+    background: linear-gradient(180deg, rgba(5, 4, 7, 0), rgba(5, 4, 7, .55) 45%, rgba(5, 4, 7, .92) 78%, #050407 87%); transition: opacity .6s ease-out; }
+  .hero.has-set .dusk { opacity: 1; }
   .hero.has-set::after { display: none; }
   .hero.has-set .shot.on { opacity: 0; }
   .in { flex: 1; display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 1fr);
@@ -152,7 +161,7 @@ const n = slides.length;
     background: radial-gradient(90% 46% at 50% 0%, rgb(var(--fx, 236 236 255) / .62), rgb(var(--fx, 236 236 255) / .16) 55%, transparent 80%);
     -webkit-mask: var(--mask) center / 100% 100% no-repeat; mask: var(--mask) center / 100% 100% no-repeat; }
 
-  .slides { grid-area: info; display: grid; align-self: end; }
+  .slides { grid-area: info; display: grid; grid-template-columns: minmax(0, 1fr); align-self: end; } /* a long slide never widens the column */
   .slide { grid-area: 1 / 1; display: grid; gap: var(--space-3); align-content: end; opacity: 0; transform: translateY(12px); visibility: hidden;
     transition: opacity .35s ease-out, transform .5s var(--ease-out-expo), visibility 0s .5s; }
   .slide.on { opacity: 1; transform: none; visibility: visible; transition-delay: .1s, .1s, 0s; }
@@ -173,7 +182,8 @@ const n = slides.length;
   .acts { display: flex; align-items: center; gap: var(--space-6); flex-basis: 100%; }
   .more { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 4px; color: var(--smoke-200); font-weight: 600; text-underline-offset: 4px; }
   .more:hover { color: var(--white); }
-  .turn { border: 0; background: none; cursor: pointer; font: inherit; text-decoration: underline; text-underline-offset: 4px; }
+  .turn { gap: 6px; border: 0; background: none; cursor: pointer; font: inherit; text-decoration: underline; text-underline-offset: 4px; }
+  .turn :global(svg) { flex: none; }
   .hero.has-set .stage.turnable { cursor: grab; }
   .hero.has-set .stage.turning { cursor: grabbing; }
 
@@ -200,28 +210,43 @@ const n = slides.length;
   .all { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--white); font-weight: 600; text-underline-offset: 4px; }
   .all:hover { color: var(--magnesium-400); }
 
-  /* phones and tablets held upright: the first screen is exactly stage + product + picker, whatever the height;
-     the stage takes what is left, the title and countdown sit small over the night at its top */
-  @media (max-width: 1023px) and (orientation: portrait), (max-width: 599px) {
-    .hero { --announce-h: 54px; min-height: 0; padding: var(--header-h) 0 0; }
-    .in { display: flex; flex-direction: column; } /* the title block comes first in the markup: send it after the first screen */
-    .top { order: 2; }
-    .first { display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-4);
-      height: calc(100svh - var(--announce-h) - var(--header-h)); min-height: 440px; }
+  /* phones and tablets held upright, one column: a slim countdown strip under the header, then the first screen is
+     exactly stage + product + picker whatever the height (the stage takes what is left); the title follows it */
+  @media (max-width: 1023px) and (orientation: portrait), (max-width: 599px) and (min-height: 561px) { /* = STACKED in scripts/stage.ts */
+    .hero { --announce-h: 54px; --count-h: 44px; min-height: 0; padding: var(--header-h) 0 0; }
+    .in { display: flex; flex-direction: column; gap: 0; }
+    .top { display: contents; } /* its two children become rows of their own: the countdown first, the title last */
+    .count { order: 0; position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 12px;
+      min-height: var(--count-h); margin-inline: calc(-1 * var(--gutter)); padding: 6px var(--gutter);
+      background: rgba(7, 6, 11, .9); border-bottom: 1px solid rgba(246, 241, 234, .07); } /* nearly opaque: the sparks pass behind it */
+    .c-k { font-size: .8rem; }
+    .c-n { gap: 0; align-items: baseline; }
+    .c-n span { display: inline-flex; align-items: baseline; gap: 4px; }
+    .c-n span:first-child { margin-right: 10px; }
+    .c-n span:not(:first-child) { gap: 0; }
+    .c-n span:nth-child(3)::before, .c-n span:nth-child(4)::before { content: ':'; padding-inline: 2px; font: 800 1.3rem/.9 var(--font-display); color: var(--smoke-400); }
+    .c-n b { font-size: 1.3rem; min-width: 0; }
+    .c-n small { font-size: .75rem; }
+    /* hours, minutes, seconds read as 00:47:38; their words stay for screen readers */
+    .c-n span:not(:first-child) small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .first { order: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) 0 var(--space-4);
+      height: calc(100svh - var(--announce-h) - var(--header-h) - var(--count-h)); min-height: 400px; }
     .stage { flex: 1 1 0; min-height: 120px; }
-    .shot { --ph: clamp(150px, 30svh, 320px); }
+    /* the product stands a little above the stage's bottom edge: its short reflection stays on the floor, off the text */
+    .shot { --ph: clamp(150px, 30svh, 320px); bottom: clamp(16px, 3.6svh, 36px); }
     .slides, .picker { flex: none; }
-    .top { position: absolute; z-index: 2; top: calc(var(--header-h) + 10px); left: var(--gutter); right: var(--gutter); gap: 6px; pointer-events: none;
-      text-shadow: 0 1px 12px #07060b, 0 0 2px #07060b; }
-    h1 { font-size: .84rem; line-height: 1.35; max-width: 30ch; }
-    .count { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-    .c-n { gap: 8px; }
-    .c-n b { font-size: 1.5rem; }
+    .slides { align-self: stretch; } /* the desktop grid's align-self: end would push it right in this column */
+    h1 { order: 2; max-width: 34ch; padding: var(--space-6) 0 var(--space-8); border-top: var(--border); font-size: 1rem; }
+    .line { display: none; } /* the description lives on the product page; here the name, price and button carry it */
     .slide { gap: var(--space-2); }
     .name { font-size: clamp(2.2rem, min(11vw, 6.4svh), 3.6rem); }
     .buy { margin-top: 0; gap: var(--space-2) var(--space-4); }
     .price b { font-size: 1.5rem; }
-    .acts .btn { flex: 1; }
+    .acts { gap: var(--space-4); }
+    .acts .btn { flex: 1; min-width: 0; }
+    /* turning the model: the icon alone on phones, so the button, Detalii and it fit one row down to 320px */
+    .turn { width: 44px; justify-content: center; padding: 0; text-decoration: none; border: 1px solid var(--night-600); border-radius: 50%; }
+    .turn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     /* the picker becomes one row: arrows, then the five fuses as segments (names stay for screen readers) */
     .picker { gap: var(--space-3); padding-top: 0; }
     .arw { width: 44px; height: 44px; }
@@ -232,14 +257,17 @@ const n = slides.length;
     .fuse { height: 3px; }
     .all { display: none; }
   }
-  @media (max-width: 1023px) and (orientation: portrait) and (max-height: 720px), (max-width: 599px) and (max-height: 720px) { .line { display: none; } }
-  /* very short phones (iPhone SE class): no room over the stage, the title and countdown follow the first screen */
+  /* very short phones (iPhone SE class): a slimmer strip */
   @media (max-width: 1023px) and (orientation: portrait) and (max-height: 620px) {
-    .top { position: static; padding: var(--space-6) var(--gutter) var(--space-8); border-top: var(--border); text-shadow: none; }
-    h1 { font-size: 1rem; }
+    .hero { --count-h: 36px; }
+    .c-k { font-size: .75rem; }
+    .first { gap: var(--space-3); }
+    .kind { font-size: .78rem; }
+    .name { font-size: clamp(1.7rem, 9vw, 2.3rem); }
+    .c-n b, .c-n span:nth-child(3)::before, .c-n span:nth-child(4)::before { font-size: 1.1rem; }
   }
   /* short screens (laptops at 650–760 px, browsers with toolbars): tighter rhythm so the picker stays on screen */
-  @media (orientation: landscape) and (max-height: 780px) {
+  @media (orientation: landscape) and (max-height: 780px) and (min-width: 600px), (orientation: landscape) and (max-height: 560px) {
     .hero { padding-block: calc(var(--header-h) + 12px) 16px; }
     .in { row-gap: var(--space-4); }
     .top { gap: var(--space-4); }
@@ -254,12 +282,13 @@ const n = slides.length;
     .top { order: 2; }
     .first { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--space-8); row-gap: var(--space-2);
       grid-template-areas: "info stage" "pick pick"; grid-template-rows: minmax(0, 1fr) auto;
-      height: calc(100svh - var(--announce-h) - var(--header-h) - 8px); min-height: 240px; }
+      height: calc(100svh - var(--announce-h) - var(--header-h) - 8px); min-height: 200px; }
     .top { margin-top: var(--space-8); padding-top: var(--space-6); border-top: var(--border); }
     .line, .kind { display: none; }
     .name { font-size: clamp(1.9rem, 9vh, 3.2rem); }
     .price b { font-size: 1.4rem; }
     .slide { gap: var(--space-2); }
+    .stage { min-height: 0; } /* inside its grid row, or the product would stand below the picker */
     .shot { --ph: clamp(140px, 60vh, 300px); }
     .picker { gap: var(--space-3); }
     .arw { width: 44px; height: 44px; }
@@ -372,9 +401,9 @@ const n = slides.length;
     const turnBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-turn]')];
     const setTurn = (rad: number) => {
       set?.turn(rad); stage?.hold(Math.abs(rad) > .2);
-      turnBtns.forEach((b) => { const back = Math.abs(rad) > 1.5; b.setAttribute('aria-pressed', String(back)); b.textContent = back ? 'Vezi fața' : 'Vezi spatele'; });
+      turnBtns.forEach((b) => { const back = Math.abs(rad) > 1.5; b.dataset.back = String(back); b.querySelector('[data-turn-label]')!.textContent = back ? 'Vezi fața' : 'Vezi spatele'; });
     };
-    turnBtns.forEach((b) => b.addEventListener('click', () => { stop(); setTurn(b.getAttribute('aria-pressed') === 'true' ? 0 : Math.PI); }));
+    turnBtns.forEach((b) => b.addEventListener('click', () => { stop(); setTurn(b.dataset.back === 'true' ? 0 : Math.PI); }));
     const turnable = () => !!set && !!slides[i].querySelector('[data-turn]');
     const stageEl = root.querySelector<HTMLElement>('[data-stage]')!;
     let dragX: number | null = null;

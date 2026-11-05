@@ -1,0 +1,47 @@
+---
+// Liquid: templates/customers/register.json ({% form 'create_customer' %}; accepts_marketing from the newsletter box).
+import Theme from '../../layouts/Theme.astro';
+import AuthCard from '../../sections/account/AuthCard.astro';
+import { law } from '../../config';
+---
+<Theme title="Creează cont" description="Creează un cont Bomba Shop." noindex skipGate>
+  <AuthCard title="Creează cont" lede="Cu un cont îți vezi comenzile și nu mai scrii adresa la fiecare livrare.">
+    <form class="form" data-register novalidate>
+      <div class="row2">
+        <div class="field"><label for="rg-fn">Prenume</label><input class="input" id="rg-fn" required autocomplete="given-name" data-msg="Completează prenumele." /></div>
+        <div class="field"><label for="rg-ln">Nume</label><input class="input" id="rg-ln" required autocomplete="family-name" data-msg="Completează numele." /></div>
+      </div>
+      <div class="field"><label for="rg-email">Adresa de email</label>
+        <input class="input" id="rg-email" type="email" required autocomplete="email" inputmode="email" /></div>
+      <div class="field"><label for="rg-pw">Parola</label>
+        <div class="pw"><input class="input" id="rg-pw" type="password" required autocomplete="new-password" data-rule="password" aria-describedby="rg-pw-hint" /><button type="button" data-pw-toggle>Arată</button></div>
+        <p class="hint" id="rg-pw-hint">Cel puțin 8 caractere, cu o literă și o cifră.</p></div>
+      <label class="check"><input type="checkbox" id="rg-age" required data-msg={`Contul e doar pentru persoane de cel puțin ${law.publicMinAge} ani.`} />
+        <span>Am cel puțin {law.publicMinAge} ani.</span></label>
+      <label class="check"><input type="checkbox" id="rg-news" /> <span>Vreau pe email produsele noi și revenirile în stoc. Mă pot dezabona oricând.</span></label>
+      <p class="hint">Creând contul accepți <a href="/pages/termeni">Termenii și condițiile</a> și <a href="/pages/confidentialitate">Politica de confidențialitate</a>.</p>
+      <button class="btn btn-primary btn-block" type="submit">Creează contul</button>
+      <p class="alt">Ai deja cont? <a href="/account/login" data-keep-next>Intră în cont</a></p>
+    </form>
+    <p class="demo">Până la lansarea magazinului pe Shopify, contul se păstrează doar în acest browser.</p>
+  </AuthCard>
+</Theme>
+<style>
+  .row2 { display: grid; gap: var(--space-4); }
+  @media (min-width: 480px) { .row2 { grid-template-columns: 1fr 1fr; } }
+  .hint a { color: var(--white); text-underline-offset: 3px; }
+</style>
+<script>
+  import { signIn } from '../../scripts/account';
+  import { validate, initPasswordToggles, nextUrl } from '../../scripts/auth-forms';
+  initPasswordToggles();
+  document.querySelectorAll<HTMLAnchorElement>('[data-keep-next]').forEach((a) => { a.search = location.search; });
+  const form = document.querySelector<HTMLFormElement>('[data-register]')!;
+  const val = (id: string) => (document.getElementById(id) as HTMLInputElement).value.trim();
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!validate(form)) return;
+    signIn({ firstName: val('rg-fn'), lastName: val('rg-ln'), email: val('rg-email').toLowerCase(), newsletter: (document.getElementById('rg-news') as HTMLInputElement).checked });
+    location.assign(nextUrl());
+  });
+</script>

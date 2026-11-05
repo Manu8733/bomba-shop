@@ -1,0 +1,95 @@
+---
+// Liquid: templates/customers/order.json (Shopify serves it at /account/orders/<id>; this static build uses ?n=<number>).
+import Theme from '../../layouts/Theme.astro';
+import AccountShell from '../../sections/account/AccountShell.astro';
+---
+<Theme title="Comanda ta" description="Detaliile comenzii tale Bomba Shop." noindex skipGate>
+  <AccountShell current="orders" title="Comanda">
+    <p class="missing" data-missing hidden>Nu am găsit comanda asta în cont. <a href="/account">Înapoi la comenzi</a></p>
+    <div class="grid" data-order hidden>
+      <section aria-labelledby="lines-h">
+        <h2 id="lines-h">Produse</h2>
+        <ul class="lines" role="list" data-lines></ul>
+        <dl class="tot"><div class="big"><dt>Total produse</dt><dd data-total></dd></div></dl>
+        <p class="note">Totalul nu include livrarea.</p>
+      </section>
+      <aside class="side">
+        <section aria-labelledby="st-h">
+          <h2 id="st-h">Stare</h2>
+          <ol class="steps" role="list">
+            <li class="on" aria-current="step"><b>Primită</b><span data-date></span></li>
+            <li><b>Confirmată</b></li>
+            <li><b>Predată curierului</b></li>
+            <li><b>Livrată</b></li>
+          </ol>
+        </section>
+        <section aria-labelledby="ad-h"><h2 id="ad-h">Livrare la</h2><address data-address></address></section>
+        <section aria-labelledby="pay-h"><h2 id="pay-h">Plată</h2><p data-pay></p></section>
+        <a class="link" href="/pages/contact" data-help>Ai o întrebare despre comandă?</a>
+      </aside>
+    </div>
+  </AccountShell>
+</Theme>
+<style>
+  .missing { color: var(--smoke-200); }
+  .missing a { color: var(--white); }
+  .grid { display: grid; gap: var(--space-12); }
+  @media (min-width: 1024px) { .grid { grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: var(--space-16); } }
+  h2 { margin-bottom: var(--space-4); font: 700 var(--text-lg)/1.2 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .lines { margin: 0; padding: 0; list-style: none; }
+  .lines :global(li) { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding-block: var(--space-4); border-bottom: var(--border); }
+  .lines :global(.th) { width: 72px; height: 72px; display: flex; align-items: flex-end; justify-content: center; padding: 6px; background: var(--floor); border-radius: var(--radius-label); }
+  .lines :global(.th img) { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .lines :global(a), .lines :global(.t) { display: inline-flex; align-items: center; min-height: 44px; margin-block: -10px; color: var(--white); font-weight: 600; text-underline-offset: 3px; }
+  .lines :global(small) { display: block; margin-top: 4px; color: var(--smoke-400); font-size: var(--text-sm); }
+  .lines :global(b) { font-variant-numeric: tabular-nums; }
+  .tot { display: grid; gap: var(--space-2); margin: var(--space-6) 0 0; }
+  .tot div { display: flex; justify-content: space-between; gap: var(--space-4); color: var(--smoke-200); font-variant-numeric: tabular-nums; }
+  .tot dd { margin: 0; }
+  .tot .big { color: var(--white); font-weight: 700; font-size: var(--text-lg); }
+  .note { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--smoke-400); }
+  .side { display: grid; gap: var(--space-8); align-content: start; }
+  .side section { padding-top: var(--space-6); border-top: var(--border); }
+  .side section:first-child { padding-top: 0; border-top: 0; }
+  address { font-style: normal; color: var(--smoke-200); line-height: 1.55; white-space: pre-line; }
+  .side p { color: var(--smoke-200); }
+  .steps { display: grid; gap: var(--space-4); margin: 0; padding: 0 0 0 var(--space-6); list-style: none; border-left: 2px solid var(--night-700); }
+  .steps li { position: relative; display: grid; gap: 2px; color: var(--smoke-400); }
+  .steps li::before { content: ''; position: absolute; left: calc(-1 * var(--space-6) - 7px); top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--night-700); }
+  .steps li.on { color: var(--white); }
+  .steps li.on::before { background: var(--magnesium-400); box-shadow: var(--glow-magnesium); }
+  .steps span { font-size: var(--text-sm); color: var(--smoke-400); }
+  .link { display: inline-flex; align-items: center; min-height: 44px; color: var(--white); font-weight: 600; font-size: var(--text-sm); text-underline-offset: 4px; }
+</style>
+<script>
+  import { getOrders, formatDate, addressLines } from '../../scripts/account';
+  import { loadCatalog, money } from '../../scripts/cart';
+  const n = Number(new URLSearchParams(location.search).get('n'));
+  const o = getOrders().find((x) => x.number === n);
+  if (!o) document.querySelector<HTMLElement>('[data-missing]')!.hidden = false;
+  else {
+    document.title = `Comanda #${o.number} · Bomba Shop`;
+    document.querySelector('[data-acct-title]')!.textContent = `Comanda #${o.number}`;
+    document.querySelector<HTMLElement>('[data-order]')!.hidden = false;
+    document.querySelector('[data-date]')!.textContent = formatDate(o.date);
+    document.querySelector<HTMLAnchorElement>('[data-help]')!.href = `/pages/contact?comanda=${o.number}`;
+    document.querySelector('[data-address]')!.textContent = addressLines(o.address).join('\n');
+    document.querySelector('[data-pay]')!.textContent = o.payment;
+    document.querySelector('[data-total]')!.textContent = money(o.total);
+    // the lines carry their own title, quantity and price; the catalog only adds the picture and the link
+    const rows = o.lines.map((l) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="th"></span><span><span class="t"></span><small></small></span><b></b>';
+      li.querySelector('.t')!.textContent = l.title;
+      li.querySelector('small')!.textContent = `${l.quantity} × ${money(l.price)}`;
+      li.querySelector('b')!.textContent = money(l.price * l.quantity);
+      return { l, li };
+    });
+    document.querySelector('[data-lines]')!.replaceChildren(...rows.map((r) => r.li));
+    loadCatalog().then((cat) => rows.forEach(({ l, li }) => {
+      const p = cat.get(l.handle); if (!p) return;
+      if (p.image) { const img = document.createElement('img'); img.src = p.image; img.alt = ''; img.loading = 'lazy'; li.querySelector('.th')!.append(img); }
+      const a = document.createElement('a'); a.href = p.url; a.textContent = l.title; li.querySelector('.t')!.replaceWith(a);
+    })).catch(() => { /* no pictures: the lines are already there */ });
+  }
+</script>

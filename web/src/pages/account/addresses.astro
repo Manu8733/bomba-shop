@@ -1,0 +1,107 @@
+---
+// Liquid: templates/customers/addresses.json ({% form 'customer_address', customer.new_address %} and one form per
+// saved address). Here: the list, and one form that adds a new address or edits the chosen one.
+import Theme from '../../layouts/Theme.astro';
+import AccountShell from '../../sections/account/AccountShell.astro';
+import Icon from '../../snippets/Icon.astro';
+import { counties } from '../../lib/ro';
+---
+<Theme title="Adresele mele" description="Adresele de livrare din contul Bomba Shop." noindex skipGate>
+  <AccountShell current="addresses" title="Adresele mele">
+    <div class="grid">
+      <section aria-labelledby="list-h">
+        <h2 id="list-h" class="visually-hidden">Adrese salvate</h2>
+        <p class="empty" data-empty hidden>Nu ai salvat încă nicio adresă. Adaugă una și o găsești completată la următoarea comandă.</p>
+        <ul class="list" data-list role="list"></ul>
+        <button class="btn btn-secondary" type="button" data-new><Icon name="plus" size={18} />Adaugă o adresă</button>
+      </section>
+      <form class="form" data-addr-form novalidate hidden aria-labelledby="form-h">
+        <h2 id="form-h" data-form-title>Adresă nouă</h2>
+        <div class="row2">
+          <div class="field"><label for="ad-fn">Prenume</label><input class="input" id="ad-fn" required autocomplete="given-name" data-msg="Completează prenumele." /></div>
+          <div class="field"><label for="ad-ln">Nume</label><input class="input" id="ad-ln" required autocomplete="family-name" data-msg="Completează numele." /></div>
+        </div>
+        <div class="field"><label for="ad-co">Firmă (opțional)</label><input class="input" id="ad-co" autocomplete="organization" /></div>
+        <div class="field"><label for="ad-a1">Stradă și număr</label><input class="input" id="ad-a1" required autocomplete="address-line1" data-msg="Completează strada și numărul." /></div>
+        <div class="field"><label for="ad-a2">Bloc, scară, apartament (opțional)</label><input class="input" id="ad-a2" autocomplete="address-line2" /></div>
+        <div class="row3">
+          <div class="field"><label for="ad-city">Localitate</label><input class="input" id="ad-city" required autocomplete="address-level2" data-msg="Completează localitatea." /></div>
+          <div class="field"><label for="ad-county">Județ</label>
+            <select class="input" id="ad-county" required autocomplete="address-level1" data-msg="Alege județul."><option value="">Alege</option>{counties.map((c) => <option>{c}</option>)}</select></div>
+          <div class="field"><label for="ad-zip">Cod poștal</label><input class="input" id="ad-zip" required inputmode="numeric" pattern="^[0-9]{6}$" autocomplete="postal-code" data-msg="Codul poștal are 6 cifre." /></div>
+        </div>
+        <div class="field"><label for="ad-ph">Telefon</label><input class="input" id="ad-ph" type="tel" required autocomplete="tel" pattern="^(?:[+]40|0)[ ]?7(?:[ ]?[0-9]){8}$" placeholder="07xx xxx xxx" data-msg="Scrie un număr de mobil românesc, de forma 07xx xxx xxx." /></div>
+        <label class="check"><input type="checkbox" id="ad-def" /> <span>Folosește ca adresă principală</span></label>
+        <div class="acts"><button class="btn btn-primary" type="submit">Salvează adresa</button><button class="btn btn-ghost" type="button" data-cancel>Renunță</button></div>
+      </form>
+    </div>
+    <p class="status visually-hidden" role="status" data-status></p>
+  </AccountShell>
+</Theme>
+<style>
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-12); align-items: start; }
+  @media (min-width: 1024px) { .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 34rem); gap: var(--space-16); } }
+  .empty { margin-bottom: var(--space-6); max-width: 46ch; color: var(--smoke-200); }
+  .list { display: grid; gap: var(--space-4); margin: 0 0 var(--space-6); padding: 0; list-style: none; }
+  @media (min-width: 640px) { .list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); } }
+  .list :global(li) { display: grid; gap: var(--space-3); align-content: start; padding: var(--space-6); background: var(--night-900); border: var(--border); border-radius: var(--radius-card); }
+  .list :global(.def) { justify-self: start; font: 600 var(--text-sm)/1 var(--font-body); color: var(--magnesium-400); }
+  .list :global(address) { font-style: normal; color: var(--smoke-200); line-height: 1.55; white-space: pre-line; }
+  .list :global(.row) { display: flex; gap: var(--space-6); }
+  .list :global(.row button) { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--white); font: 600 var(--text-sm)/1 var(--font-body);
+    text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+  .list :global(.row button:hover) { color: var(--magnesium-400); }
+  .form { display: grid; gap: var(--space-5, 20px); }
+  .form h2 { font: 700 var(--text-xl)/1.2 var(--font-body); text-transform: none; letter-spacing: 0; }
+  .row2, .row3 { display: grid; gap: var(--space-4); }
+  @media (min-width: 560px) { .row2 { grid-template-columns: 1fr 1fr; } .row3 { grid-template-columns: 1.2fr 1fr .8fr; } }
+  .form :global(.err) { color: var(--danger); font-size: var(--text-sm); }
+  .form :global(.input[aria-invalid='true']) { border-color: var(--danger); }
+  .check { display: flex; gap: 10px; align-items: center; min-height: 44px; color: var(--smoke-200); }
+  .check input { width: 20px; height: 20px; accent-color: var(--magnesium-400); }
+  .acts { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+</style>
+<script>
+  import { getAddresses, saveAddress, deleteAddress, addressLines, type Address } from '../../scripts/account';
+  import { validate, clearErrors } from '../../scripts/auth-forms';
+  const list = document.querySelector<HTMLUListElement>('[data-list]')!, form = document.querySelector<HTMLFormElement>('[data-addr-form]')!;
+  const status = document.querySelector<HTMLElement>('[data-status]')!, newBtn = document.querySelector<HTMLButtonElement>('[data-new]')!;
+  const F: Record<string, keyof Address> = { 'ad-fn': 'firstName', 'ad-ln': 'lastName', 'ad-co': 'company', 'ad-a1': 'address1', 'ad-a2': 'address2',
+    'ad-city': 'city', 'ad-county': 'county', 'ad-zip': 'zip', 'ad-ph': 'phone' };
+  let editing: string | null = null;
+  const render = () => {
+    const all = getAddresses();
+    document.querySelector<HTMLElement>('[data-empty]')!.hidden = all.length > 0;
+    list.replaceChildren(...all.map((a) => {
+      const li = document.createElement('li');
+      li.innerHTML = `${a.isDefault ? '<span class="def">Adresa principală</span>' : ''}<address></address><div class="row"><button type="button" data-edit>Modifică</button><button type="button" data-del>Șterge</button></div>`;
+      li.querySelector('address')!.textContent = addressLines(a).join('\n');
+      li.querySelector('[data-edit]')!.setAttribute('aria-label', `Modifică adresa ${a.address1}, ${a.city}`);
+      li.querySelector('[data-del]')!.setAttribute('aria-label', `Șterge adresa ${a.address1}, ${a.city}`);
+      li.querySelector('[data-edit]')!.addEventListener('click', () => open(a));
+      li.querySelector('[data-del]')!.addEventListener('click', () => {
+        deleteAddress(a.id);
+        if (editing === a.id) { form.hidden = true; editing = null; } // the form must not bring it back
+        status.textContent = 'Adresa a fost ștearsă.'; render(); newBtn.focus();
+      });
+      return li;
+    }));
+  };
+  const open = (a?: Address) => {
+    editing = a?.id ?? null;
+    form.hidden = false; form.reset(); clearErrors(form);
+    form.querySelector('[data-form-title]')!.textContent = a ? 'Modifică adresa' : 'Adresă nouă';
+    if (a) { for (const [id, k] of Object.entries(F)) (document.getElementById(id) as HTMLInputElement).value = String(a[k] ?? ''); (document.getElementById('ad-def') as HTMLInputElement).checked = a.isDefault; }
+    (document.getElementById('ad-fn') as HTMLInputElement).focus();
+  };
+  newBtn.addEventListener('click', () => open());
+  form.querySelector('[data-cancel]')!.addEventListener('click', () => { form.hidden = true; newBtn.focus(); });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!validate(form)) return;
+    const a = { id: editing ?? `a${Date.now().toString(36)}`, isDefault: (document.getElementById('ad-def') as HTMLInputElement).checked } as Address;
+    for (const [id, k] of Object.entries(F)) (a as Record<string, unknown>)[k] = (document.getElementById(id) as HTMLInputElement).value.trim();
+    saveAddress(a); form.hidden = true; status.textContent = editing ? 'Adresa a fost actualizată.' : 'Adresa a fost salvată.'; render(); newBtn.focus();
+  });
+  render();
+</script>

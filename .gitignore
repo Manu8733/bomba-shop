@@ -1,6 +1,7 @@
 # dependencies and builds
 node_modules/
 web/dist/
+web/dist-next/
 web/.astro/
 .vercel/
 
