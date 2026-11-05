@@ -5,28 +5,30 @@
 // Countdown to Revelion in the corner. No scroll hijacking.
 import Img from '../../snippets/Img.astro';
 import Icon from '../../snippets/Icon.astro';
-import { byHandle, available, isPro, imagesOf, price, money, productUrl, variant } from '../../lib/catalog';
+import { byHandle, available, isPro, imagesOf, price, money, productUrl, variant, type ProductImage } from '../../lib/catalog';
 import { law } from '../../config';
 import type { Effect } from '../../scripts/stage';
 
 // turn: the model has a real photo of its back (tools/blender/make_models.py), so it can be turned round
-type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number; turn?: boolean };
+type Def = { handle: string; name: string; kind: string; line: string; unit: string; effect: Effect; color: string; nozzles: number[][]; img?: number; k?: number; turn?: boolean; model?: boolean };
 const defs: Def[] = [
   // the owner's pick for the first screen: the smoke canister
   { handle: 'fumigena-portocalie-cu-inel', name: 'Fumigenă portocalie', kind: 'Fumigenă cu inel', unit: 'pentru o bucată',
     line: 'Fum portocaliu dens, până la 60 de secunde, pentru exterior.', effect: 'smoke', color: '#ff6a14', nozzles: [[.42, .01]] },
   { handle: 'vulcan-etna', name: 'Vulcan Etna', kind: 'Vulcan', unit: 'pentru o bucată',
     line: 'Jerbă de scântei argintii. Distanța minimă de siguranță: 1 m.', effect: 'fountain', color: 'silver', nozzles: [[.55, .015]], k: .78 },
-  { handle: 'candele-romane-30-foc', name: 'Candele romane', kind: 'Candelă romană', unit: 'pentru pachetul de 12', img: 2,
-    line: 'Câte 30 de bile colorate, trase pe rând spre cer.', effect: 'candle', color: 'gold', nozzles: [[.14, .005], [.62, .005], [.38, .005], [.86, .005]], k: .74, turn: true },
+  { handle: 'candele-romane-30-foc', name: 'Candele romane', kind: 'Candelă romană', unit: 'pentru pachetul de 12',
+    line: 'Câte 30 de bile colorate, trase pe rând spre cer.', effect: 'candle', color: 'gold', nozzles: [[.14, .005], [.62, .005], [.38, .005], [.86, .005]], k: .74, model: false },
   { handle: 'bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc', name: 'Bengală verde', kind: 'Bengală crackling', unit: 'pentru setul de 6',
-    line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]] },
+    line: 'Flacără verde intensă, cu pocnituri mici de crackling.', effect: 'bengal', color: '#47ff86', nozzles: [[.5, .01]], turn: true },
   { handle: 'artificii-tort-30cm-set-4-bucati-ardere-120-secunde', name: 'Artificii de tort', kind: 'Artificii de tort', unit: 'pentru setul de 4',
     line: 'Scântei aurii de 30 cm, care ard 120 de secunde.', effect: 'ice', color: 'gold', nozzles: [[.16, .01], [.39, .01], [.61, .01], [.84, .01]], k: .82 },
 ];
+const etnaHeroImage: ProductImage = { n: 1, kind: 'cutout', alt: 'Vulcan Etna', w: 292, h: 648, obj: [0, 0, 1, 1],
+  files: [{ w: 292, h: 648, src: '/images/products/vulcan-etna/hero-traced.svg' }] };
 const slides = defs.flatMap((d) => {
   const p = byHandle(d.handle);
-  const img = p && (imagesOf(p).find((x) => x.n === (d.img ?? 1)) ?? imagesOf(p)[0]);
+  const img = p && (d.handle === 'vulcan-etna' ? etnaHeroImage : imagesOf(p).find((x) => x.n === (d.img ?? 1)) ?? imagesOf(p)[0]);
   if (!p || !img) return [];
   const qty = variant(p).inventory_quantity;
   const inStock = available(p), pro = isPro(p);
@@ -71,7 +73,7 @@ const n = slides.length;
     <div class="slides" id="hero-slides" data-slides aria-live="polite" aria-roledescription="carusel" aria-label="Produse aprinse pe scenă">
       {slides.map((s, i) => (
         <article class:list={['slide', { on: i === 0 }]} data-slide aria-roledescription="slide" aria-label={`${i + 1} din ${n}: ${s.name}`}
-          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} data-glb={`/models/${s.p.handle}.glb`} inert={i > 0}>
+          data-effect={s.effect} data-color={s.color} data-nozzles={JSON.stringify(s.nozzles)} data-glb={s.model === false ? undefined : `/models/${s.p.handle}.glb`} inert={i > 0}>
           <p class="kind">{s.kind} <span class:list={['who', { pro: s.pro }]}>{s.who}</span></p>
           <h2 class="name"><a href={s.url}>{s.name}</a></h2>
           <p class="line">{s.line}</p>
@@ -130,12 +132,7 @@ const n = slides.length;
     opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
     transition: opacity .5s var(--ease-out-expo), transform .7s var(--ease-out-expo), visibility 0s .7s; }
   .shot.on { opacity: 1; transform: none; visibility: visible; transition-delay: .12s, .12s, 0s; }
-  /* the product is in the dark and lit only by its own effect: dimmed, then a light from above painted through its own
-     silhouette (the image is its own mask), flickering with the flame (--lit, set by the stage script) */
-  .shot :global(img.pimg) { height: 100%; width: auto; max-width: 100%; filter: brightness(.5) saturate(.9); }
-  .shot::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: var(--lit, .7); mix-blend-mode: screen;
-    background: radial-gradient(90% 46% at 50% 0%, rgb(var(--fx, 236 236 255) / .62), rgb(var(--fx, 236 236 255) / .16) 55%, transparent 80%);
-    -webkit-mask: var(--mask) center / 100% 100% no-repeat; mask: var(--mask) center / 100% 100% no-repeat; }
+  .shot :global(img.pimg) { height: 100%; width: auto; max-width: 100%; }
 
   .slides { grid-area: info; display: grid; grid-template-columns: minmax(0, 1fr); align-self: end; } /* a long slide never widens the column */
   .slide { grid-area: 1 / 1; display: grid; gap: var(--space-3); align-content: end; opacity: 0; transform: translateY(12px); visibility: hidden;
@@ -315,6 +312,7 @@ const n = slides.length;
     const go = (k: number) => {
       k = (k + slides.length) % slides.length;
       if (k === i && stage) return;
+      cancelModel();
       slides[i].classList.remove('on'); slides[i].inert = true;
       shots[i].classList.remove('on'); shots[i].hidden = true;
       i = k;
@@ -322,7 +320,6 @@ const n = slides.length;
       shots[i].hidden = false; shots[i].classList.add('on');
       measureScene();
       stage?.fire(shotOf(i));
-      revealSet(false);
       dispatchEvent(new Event('hero:slide'));
     };
     root.querySelector('[data-prev]')!.addEventListener('click', () => go(i - 1));
@@ -364,7 +361,8 @@ const n = slides.length;
     addEventListener('hero:slide', () => setTurn(0));
 
     const setCanvas = root.querySelector<HTMLCanvasElement>('[data-set-canvas]')!;
-    let modelIndex = -1;
+    let modelIndex = -1, requestId = 0, modelReady = false;
+    let initialisingSet = false;
     const revealSet = (ready: boolean) => {
       if (ready === optics.floor3d) return;
       optics.floor3d = ready;
@@ -372,24 +370,58 @@ const n = slides.length;
       stageEl.classList.toggle('turnable', turnable());
       turnBtns.forEach((b) => { b.hidden = !ready; });
     };
-    const disableSet = () => {
-      const old = set; set = null;
+    const cancelModel = () => {
+      requestId++;
+      modelIndex = -1; modelReady = false;
+      set?.cancel();
+      setTurn(0);
       revealSet(false);
+    };
+    const disableSet = () => {
+      cancelModel();
+      const old = set; set = null;
       old?.destroy();
     };
     const optics = {
       floor3d: false,
       onFrame(light: number) {
         if (!set) return;
+        if (modelIndex !== i) {
+          modelIndex = i;
+          modelReady = false;
+          if (!slides[i].dataset.glb) return;
+          const request = ++requestId;
+          const selectedSet = set;
+          void selectedSet.show(setShotOf(i)).then((loaded) => {
+            if (request !== requestId || set !== selectedSet) return;
+            modelReady = loaded;
+          }).catch(() => {
+            if (request === requestId && set === selectedSet) modelReady = false;
+          });
+        }
+        if (!modelReady) return;
         try {
-          if (modelIndex !== i) {
-            modelIndex = i;
-            void set.show(setShotOf(i));
-          }
           revealSet(set.frame(light));
         } catch { disableSet(); }
       },
     };
+    const startModels = async () => {
+      if (reduce || !stage || set || initialisingSet) return;
+      initialisingSet = true;
+      try {
+        const { startSet } = await import('../../scripts/three/set');
+        const gl = setCanvas.getContext('webgl2', { alpha: true, antialias: true, failIfMajorPerformanceCaveat: true });
+        if (!gl || gl.isContextLost()) return;
+        set = startSet(setCanvas, root, gl);
+        modelIndex = -1;
+      } catch { disableSet(); }
+      finally { initialisingSet = false; }
+    };
+    setCanvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      disableSet();
+    });
+    setCanvas.addEventListener('webglcontextrestored', () => void startModels());
 
     // Start with the real product photo. The animation can wait while the intro, the access gate,
     // or another tab covers the hero. Reduced motion keeps the same photo and manual product picker.
@@ -409,17 +441,8 @@ const n = slides.length;
         try {
           stage = mod.startStage(canvas, root, optics);
           stage.fire(shotOf(i));
+          void startModels();
         } catch { return; }
-
-        try {
-          // Use the same context for detection and rendering. Browsers without a suitable GPU keep the 2D stage.
-          const gl = setCanvas.getContext('webgl2', { alpha: true, antialias: true, failIfMajorPerformanceCaveat: true });
-          if (!gl) return;
-          const { startSet } = await import('../../scripts/three/set');
-          if (gl.isContextLost()) return;
-          set = startSet(setCanvas, root, gl);
-          setCanvas.addEventListener('webglcontextlost', disableSet, { once: true });
-        } catch { disableSet(); }
       };
       const schedule = () => {
         if (scheduled || !canStart()) return;

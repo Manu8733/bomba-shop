@@ -76,7 +76,7 @@ const action = pro ? 'pro' : inStock && price(p) ? 'add' : 'notify';
   .flags { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
   .flag { font: 700 .75rem/1 var(--font-body); padding: 6px 8px; border-radius: 2px;
     background: var(--night-950); border: 1px solid var(--night-600); color: var(--smoke-200); }
-  .flag.sale { background: var(--strontium-500); border-color: transparent; color: #fff; }
+  .flag.sale { background: var(--strontium-500); border-color: transparent; color: var(--night-950); }
   .info { display: flex; flex-direction: column; gap: 12px; padding: 14px; flex: 1; min-width: 0; }
   .title { font-size: clamp(1.15rem, 1.6vw, 1.45rem); line-height: 1.02; }
   .title a { text-decoration: none; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

@@ -1,0 +1,78 @@
+{
+  "vulcan-etna": {
+    "bytes": 567860,
+    "parts": 1,
+    "front_box": [
+      454,
+      126,
+      746,
+      774
+    ],
+    "front_source": "assets/originals/vulcan-etna/1.jpg",
+    "depth": "estimated",
+    "back": null
+  },
+  "fumigena-portocalie-cu-inel": {
+    "bytes": 554896,
+    "parts": 2,
+    "front_box": [
+      0,
+      0,
+      204,
+      936
+    ],
+    "front_source": "assets\\processed\\fumigena-portocalie-cu-inel\\1.webp",
+    "depth": "estimated",
+    "back": null
+  },
+  "candele-romane-30-foc": {
+    "bytes": 632924,
+    "parts": 1,
+    "front_box": [
+      0,
+      0,
+      235,
+      1475
+    ],
+    "front_source": "assets\\processed\\candele-romane-30-foc\\1.webp",
+    "depth": "estimated",
+    "back": {
+      "img": 3,
+      "k": -1
+    }
+  },
+  "bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc": {
+    "bytes": 472944,
+    "parts": 1,
+    "front_box": [
+      0,
+      0,
+      170,
+      984
+    ],
+    "front_source": "assets\\processed\\bengala-crackling-verde-f1-flacara-verde-intensa-set-6-buc\\1.webp",
+    "depth": "estimated",
+    "back": {
+      "img": 2,
+      "k": -1,
+      "clean": true,
+      "partial": [
+        0.08,
+        0.58
+      ]
+    }
+  },
+  "artificii-tort-30cm-set-4-bucati-ardere-120-secunde": {
+    "bytes": 84388,
+    "parts": 8,
+    "front_box": [
+      0,
+      0,
+      136,
+      601
+    ],
+    "front_source": "assets\\processed\\artificii-tort-30cm-set-4-bucati-ardere-120-secunde\\1.webp",
+    "depth": "estimated",
+    "back": null
+  }
+}

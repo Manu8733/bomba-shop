@@ -145,11 +145,11 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
     let model: THREE.Group | null = null;
     try {
       const response = await fetch(url, { signal: load.signal });
-      if (!response.ok) return;
+      if (!response.ok) return false;
       const bytes = await response.arrayBuffer();
-      if (load.signal.aborted) return;
+      if (load.signal.aborted) return false;
       model = (await gltf.parseAsync(bytes, new URL('.', url).href)).scene;
-      if (load.signal.aborted || context.isContextLost()) return;
+      if (load.signal.aborted || context.isContextLost()) return false;
 
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
@@ -161,11 +161,11 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
           skin.transparent = true;
           // The photograph already carries its own studio light. Scene lights only add form.
           map.anisotropy = aniso;
-          skin.emissive.set('#ffffff'); skin.emissiveMap = map; skin.emissiveIntensity = .72; skin.color.setScalar(.38); skin.roughness = .45;
+          skin.emissive.set('#ffffff'); skin.emissiveMap = map; skin.emissiveIntensity = .72; skin.color.setScalar(.38);
         }
       });
       const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
-      if (!(size.x > 0 && size.y > 0)) return;
+      if (!(size.x > 0 && size.y > 0)) return false;
       productWidth = size.x;
       const ao = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 1.5, Math.max(.25, size.z * 1.6)), new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false }));
       ao.rotation.x = -Math.PI / 2; ao.position.y = .002; ao.renderOrder = 3;
@@ -174,9 +174,11 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
       fx.color.set(LIGHTS[shot.color] ?? shot.color);
       fx.position.set((shot.nozzle[0] - .5) * size.x, 1 - shot.nozzle[1] + .14, .42);
       layout();
+      return true;
     } catch {
       // Keep the real photo when the request or decoding fails. An aborted request belongs to a previous slide.
       if (pending === load) clear();
+      return false;
     } finally {
       if (model) disposeProduct(model);
       if (pending === load) pending = null;
@@ -190,6 +192,7 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
   let lastT = performance.now();
   return {
     turn(rad: number) { turnTo = rad; },
+    cancel: clear,
     show,
     frame(heat: number) {
       if (!cur || !W || !H || context.isContextLost()) return false;

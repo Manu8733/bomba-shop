@@ -70,6 +70,7 @@ const ld = [org, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])]
   <slot name="head" />
 </head>
 <body>
+  <div class="ambient-smoke" data-ambient-smoke aria-hidden="true"></div>
   <a class="skip-link" href="#main">Sari la conținut</a>
   <Header current={current} />
   <main id="main" tabindex="-1">
@@ -81,6 +82,8 @@ const ld = [org, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])]
   <Toast />
   <script>
     import { initCartButtons, refreshCart } from '../scripts/cart';
+    import { initAmbientSmoke } from '../scripts/ambient-smoke';
+    initAmbientSmoke();
     if (document.documentElement.classList.contains('intro')) {
       void import('../scripts/intro').then(({ runIntro }) => runIntro()).catch(() => {
         document.querySelector('.intro-canvas')?.remove();

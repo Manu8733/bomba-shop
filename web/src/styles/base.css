@@ -17,12 +17,30 @@
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); background: var(--night-950); }
 /* A quiet photographic night keeps the wordmark and the live product effect in focus. */
 html::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  --night-art: url(/images/bg/night-natural-v2.webp);
+  --night-art: url(/images/bg/night-clear-v3.webp);
   background: linear-gradient(180deg, rgba(7, 6, 11, .3), transparent 32%),
     var(--night-art) 50% 100% / cover no-repeat, var(--night-950); }
 @media (orientation: portrait) {
-  html::before { --night-art: url(/images/bg/night-natural-portrait-v2.webp); }
+  html::before { --night-art: url(/images/bg/night-clear-portrait-v3.webp); }
 }
+/* The photograph and its sparks stay still. The transparent volume only adds smoke in front of the lower sky. */
+.ambient-smoke { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; contain: strict; }
+.ambient-smoke[data-smoke-engine='fallback'] { -webkit-mask-image: linear-gradient(transparent 20%, #000 30%, #000 90%, transparent 97.5%);
+  mask-image: linear-gradient(transparent 20%, #000 30%, #000 90%, transparent 97.5%); }
+.ambient-smoke .smoke-volume { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 1; transform: none; animation: none; }
+.ambient-smoke .smoke-fallback { position: absolute; left: -16%; bottom: 3%; width: min(120vw, 100rem); height: min(72vh, 45rem);
+  max-width: none; opacity: .7; transform-origin: 50% 65%; animation: smoke-drift 16s ease-in-out -6s infinite alternate; }
+.ambient-smoke .smoke-fallback + .smoke-fallback { left: 16%; bottom: 0; opacity: .55; animation-duration: 23s; animation-delay: -11s; animation-direction: alternate-reverse; }
+@keyframes smoke-drift {
+  from { transform: translate3d(-3%, 2%, 0) rotate(-1.5deg) scale(1.06); }
+  to { transform: translate3d(5%, -5%, 0) rotate(1.5deg) scale(1.17); }
+}
+.ambient-smoke[data-paused] .smoke-fallback, html.intro .ambient-smoke .smoke-fallback { animation-play-state: paused; }
+@media (orientation: portrait) {
+  .ambient-smoke .smoke-fallback { left: -48%; width: 170vw; height: 62vh; bottom: 4%; }
+  .ambient-smoke .smoke-fallback + .smoke-fallback { left: -8%; bottom: 1%; }
+}
+@media (prefers-reduced-motion: reduce) { .ambient-smoke .smoke-fallback { animation: none; } }
 body { margin: 0; background: transparent; color: var(--white); font: 400 var(--text-base)/var(--leading-body) var(--font-body);
        -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; min-height: 100vh; }
 img, svg, video, canvas { display: block; max-width: 100%; }
@@ -78,8 +96,8 @@ p { margin: 0; }
 .btn-secondary:hover { background: var(--night-800); color: var(--white); }
 .btn-ghost { background: transparent; color: var(--white); padding-inline: 12px; }
 .btn-ghost:hover { background: var(--night-800); color: var(--white); }
-.btn-pro { background: var(--strontium-500); color: #fff; }
-.btn-pro:hover { box-shadow: var(--glow-strontium); color: #fff; }
+.btn-pro { background: var(--strontium-500); color: var(--night-950); }
+.btn-pro:hover { box-shadow: var(--glow-strontium); color: var(--night-950); }
 .btn[disabled], .btn[aria-disabled='true'] { background: var(--night-800); color: var(--smoke-400); border-color: transparent; cursor: not-allowed; box-shadow: none; transform: none; }
 .btn-sm { min-height: 40px; padding: 0 14px; font-size: var(--text-sm); }
 .btn-block { width: 100%; }
