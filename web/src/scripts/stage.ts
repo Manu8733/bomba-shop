@@ -78,15 +78,13 @@ function puffSprite(base: string, seed: number) {
   return cv;
 }
 
-/** Layout box of el in root's coordinates, ignoring transforms (slides animate with transforms). */
+/** Stage anchor in root coordinates, including the CSS centering translation. */
 function rectIn(el: HTMLElement, root: HTMLElement) {
-  let x = 0, y = 0, n: HTMLElement | null = el;
-  while (n && n !== root) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent as HTMLElement | null; }
-  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+  const rect = el.getBoundingClientRect(), origin = root.getBoundingClientRect();
+  return { x: rect.left - origin.left, y: rect.top - origin.top, w: rect.width, h: rect.height };
 }
 
-/** floor3d: a WebGL set (three/set.ts) draws the floor and its light, so the 2D floor glow is skipped and sparks land at
- *  different depths on the mat instead of on one line; onFrame hands it the effect's light level every frame. */
+/** floor3d adds depth to sparks and reflections. onFrame passes the effect's light level to the model. */
 export type StageOptions = { floor3d?: boolean; onFrame?: (light: number) => void };
 /** the hero's one-column layout (Hero.astro), where the product's copy sits right under the stage: reflections stay short */
 export const STACKED = '(max-width: 1023px) and (orientation: portrait), (max-width: 599px) and (min-height: 561px)';
@@ -119,7 +117,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
 
   const sparks: Spark[] = [], puffs: Puff[] = [], glows: Glow[] = [], stars: Star[] = [];
   let shot: Shot | null = null, nz: { x: number; y: number }[] = [], box = { x: 0, y: 0, w: 0, h: 0 }, ground = 0;
-  let live = 0, heat = 0, nextShot = 0, shotN = 0;
+  let live = 0, heat = 0, nextShot = 0, shotN = 0, smokePhase = 0;
   const acc: number[] = [];
 
   const place = () => {
@@ -128,7 +126,6 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
     box = { x: r.x + r.w * x0, y: r.y + r.h * y0, w: r.w * (x1 - x0), h: r.h * (y1 - y0) };
     nz = shot.nozzles.map(([u, v]) => ({ x: box.x + box.w * u, y: box.y + box.h * v }));
     ground = box.y + box.h;
-    root.style.setProperty('--ground', `${Math.round(ground)}px`);
   };
   const layout = () => {
     W = root.clientWidth; H = root.clientHeight;
@@ -142,6 +139,8 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
   };
   layout();
   const ro = new ResizeObserver(layout); ro.observe(root);
+  const stage = root.querySelector('[data-stage]');
+  if (stage) ro.observe(stage);
 
   // where a spark lands: on a 3D floor, somewhere between just behind the product and well in front of it (in screen
   // terms a band around the base line, since nearer floor is lower on screen); on a flat floor, the base line itself
@@ -197,11 +196,14 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
       for (let i = count(2, 15 * ramp, dt); i--;) puff(n0.x + (rnd() - .5) * 16, n0.y - 30 * S, (15 + rnd() * 35) * S, -(70 + rnd() * 80) * S,
         { base: mixHex(c, '#6f7471', .7), r: 24 * S, gr: 66 * S, life: 4 + rnd() * 1.5, a: .11, drag: .7, buoy: -46 * S });
     } else if (e === 'smoke') {
-      // a dense jet that slows within a metre, then billows, rises and leans with the wind, thinning as it spreads
-      for (let i = count(0, (mobile ? 30 : 46) * ramp, dt); i--;) {
-        const a = -Math.PI / 2 + (rnd() - .5) * .45 + .08, v = (280 + rnd() * 170) * S;
-        puff(n0.x + (rnd() - .5) * 6, n0.y + 2, Math.cos(a) * v, Math.sin(a) * v,
-          { base: shot.color, r: 5 * S, gr: (52 + rnd() * 30) * S, life: 5 + rnd() * 2.5, a: .5 + rnd() * .25, drag: 2.6, buoy: -40 * S, wind: 48 * S });
+      // Alternate dense rolls with thin wisps, so the plume spreads and opens up as it rises.
+      const pulse = .5 + .5 * Math.sin(live * 1.63 + smokePhase) * Math.cos(live * .91);
+      const wind = (24 + 29 * Math.sin(live * .47 + smokePhase)) * S;
+      for (let i = count(0, (mobile ? 28 : 42) * (.56 + .66 * pulse) * ramp, dt); i--;) {
+        const angle = -Math.PI / 2 + (rnd() - .5) * (.24 + .18 * pulse), speed = (255 + rnd() * 175) * S;
+        puff(n0.x + (rnd() - .5) * 4, n0.y + 1, Math.cos(angle) * speed, Math.sin(angle) * speed,
+          { base: shot.color, r: (3 + rnd() * 4) * S, gr: (35 + rnd() * 43) * S, life: 3.8 + rnd() * 2.8,
+            a: .31 + pulse * .23 + rnd() * .09, drag: 2.2 + rnd() * .75, buoy: -(26 + rnd() * 26) * S, wind: wind + (rnd() - .5) * 25 * S });
       }
     } else if (e === 'candle') {
       // between stars the delay composition burns in the tube: a short gold spray from the tube that fires next
@@ -256,7 +258,7 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
 
   const lightOf = () => shot ? (LIGHT[shot.color] ?? rgb(shot.color).join(' ')) : LIGHT.silver;
 
-  let last = performance.now(), running = false, raf = 0, t = 0, frameN = 0;
+  let last = performance.now(), running = false, raf = 0, t = 0;
   const step = (now: number) => {
     const dt = Math.min(.05, (now - last) / 1000) || .016; last = now; t += dt; live += dt;
     emit(dt);
@@ -265,6 +267,10 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
     const e = shot?.effect;
 
     // 1 smoke (normal blending, oldest and largest first)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, ground);
+    ctx.clip();
     for (let i = 0; i < puffs.length; i++) {
       const p = puffs[i];
       p.age += dt;
@@ -281,26 +287,22 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
       ctx.setTransform(c, s, -s, c, p.x * dpr, p.y * dpr);
       ctx.globalAlpha = a; ctx.drawImage(p.sprite, -p.r, -p.r, p.r * 2, p.r * 2);
     }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1;
+    ctx.restore();
 
     // 2 light (additive)
     ctx.globalCompositeOperation = 'lighter';
     const flick = .86 + Math.sin(t * 23) * Math.sin(t * 7.1) * .1 + rnd() * .06;
     const target = !shot || live < 0 ? .15 : e === 'smoke' ? .22 : e === 'ice' ? .55 : e === 'candle' || e === 'show' ? heat * .92 : flick;
     heat += (target - heat) * Math.min(1, dt * (e === 'candle' || e === 'show' ? 3 : 12));
-    // the product is lit by its own effect (Hero.astro .shot::after): a few updates a second are enough for the eye
     opts.onFrame?.(!shot || live < 0 ? .08 : e === 'smoke' ? .05 : e === 'ice' ? heat * .5 : heat);
-    if (shot && (++frameN & 3) === 0) (shot.el.closest('.shot') as HTMLElement | null)?.style.setProperty('--lit',
-      (live < 0 ? .12 : e === 'smoke' ? .34 : e === 'ice' ? .5 : Math.min(1.1, heat)).toFixed(2));
     if (shot && nz.length) {
       const n0 = nz[0], lc = shot.effect === 'bengal' || shot.effect === 'smoke' ? shot.color : shot.color === 'gold' ? '#ffc75e' : '#e8e6ff';
       const L = glowOf(lc);
       // the effect lights the ground it stands on and the night around it
-      if (e !== 'show' && !opts.floor3d) { ctx.globalAlpha = .5 * heat; ctx.drawImage(L, n0.x - 330 * S, ground - 46 * S, 660 * S, 92 * S); }
-      if (e !== 'smoke' && e !== 'show') { const r = (e === 'ice' ? 260 : 520) * S; ctx.globalAlpha = (opts.floor3d ? .06 : .2) * heat; ctx.drawImage(L, n0.x - r, n0.y - r * .8, r * 2, r * 2); }
+      if (e !== 'show') { ctx.globalAlpha = .12 * heat; ctx.drawImage(L, n0.x - 180 * S, ground - 26 * S, 360 * S, 52 * S); }
+      if (e !== 'smoke' && e !== 'show') { const r = (e === 'ice' ? 260 : 520) * S; ctx.globalAlpha = .06 * heat; ctx.drawImage(L, n0.x - r, n0.y - r * .8, r * 2, r * 2); }
       if (live >= 0 && e === 'fountain') {
-        // a smaller hot core on the 3D set: the label stays visible
-        ctx.globalAlpha = opts.floor3d ? .75 : 1; const r = (opts.floor3d ? 20 + rnd() * 6 : 34 + rnd() * 10) * S; ctx.drawImage(glowOf('#ffffff'), n0.x - r, n0.y - r, r * 2, r * 2);
+        ctx.globalAlpha = .75; const r = (20 + rnd() * 6) * S; ctx.drawImage(glowOf('#ffffff'), n0.x - r, n0.y - r, r * 2, r * 2);
         ctx.globalAlpha = .55; ctx.drawImage(L, n0.x - 110 * S, n0.y - 130 * S, 220 * S, 220 * S);
       }
       if (live >= 0 && e === 'ice') for (const p of nz) { ctx.globalAlpha = .9; const r = (12 + rnd() * 4) * S; ctx.drawImage(glowOf('#fff4d6'), p.x - r, p.y - r, r * 2, r * 2); }
@@ -423,10 +425,15 @@ export function startStage(canvas: HTMLCanvasElement, root: HTMLElement, opts: S
   if (!reduce) io.observe(root);
 
   return {
+    clear() {
+      shot = null;
+      sparks.length = puffs.length = glows.length = stars.length = 0;
+      ctx.clearRect(0, 0, W, H);
+    },
     fire(next: Shot) {
       shot = next; place();
       for (const p of puffs) p.life = Math.min(p.life, p.age + 1.4); // the last effect's smoke clears off quickly
-      live = reduce ? 1 : -.45; nextShot = 0; heat = Math.min(heat, .4);
+      live = reduce ? 1 : -.45; nextShot = 0; heat = Math.min(heat, .4); smokePhase = rnd() * Math.PI * 2;
       root.style.setProperty('--fx', lightOf());
       if (reduce) { sparks.length = puffs.length = glows.length = stars.length = 0; still(); }
     },

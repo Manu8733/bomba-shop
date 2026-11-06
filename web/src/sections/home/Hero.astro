@@ -39,6 +39,7 @@ const slides = defs.flatMap((d) => {
 const n = slides.length;
 ---
 <section class="hero" data-hero aria-labelledby="hero-h">
+  <div class="ambient-smoke hero-ambient" data-ambient-smoke aria-hidden="true"></div>
   <canvas class="set" aria-hidden="true" data-set-canvas></canvas>
   <canvas class="fx" aria-hidden="true" data-stage-canvas></canvas>
   <div class="container in">
@@ -58,10 +59,12 @@ const n = slides.length;
 
     <div class="first">
     <div class="stage" data-stage role="group" aria-label="Alege produsul de pe scenă">
+      <div class="stage-ground" data-stage-ground aria-hidden="true"></div>
       {slides.map((s, i) => (
         <a class:list={['shot', { on: i === 0 }]} href={s.url} tabindex="-1" aria-hidden="true" hidden={i !== 0} data-shot data-obj={JSON.stringify(s.img.obj ?? [0, 0, 1, 1])}
-          style={`--k:${s.k ?? 1};--mask:url(${s.img.files[0].src})`}>
-          <Img image={s.img} alt="" sizes="(min-width: 1024px) 18vw, 40vw" eager={i === 0} />
+          style={`--k:${s.k ?? 1};--aspect:${s.img.w / s.img.h};--foot:${s.img.obj?.[3] ?? 1}`}>
+          <template data-photo-template><span class="shot-photo" data-product-photo><Img image={s.img} alt="" sizes="(min-width: 1024px) 18vw, 40vw" eager /></span></template>
+          {i === 0 && <noscript><span class="shot-photo"><Img image={s.img} alt="" sizes="40vw" eager /></span></noscript>}
         </a>
       ))}
       <div class="arrows">
@@ -101,13 +104,13 @@ const n = slides.length;
   .hero { position: relative; isolation: isolate; overflow: hidden; margin-top: calc(-1 * var(--header-h));
     min-height: calc(100vh - var(--announce-h)); min-height: calc(100svh - var(--announce-h)); display: flex; --announce-h: 36px; /* measured by the script */ padding-block: calc(var(--header-h) + 28px) 28px;
     background: transparent; } /* the site's night backdrop (base.css) is the sky behind the stage */
+  .hero-ambient { position: absolute; inset: 0 0 auto; height: var(--ground, 65%); z-index: -4; }
   .fx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
   /* the studio's front edge dissolves into the site's backdrop instead of ending in a line */
   .fx, .set { -webkit-mask-image: linear-gradient(#000 calc(100% - 96px), transparent); mask-image: linear-gradient(#000 calc(100% - 96px), transparent); }
-  /* the 3D set (scripts/three/set.ts) under the sparks; once it runs, it draws the product and its local reflection, and the DOM
-     images stay only for layout, links and screen readers */
+  /* The same layout anchor positions a model or its fallback photo. Reveal either in one paint. */
   .set { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; opacity: 0; }
-  .hero.has-set .set { opacity: 1; transition: opacity .6s ease-out; }
+  .hero.has-set .set { opacity: 1; }
   .hero.has-set .shot.on { opacity: 0; }
   .in { flex: 1; display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "top" "stage" "info"; grid-template-rows: auto minmax(300px, 1fr) auto; }
@@ -128,11 +131,21 @@ const n = slides.length;
   .c-n small { font: 500 var(--text-xs)/1 var(--font-body); color: var(--smoke-400); }
 
   .stage { grid-area: stage; position: relative; min-height: 300px; touch-action: pan-y; --ph: clamp(220px, 48vh, 500px); --product-bottom: 16px; }
-  .shot { position: absolute; left: 0; right: 0; bottom: var(--product-bottom); margin-inline: auto; width: fit-content; max-width: calc(100% - 120px); height: min(calc(var(--ph) * var(--k, 1)), 88%);
-    opacity: 0; transform: translateY(26px); visibility: hidden; text-decoration: none;
-    transition: opacity .5s var(--ease-out-expo), transform .7s var(--ease-out-expo), visibility 0s .7s; }
-  .shot.on { opacity: 1; transform: none; visibility: visible; transition-delay: .12s, .12s, 0s; }
-  .shot :global(img.pimg) { height: 100%; width: auto; max-width: 100%; }
+  .stage-ground { position: absolute; inset-inline: calc(-1 * var(--gutter)); top: calc(100% - var(--product-bottom));
+    height: clamp(38px, 9svh, 82px); z-index: -3; pointer-events: none; }
+  .stage-ground::before { content: ''; position: absolute; inset: -28px -6% 0;
+    background: radial-gradient(ellipse at 52% 28%, #cd884b36, transparent 53%),
+      url('/images/bg/graphite-stage.webp') center 54% / 100% 100% no-repeat;
+    mask-image: linear-gradient(transparent, #000 36% 63%, transparent),
+      radial-gradient(ellipse 58% 60% at 50% 48%, #000 42%, transparent 100%);
+    mask-composite: intersect; }
+  .stage-ground::after { content: ''; position: absolute; left: 50%; top: -4px; translate: -50% 0;
+    width: clamp(44px, 13vw, 160px); height: 15px; background: radial-gradient(ellipse, #030305d9, transparent 70%); }
+  .shot { --shot-h: min(calc(var(--ph) * var(--k, 1)), 88%);
+    position: absolute; left: 50%; translate: -50% 0; bottom: calc(var(--product-bottom) - (1 - var(--foot)) * var(--shot-h));
+    aspect-ratio: var(--aspect); max-width: calc(100% - 120px); height: var(--shot-h); text-decoration: none; }
+  .shot-photo { position: absolute; inset: 0; }
+  .shot :global(img.pimg) { width: 100%; height: 100%; }
 
   .slides { grid-area: info; display: grid; grid-template-columns: minmax(0, 1fr); align-self: end; } /* a long slide never widens the column */
   .slide { grid-area: 1 / 1; display: grid; gap: var(--space-3); align-content: end; opacity: 0; transform: translateY(12px); visibility: hidden;
@@ -192,10 +205,14 @@ const n = slides.length;
     .c-n span:not(:first-child) small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .first { order: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) 0 var(--space-4);
       height: calc(100svh - var(--announce-h) - var(--header-h) - var(--count-h)); min-height: 400px; }
-    .stage { flex: 1 1 0; min-height: 120px; --ph: clamp(180px, 36svh, 360px); --product-bottom: clamp(8px, 1.5svh, 16px); }
+    .stage { flex: 1 1 0; min-height: 120px; --ph: clamp(165px, 32svh, 320px); --product-bottom: 18px; }
+    .stage-ground { height: 44px; }
     /* The product and its reflection end before the copy, including while the 3D floor is active. */
     .set, .fx { -webkit-mask-image: linear-gradient(#000 calc(var(--scene-end, 100%) - 24px), transparent var(--scene-end, 100%));
       mask-image: linear-gradient(#000 calc(var(--scene-end, 100%) - 24px), transparent var(--scene-end, 100%)); }
+    .fx { --fx-mask: linear-gradient(transparent var(--scene-start, 0px), #000 calc(var(--scene-start, 0px) + 52px),
+      #000 calc(var(--scene-end, 100%) - 24px), transparent var(--scene-end, 100%));
+      -webkit-mask-image: var(--fx-mask); mask-image: var(--fx-mask); }
     /* the product stands a little above the stage's bottom edge: its short reflection stays on the floor, off the text */
     .slides { flex: none; }
     .slides { align-self: stretch; } /* the desktop grid's align-self: end would push it right in this column */
@@ -273,19 +290,19 @@ const n = slides.length;
 
     // the first screen on phones is sized from the announcement bar's real height (it wraps on narrow screens)
     const bar = document.querySelector<HTMLElement>('.announce');
+    const stageEl = root.querySelector<HTMLElement>('[data-stage]')!;
+    const ground = stageEl.querySelector<HTMLElement>('[data-stage-ground]')!;
+    const slideCopy = root.querySelector<HTMLElement>('[data-slides]')!;
     const topInHero = (el: HTMLElement) => {
       let top = 0, node: HTMLElement | null = el;
       while (node && node !== root) { top += node.offsetTop; node = node.offsetParent as HTMLElement | null; }
       return top;
     };
     const measureScene = () => {
-      const shot = root.querySelector<HTMLElement>('[data-shot].on');
-      const image = shot?.querySelector('img');
-      if (shot && image) {
-        const obj = JSON.parse(shot.dataset.obj!) as number[];
-        root.style.setProperty('--ground', `${Math.round(topInHero(image) + image.offsetHeight * obj[3])}px`);
-      }
-      root.style.setProperty('--scene-end', `${topInHero(root.querySelector<HTMLElement>('[data-slides]')!)}px`);
+      const floor = ground.getBoundingClientRect().top - root.getBoundingClientRect().top;
+      root.style.setProperty('--ground', `${floor}px`);
+      root.style.setProperty('--scene-start', `${topInHero(stageEl)}px`);
+      root.style.setProperty('--scene-end', `${topInHero(slideCopy)}px`);
     };
     const measure = () => {
       if (bar) root.style.setProperty('--announce-h', `${bar.offsetHeight}px`);
@@ -293,8 +310,7 @@ const n = slides.length;
     };
     measure(); addEventListener('resize', measure);
     const sceneSize = new ResizeObserver(measureScene);
-    [root, root.querySelector<HTMLElement>('[data-stage]')!, root.querySelector<HTMLElement>('[data-slides]')!].forEach((el) => sceneSize.observe(el));
-    root.querySelectorAll('[data-shot] img').forEach((image) => image.addEventListener('load', measureScene));
+    [root, stageEl, slideCopy].forEach((el) => sceneSize.observe(el));
 
     // ---- the product picker
     const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];
@@ -302,24 +318,26 @@ const n = slides.length;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let i = 0, stage: ReturnType<typeof import('../../scripts/stage').startStage> | null = null;
     let set: ReturnType<typeof import('../../scripts/three/set').startSet> | null = null;
-    const setShotOf = (k: number) => ({ img: shots[k].querySelector('img')!, obj: JSON.parse(shots[k].dataset.obj!),
+    const setShotOf = (k: number) => ({ el: shots[k], obj: JSON.parse(shots[k].dataset.obj!),
       nozzle: JSON.parse(slides[k].dataset.nozzles!)[0], color: slides[k].dataset.color!, glb: slides[k].dataset.glb! });
     const shotOf = (k: number) => {
       const s = slides[k];
       return { effect: s.dataset.effect as Effect, color: s.dataset.color!, nozzles: JSON.parse(s.dataset.nozzles!), obj: JSON.parse(shots[k].dataset.obj!),
-        el: shots[k].querySelector('img') ?? shots[k] };
+        el: shots[k] };
     };
     const go = (k: number) => {
       k = (k + slides.length) % slides.length;
       if (k === i && stage) return;
       cancelModel();
+      stage?.clear();
+      if (slides[i].dataset.glb) shots[i].querySelector('[data-product-photo]')?.remove();
       slides[i].classList.remove('on'); slides[i].inert = true;
       shots[i].classList.remove('on'); shots[i].hidden = true;
       i = k;
       slides[i].classList.add('on'); slides[i].inert = false;
       shots[i].hidden = false; shots[i].classList.add('on');
       measureScene();
-      stage?.fire(shotOf(i));
+      presentSelection();
       dispatchEvent(new Event('hero:slide'));
     };
     root.querySelector('[data-prev]')!.addEventListener('click', () => go(i - 1));
@@ -352,7 +370,6 @@ const n = slides.length;
     };
     turnBtns.forEach((b) => b.addEventListener('click', () => { setTurn(b.dataset.back === 'true' ? 0 : Math.PI); }));
     const turnable = () => optics.floor3d && !!slides[i].querySelector('[data-turn]');
-    const stageEl = root.querySelector<HTMLElement>('[data-stage]')!;
     let dragX: number | null = null;
     stageEl.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' && turnable() && !(e.target as HTMLElement).closest('button')) { dragX = e.clientX; stageEl.classList.add('turning'); stageEl.setPointerCapture(e.pointerId); } });
     stageEl.addEventListener('pointermove', (e) => { if (dragX !== null) setTurn((e.clientX - dragX) * .012); });
@@ -361,8 +378,14 @@ const n = slides.length;
     addEventListener('hero:slide', () => setTurn(0));
 
     const setCanvas = root.querySelector<HTMLCanvasElement>('[data-set-canvas]')!;
-    let modelIndex = -1, requestId = 0, modelReady = false;
-    let initialisingSet = false;
+    let requestId = 0, modelDeadline = 0;
+    let initialisingSet = false, modelUnavailable = reduce;
+    let visual: 'pending' | 'photo' | 'model' = 'pending';
+    const markHeroReady = () => {
+      if (root.hasAttribute('data-hero-ready')) return;
+      root.setAttribute('data-hero-ready', '');
+      dispatchEvent(new Event('hero:ready'));
+    };
     const revealSet = (ready: boolean) => {
       if (ready === optics.floor3d) return;
       optics.floor3d = ready;
@@ -372,48 +395,83 @@ const n = slides.length;
     };
     const cancelModel = () => {
       requestId++;
-      modelIndex = -1; modelReady = false;
+      clearTimeout(modelDeadline);
       set?.cancel();
       setTurn(0);
       revealSet(false);
+      visual = 'pending';
+    };
+    const firePhoto = () => {
+      if (!stage) return;
+      const k = i;
+      const image = shots[k].querySelector<HTMLImageElement>('[data-product-photo] img');
+      if (!image || image.complete) stage.fire(shotOf(k));
+      else image.addEventListener('load', () => {
+        if (i === k && visual === 'photo') stage?.fire(shotOf(k));
+      }, { once: true });
+    };
+    const showPhoto = () => {
+      if (visual === 'photo') return;
+      const shot = shots[i];
+      if (!shot.querySelector('[data-product-photo]')) {
+        const photo = shot.querySelector<HTMLTemplateElement>('[data-photo-template]')!;
+        shot.append(photo.content.cloneNode(true));
+      }
+      visual = 'photo';
+      firePhoto();
+      markHeroReady();
     };
     const disableSet = () => {
       cancelModel();
       const old = set; set = null;
+      modelUnavailable = true;
       old?.destroy();
+      showPhoto();
     };
     const optics = {
       floor3d: false,
       onFrame(light: number) {
-        if (!set) return;
-        if (modelIndex !== i) {
-          modelIndex = i;
-          modelReady = false;
-          if (!slides[i].dataset.glb) return;
-          const request = ++requestId;
-          const selectedSet = set;
-          void selectedSet.show(setShotOf(i)).then((loaded) => {
-            if (request !== requestId || set !== selectedSet) return;
-            modelReady = loaded;
-          }).catch(() => {
-            if (request === requestId && set === selectedSet) modelReady = false;
-          });
-        }
-        if (!modelReady) return;
+        if (!set || visual !== 'model') return;
         try {
-          revealSet(set.frame(light));
+          if (!set.frame(light)) disableSet();
         } catch { disableSet(); }
       },
     };
+    const loadModel = async (selectedSet: NonNullable<typeof set>) => {
+      const request = ++requestId;
+      const fallback = () => {
+        if (request !== requestId) return;
+        cancelModel();
+        showPhoto();
+      };
+      modelDeadline = window.setTimeout(fallback, 3000);
+      try {
+        const loaded = await selectedSet.show(setShotOf(i));
+        if (request !== requestId) return;
+        clearTimeout(modelDeadline);
+        if (!loaded || !selectedSet.frame(0)) { fallback(); return; }
+        const wasPhoto = visual === 'photo';
+        visual = 'model';
+        revealSet(true);
+        if (!wasPhoto) stage?.fire(shotOf(i));
+        markHeroReady();
+      } catch { fallback(); }
+    };
+    const presentSelection = () => {
+      if (!slides[i].dataset.glb || modelUnavailable) showPhoto();
+      else if (set) void loadModel(set);
+    };
     const startModels = async () => {
-      if (reduce || !stage || set || initialisingSet) return;
+      if (reduce || set || initialisingSet) return;
       initialisingSet = true;
       try {
-        const { startSet } = await import('../../scripts/three/set');
         const gl = setCanvas.getContext('webgl2', { alpha: true, antialias: true, failIfMajorPerformanceCaveat: true });
-        if (!gl || gl.isContextLost()) return;
+        if (!gl || gl.isContextLost()) { disableSet(); return; }
+        const { startSet } = await import('../../scripts/three/set');
+        if (gl.isContextLost()) { disableSet(); return; }
         set = startSet(setCanvas, root, gl);
-        modelIndex = -1;
+        modelUnavailable = false;
+        presentSelection();
       } catch { disableSet(); }
       finally { initialisingSet = false; }
     };
@@ -423,8 +481,8 @@ const n = slides.length;
     });
     setCanvas.addEventListener('webglcontextrestored', () => void startModels());
 
-    // Start with the real product photo. The animation can wait while the intro, the access gate,
-    // or another tab covers the hero. Reduced motion keeps the same photo and manual product picker.
+    // Load a single representation after the intro and access gate. Keep photographs as a fallback.
+    presentSelection();
     if (!reduce) {
       const html = document.documentElement;
       let visible = false, scheduled = false;
@@ -437,18 +495,16 @@ const n = slides.length;
         removeEventListener('intro:done', schedule);
         removeEventListener('mode:change', schedule);
         document.removeEventListener('visibilitychange', schedule);
-        if (!mod) return;
         try {
-          stage = mod.startStage(canvas, root, optics);
-          stage.fire(shotOf(i));
-          void startModels();
-        } catch { return; }
+          if (mod) stage = mod.startStage(canvas, root, optics);
+          if (visual === 'photo') firePhoto();
+        } catch { /* The product still works without the effect canvas. */ }
+        void startModels();
       };
       const schedule = () => {
         if (scheduled || !canStart()) return;
         scheduled = true;
-        if ('requestIdleCallback' in window) requestIdleCallback(() => void start(), { timeout: 1000 });
-        else setTimeout(() => void start(), 150);
+        void start();
       };
       const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; schedule(); });
       observer.observe(root);

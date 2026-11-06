@@ -66,8 +66,9 @@ const action = pro ? 'pro' : inStock && price(p) ? 'add' : 'notify';
   .media :global(.pimg) { transition: filter var(--dur-reveal) var(--ease-out-expo), opacity var(--dur-reveal) var(--ease-out-expo); }
   .pcard:hover .media :global(.pimg.cutout) { filter: brightness(1.1); }
   .pcard.out .media :global(.pimg) { opacity: .55; filter: grayscale(.4); }
-  .second { position: absolute; inset: 0; padding: 9% 11% 7%; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity var(--dur-reveal) var(--ease-out-expo); pointer-events: none; }
+  .second { position: absolute; inset: 0; padding: 9% 11% 7%; display: none; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity var(--dur-reveal) var(--ease-out-expo); pointer-events: none; }
   @media (hover: hover) and (pointer: fine) {
+    .second { display: flex; }
     .pcard:hover .has2 .second { opacity: 1; }
     .pcard:hover .has2 :global(.pimg.first) { opacity: 0; }
     .media :global(.pimg.first) { transition: opacity var(--dur-reveal) var(--ease-out-expo), transform var(--dur-reveal) var(--ease-out-expo); }

@@ -50,6 +50,7 @@ const ld = [org, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])]
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/brand/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+  {current === 'home' && <link rel="preload" as="image" href="/images/bg/graphite-stage.webp" />}
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="ro_RO" />
   <meta property="og:site_name" content={shop.name} />
@@ -70,7 +71,7 @@ const ld = [org, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])]
   <slot name="head" />
 </head>
 <body>
-  <div class="ambient-smoke" data-ambient-smoke aria-hidden="true"></div>
+  {current !== 'home' && <div class="ambient-smoke" data-ambient-smoke aria-hidden="true"></div>}
   <a class="skip-link" href="#main">Sari la conținut</a>
   <Header current={current} />
   <main id="main" tabindex="-1">
@@ -82,8 +83,15 @@ const ld = [org, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])]
   <Toast />
   <script>
     import { initCartButtons, refreshCart } from '../scripts/cart';
-    import { initAmbientSmoke } from '../scripts/ambient-smoke';
-    initAmbientSmoke();
+    const smoke = document.querySelector('[data-ambient-smoke]');
+    if (smoke) {
+      const loadSmoke = () => {
+        void import('../scripts/ambient-smoke').then(({ initAmbientSmoke }) => initAmbientSmoke()).catch(() => {});
+      };
+      const hero = smoke.closest('[data-hero]');
+      if (hero && !hero.hasAttribute('data-hero-ready')) addEventListener('hero:ready', loadSmoke, { once: true });
+      else loadSmoke();
+    }
     if (document.documentElement.classList.contains('intro')) {
       void import('../scripts/intro').then(({ runIntro }) => runIntro()).catch(() => {
         document.querySelector('.intro-canvas')?.remove();

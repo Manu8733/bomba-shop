@@ -1,19 +1,17 @@
-// The hero's Blender models keep the original product photography. The DOM photo stays visible until the
-// selected model has rendered successfully. The camera is aligned to the photo so the layout stays fixed.
+// The hero's Blender models use the same layout anchor as the fallback photographs.
 import * as THREE from 'three';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { STACKED } from '../stage';
 
-type SetShot = { img: HTMLImageElement; obj: number[]; nozzle: number[]; color: string; glb: string };
+type SetShot = { el: HTMLElement; obj: number[]; nozzle: number[]; color: string; glb: string };
 
 const EYE = .9;                // camera height above the floor, in product heights
 const LIGHTS: Record<string, string> = { silver: '#e8e6ff', gold: '#ffc06a' };
 
 function rectIn(el: HTMLElement, root: HTMLElement) {
-  let x = 0, y = 0, n: HTMLElement | null = el;
-  while (n && n !== root) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent as HTMLElement | null; }
-  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+  const rect = el.getBoundingClientRect(), origin = root.getBoundingClientRect();
+  return { x: rect.left - origin.left, y: rect.top - origin.top, w: rect.width, h: rect.height };
 }
 
 function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, srgb = true) {
@@ -21,6 +19,25 @@ function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D)
   draw(c.getContext('2d')!);
   const t = new THREE.CanvasTexture(c); t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   return t;
+}
+
+async function fetchModel(url: URL, signal: AbortSignal) {
+  if (import.meta.env.PROD && typeof DecompressionStream !== 'undefined') {
+    const packed = new URL(url);
+    packed.pathname += '.gz';
+    try {
+      const decoder = new DecompressionStream('gzip');
+      const response = await fetch(packed, { signal });
+      if (response.ok && response.body) {
+        return await new Response(response.body.pipeThrough(decoder)).arrayBuffer();
+      }
+    } catch {
+      // Older browsers and hosts without the sidecar can still use the original GLB.
+    }
+  }
+  if (signal.aborted) return null;
+  const response = await fetch(url, { signal });
+  return response.ok ? response.arrayBuffer() : null;
 }
 
 export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: WebGL2RenderingContext) {
@@ -77,7 +94,7 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
   scene.add(new THREE.HemisphereLight('#22283a', '#030305', .25));
 
   let W = 0, H = 0, dpr = 0, productWidth = .5, cur: THREE.Group | null = null, shot: SetShot | null = null;
-  let turnTo = 0, pending: AbortController | null = null;
+  let turnTo = 0, pending: AbortController | null = null, dirty = true;
   const gltf = new GLTFLoader();
 
   const disposeProduct = (product: THREE.Object3D) => {
@@ -114,6 +131,7 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
     const w = root.clientWidth, height = root.clientHeight;
     const ratio = Math.min(devicePixelRatio || 1, compact.matches ? 1 : 1.5);
     if (!w || !height) return;
+    dirty = true;
     if (w !== W || height !== H || ratio !== dpr) {
       W = w; H = height; dpr = ratio;
       renderer.setDrawingBufferSize(W, H, dpr);
@@ -121,8 +139,8 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
       mirror.getRenderTarget().setSize(Math.max(1, Math.round(W * dpr * reflectionScale)), Math.max(1, Math.round(H * dpr * reflectionScale)));
     }
     if (!shot) return;
-    const r = rectIn(shot.img, root), [x0, , x1, y1] = shot.obj;
-    const h = r.h * y1, cx = r.x + r.w * (x0 + x1) / 2, yBase = r.y + h;
+    const r = rectIn(shot.el, root), [x0, y0, x1, y1] = shot.obj;
+    const h = r.h * (y1 - y0), cx = r.x + r.w * (x0 + x1) / 2, yBase = r.y + r.h * y1;
     if (h <= 0) return;
     const f = H / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
     const D = f / h;
@@ -144,10 +162,8 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
     const url = new URL(next.glb, location.href);
     let model: THREE.Group | null = null;
     try {
-      const response = await fetch(url, { signal: load.signal });
-      if (!response.ok) return false;
-      const bytes = await response.arrayBuffer();
-      if (load.signal.aborted) return false;
+      const bytes = await fetchModel(url, load.signal);
+      if (!bytes || load.signal.aborted) return false;
       model = (await gltf.parseAsync(bytes, new URL('.', url).href)).scene;
       if (load.signal.aborted || context.isContextLost()) return false;
 
@@ -164,8 +180,13 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
           skin.emissive.set('#ffffff'); skin.emissiveMap = map; skin.emissiveIntensity = .72; skin.color.setScalar(.38);
         }
       });
-      const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+      const bounds = new THREE.Box3().setFromObject(model);
+      const size = bounds.getSize(new THREE.Vector3());
       if (!(size.x > 0 && size.y > 0)) return false;
+      const scale = 1 / size.y;
+      model.scale.multiplyScalar(scale);
+      model.position.y -= bounds.min.y * scale;
+      size.multiplyScalar(scale);
       productWidth = size.x;
       const ao = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 1.5, Math.max(.25, size.z * 1.6)), new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false }));
       ao.rotation.x = -Math.PI / 2; ao.position.y = .002; ao.renderOrder = 3;
@@ -197,9 +218,14 @@ export function startSet(canvas: HTMLCanvasElement, root: HTMLElement, context: 
     frame(heat: number) {
       if (!cur || !W || !H || context.isContextLost()) return false;
       const now = performance.now(), dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
-      fx.intensity = Math.max(0, heat) * 3.2;
-      cur.rotation.y += (turnTo - cur.rotation.y) * Math.min(1, dt * 7);
+      const intensity = Math.max(0, heat) * 3.2;
+      const yaw = cur.rotation.y + (turnTo - cur.rotation.y) * Math.min(1, dt * 7);
+      // The effect canvas keeps moving independently when the product and reflection are still.
+      if (!dirty && fx.intensity === intensity && cur.rotation.y === yaw) return true;
+      fx.intensity = intensity;
+      cur.rotation.y = yaw;
       renderer.render(scene, camera);
+      dirty = false;
       return true;
     },
     destroy() {

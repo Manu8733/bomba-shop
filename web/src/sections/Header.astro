@@ -272,18 +272,31 @@ const popular = [
 
   // mega menus: click toggles, hover opens on desktop, Esc and outside click close
   const megas = [...document.querySelectorAll<HTMLElement>('[data-mega]')];
-  const closeAll = (except?: HTMLElement) => megas.forEach((m) => {
-    if (m === except) return;
-    m.querySelector('button')!.setAttribute('aria-expanded', 'false');
-    m.querySelector<HTMLElement>('.mega')!.hidden = true;
-  });
+  let hoverTimer = 0;
+  const closeAll = (except?: HTMLElement) => {
+    clearTimeout(hoverTimer);
+    megas.forEach((m) => {
+      if (m === except) return;
+      m.querySelector('button')!.setAttribute('aria-expanded', 'false');
+      m.querySelector<HTMLElement>('.mega')!.hidden = true;
+    });
+  };
   megas.forEach((m) => {
     const btn = m.querySelector('button')!, panel = m.querySelector<HTMLElement>('.mega')!;
     const open = () => { closeAll(m); btn.setAttribute('aria-expanded', 'true'); panel.hidden = false; };
     btn.addEventListener('click', () => (panel.hidden ? open() : closeAll()));
-    let t = 0;
-    m.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { clearTimeout(t); t = window.setTimeout(open, 90); } });
-    m.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { clearTimeout(t); t = window.setTimeout(() => closeAll(), 160); } });
+    m.addEventListener('pointerenter', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(hoverTimer);
+      if (panel.hidden) hoverTimer = window.setTimeout(() => { if (m.matches(':hover')) open(); }, 90);
+    });
+    m.addEventListener('pointerleave', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(hoverTimer);
+      hoverTimer = window.setTimeout(() => {
+        if (!megas.some((menu) => menu.matches(':hover'))) closeAll();
+      }, 160);
+    });
   });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
